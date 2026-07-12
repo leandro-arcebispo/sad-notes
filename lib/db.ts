@@ -1,12 +1,12 @@
 import Database from "better-sqlite3";
 import path from "node:path";
 import fs from "node:fs";
+import { SEED_CHARACTERS } from "./seed-characters";
 
 /**
  * Conexão SQLite (singleton). Cada fase do projeto estende `initSchema` com as
- * suas tabelas. A Fase 0 cria só a infraestrutura + a tabela `settings`
- * (chave/valor) — que já hospeda, entre outras coisas, o diretório configurável
- * onde o Catálogo de Sprites (F1) grava os PNGs recortados.
+ * suas tabelas. A Fase 0 criou a infra + `settings`; a Fase 1 adiciona
+ * `players` e `characters` (com seed do roster Four Souls + Requiem).
  */
 
 const DATA_DIR = path.join(process.cwd(), "data");
@@ -32,8 +32,48 @@ function initSchema(db: Database.Database) {
       key   TEXT PRIMARY KEY,
       value TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS players (
+      id           INTEGER PRIMARY KEY AUTOINCREMENT,
+      name         TEXT NOT NULL,
+      nickname     TEXT,
+      color        TEXT NOT NULL DEFAULT '#e8b978',
+      base_face    TEXT NOT NULL DEFAULT 'white',
+      avatar_cache TEXT,
+      active       INTEGER NOT NULL DEFAULT 1,
+      created_at   TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS characters (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      name        TEXT NOT NULL,
+      expansion   TEXT NOT NULL DEFAULT 'base',
+      tainted     INTEGER NOT NULL DEFAULT 0,
+      sprite_path TEXT,
+      active      INTEGER NOT NULL DEFAULT 1
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_players_active ON players(active);
+    CREATE INDEX IF NOT EXISTS idx_characters_active ON characters(active);
   `);
   seedDefaultSettings(db);
+  seedCharactersIfEmpty(db);
+}
+
+function seedCharactersIfEmpty(db: Database.Database) {
+  const { n } = db.prepare("SELECT COUNT(*) AS n FROM characters").get() as {
+    n: number;
+  };
+  if (n > 0) return;
+  const insert = db.prepare(
+    "INSERT INTO characters (name, expansion, tainted) VALUES (?, ?, ?)"
+  );
+  const seed = db.transaction(() => {
+    for (const c of SEED_CHARACTERS) {
+      insert.run(c.name, c.expansion, c.tainted ? 1 : 0);
+    }
+  });
+  seed();
 }
 
 /** Configurações padrão idempotentes (INSERT OR IGNORE). */

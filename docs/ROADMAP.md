@@ -40,10 +40,9 @@ Base de tudo que é visual/customizável. Usável por quem **não** programa.
   conforme as telas nascem.
 
 ### F5 — Players & Avatar
-- [ ] **CRUD de jogadores** (nome, apelido, cor do token, ativo). — *pré-requisito das partidas; entra cedo, na Fase 1.*
-- [ ] **Avatar provisório** (Fase 1): rosto base do Isaac na cor escolhida, usando os
-  assets `faces/`/`avatar-*.png` que já temos — dá identidade às tabelas sem depender
-  do catálogo de sprites.
+- [x] **CRUD de jogadores** (nome, apelido, cor do token, ativo). — *pré-requisito das partidas; entregue na Fase 1.*
+- [x] **Avatar provisório** (Fase 1): rosto base do Isaac na cor escolhida (6 faces),
+  com anel na cor do token — dá identidade às tabelas sem depender do catálogo de sprites.
 - [ ] **Cadastro de ornamentos:** posicionar sprite do catálogo sobre o Isaac base
   (offset/escala/z-order) + categoria (**cabelo** | **diverso**). Último diverso por cima.
 - [ ] **Customização de avatar:** rosto base (Isaac em várias cores) + 1 cabelo + N diversos.
@@ -71,7 +70,7 @@ avatar provisório (rosto base por cor) introduzido já na Fase 1.
 | Fase | Entrega | Depende de | Status |
 |---|---|---|---|
 | **0 — Fundação** | Pasta + git, scaffold Next.js, `db.ts`, design system importado, shell (sidebar + frame), docs (BRIEF/ROADMAP/STYLE-GUIDE) | — | `[x]` |
-| **1 — Jogadores & Personagens (F5-base)** | Players CRUD (nome, apelido, cor, ativo) · seed de personagens (base + Requiem) · **avatar provisório** (rosto base por cor) | F0 | `[ ]` |
+| **1 — Jogadores & Personagens (F5-base)** | Players CRUD (nome, apelido, cor, ativo) · seed de personagens (base + Requiem) · **avatar provisório** (rosto base por cor) | F0 | `[x]` |
 | **2 — Núcleo de Partidas (F2)** | Schema expandido de `games`/`game_players` · wizard completo (setup → jogadores → estado final) · listagem + detalhe · itens por nome (autocomplete) | **Fase 1** | `[ ]` |
 | **3 — Ranking (F3)** | Agregações sincronizadas, métricas novas, Global Board | Fase 2 | `[ ]` |
 | **4 — Catálogo de Sprites (F1)** | Import + recorte + salvar + biblioteca | F0 | `[ ]` |

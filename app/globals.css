@@ -346,6 +346,134 @@ h2.title {
   margin-bottom: 24px;
 }
 
+/* ---------- avatar de jogador (provisório) ---------- */
+.player-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  background: #120c09;
+  border: 2px solid var(--accent);
+  box-shadow: var(--shadow-inset);
+  overflow: hidden;
+}
+.player-avatar img {
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+/* ---------- jogadores ---------- */
+.players-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+}
+.player-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--panel);
+  border: 2px solid var(--panel-border);
+  box-shadow: var(--shadow-hard);
+}
+.player-card.is-archived {
+  opacity: 0.6;
+}
+.player-meta {
+  flex: 1;
+  min-width: 0;
+}
+.player-name {
+  font-size: 16px;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.player-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.player-actions .btn {
+  padding: 5px 10px;
+  font-size: 12px;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+}
+.archived summary {
+  cursor: pointer;
+  color: var(--text-dim);
+  padding: 6px 0;
+}
+.archived summary:hover {
+  color: var(--accent);
+}
+
+/* ---------- formulário de jogador ---------- */
+.form-panel {
+  padding: 18px 20px;
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 200px;
+  gap: 22px;
+}
+.form-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--panel-border);
+}
+.swatch-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.swatch {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 2px solid var(--panel-border);
+  cursor: pointer;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+}
+.swatch.selected {
+  border-color: var(--accent);
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.swatch-custom {
+  background: #120c09;
+}
+.face-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.face-opt {
+  width: 46px;
+  height: 46px;
+  padding: 3px;
+  background: #120c09;
+  border: 2px solid var(--panel-border);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.face-opt.selected {
+  border-color: var(--accent);
+}
+.face-opt img {
+  max-width: 100%;
+  max-height: 100%;
+  image-rendering: pixelated;
+}
+
 /* ---------- utilidades ---------- */
 .stack {
   display: flex;

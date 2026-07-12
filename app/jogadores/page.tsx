@@ -1,13 +1,15 @@
 import Frame from "@/components/Frame";
-import ComingSoon from "@/components/ComingSoon";
+import JogadoresClient from "@/components/JogadoresClient";
+import { listPlayers } from "@/lib/players";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export default function JogadoresPage() {
+  const players = listPlayers();
   return (
     <Frame variant="frame-library" title="Jogadores">
-      <ComingSoon
-        phase="Fase 1 — Jogadores"
-        desc="Cadastro do bando (nome, apelido, cor do token). O avatar customizado chega na Fase 5, alimentado pelo Catálogo de Sprites e pelos Ornamentos."
-      />
+      <JogadoresClient players={players} />
     </Frame>
   );
 }
