@@ -5,15 +5,14 @@ import { useRouter } from "next/navigation";
 import { BASE_FACES, type BaseFace, type Sprite, type OrnamentCategory, type OrnamentFull } from "@/lib/types";
 
 /**
- * Estágio de preview 256×256 e caixas de camada seguem exatamente a convenção
- * já validada na POC (four-souls-poc/ornaments.html): rosto fixo 96×84 em
- * left:80/top:128 (centralizado), ornamento base 128×128 em left:64/top:0
- * (centralizado, cobrindo a metade de cima). Sliders: escala 20–200%,
- * offset X/Y de -64 a 64 a partir dessa base.
+ * Estágio de preview 256×256. Rosto e caixa base do ornamento ficam
+ * centralizados no mesmo ponto (centro do estágio) — assim, com offset 0,0,
+ * o ornamento já cai em cima do rosto por padrão. Sliders: escala 20–200%,
+ * offset X/Y de -64 a 64 a partir desse centro comum.
  */
 const STAGE = 256;
-const FACE_BOX = { w: 96, h: 84, left: 80, top: 128 };
-const ORN_BASE = { w: 128, h: 128, left: 64, top: 0 };
+const FACE_BOX = { w: 96, h: 84, left: (STAGE - 96) / 2, top: (STAGE - 84) / 2 };
+const ORN_BASE = { w: 128, h: 128, left: (STAGE - 128) / 2, top: (STAGE - 128) / 2 };
 
 export default function OrnamentBuilder({
   sprites,
@@ -31,7 +30,7 @@ export default function OrnamentBuilder({
   const [category, setCategory] = useState<OrnamentCategory>("cabelo");
   const [scale, setScale] = useState(100);
   const [offX, setOffX] = useState(0);
-  const [offY, setOffY] = useState(-24);
+  const [offY, setOffY] = useState(0);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
