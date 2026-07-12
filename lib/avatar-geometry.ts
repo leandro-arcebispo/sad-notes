@@ -17,6 +17,15 @@ export const FACE_BOX = {
  * (contain) dentro dela preservando a proporção real, nunca esticado. */
 export const ORN_REF = 128;
 
+/** Janela quadrada centralizada usada para "enquadrar" o avatar final cacheado
+ * (lib/avatar-compose.ts). O estágio de edição (256) tem folga generosa em
+ * volta do rosto para posicionar ornamentos livremente, mas isso deixa o
+ * avatar final com muita margem transparente e o rosto pequeno demais nas
+ * telas (ranking, cards). O corte usa só a região central antes de reduzir
+ * pro tamanho de cache, preenchendo bem mais o quadro. */
+export const AVATAR_FRAME = 160;
+export const AVATAR_FRAME_OFFSET = (STAGE - AVATAR_FRAME) / 2;
+
 /** Dimensões do sprite ajustadas (contain) dentro de um box quadrado `ref`. */
 export function fitContain(w: number, h: number, ref: number): { w: number; h: number } {
   if (!w || !h) return { w: ref, h: ref };

@@ -2,7 +2,7 @@ import sharp from "sharp";
 import path from "node:path";
 import fs from "node:fs";
 import crypto from "node:crypto";
-import { STAGE, FACE_BOX, ornamentBox } from "./avatar-geometry";
+import { STAGE, FACE_BOX, ornamentBox, AVATAR_FRAME, AVATAR_FRAME_OFFSET } from "./avatar-geometry";
 import type { AppliedOrnament, BaseFace } from "./types";
 
 const PUBLIC_DIR = path.join(process.cwd(), "public");
@@ -65,7 +65,15 @@ export async function composeAvatarPng(recipe: {
     .png()
     .toBuffer();
 
-  return sharp(composedBuf)
+  // Corta pra janela central (AVATAR_FRAME) antes de reduzir — o estágio de
+  // edição tem folga em volta do rosto p/ posicionar ornamentos livremente,
+  // mas o avatar final deve ficar "zoomado" no rosto, sem essa margem.
+  const croppedBuf = await sharp(composedBuf)
+    .extract({ left: AVATAR_FRAME_OFFSET, top: AVATAR_FRAME_OFFSET, width: AVATAR_FRAME, height: AVATAR_FRAME })
+    .png()
+    .toBuffer();
+
+  return sharp(croppedBuf)
     .resize(OUTPUT_SIZE, OUTPUT_SIZE, { kernel: "nearest" })
     .png()
     .toBuffer();
