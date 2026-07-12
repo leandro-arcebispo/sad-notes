@@ -7,14 +7,15 @@ Inventário completo das features e a ordem de implementação. Status:
 
 ## Features (o quê)
 
-### F1 — Catálogo de Sprites
+### F1 — Catálogo de Sprites ✅
 Base de tudo que é visual/customizável. Usável por quem **não** programa.
-- [ ] Importar um sprite-sheet (upload no navegador).
-- [ ] Recorte interativo (drag-select) de um sprite na sheet.
-- [ ] Nomear + categorizar + salvar como PNG numa **pasta configurável** do projeto.
-- [ ] Biblioteca navegável dos sprites recortados, reutilizável por outras telas.
-- [ ] Catálogo no banco: nome, categoria, caminho, dimensões, **origem (sheet + x,y,w,h)**.
-- Motor de recorte portado de `four-souls-mockups/assets` (crop.js/extract.js, zero deps).
+- [x] Importar um sprite-sheet (upload no navegador).
+- [x] Recorte interativo (drag-select) de um sprite na sheet, com zoom (2×–12×).
+- [x] Nomear + categorizar + salvar como PNG numa **pasta configurável** (`public/sprites/<cat>`).
+- [x] Biblioteca navegável dos sprites recortados (agrupada por categoria) + excluir.
+- [x] Catálogo no banco: nome, categoria, caminho, dimensões, **origem (sheet + x,y,w,h)**.
+- Recorte feito no **cliente com Canvas** (codifica PNG nativo) em vez do encoder Node
+  do mockup — mais simples, com prévia instantânea; servidor só grava o arquivo + cataloga.
 
 ### F2 — Cadastro de Partidas (wizard) ✅
 - [x] **Setup:** almas p/ vencer · edição (Base | Base+Requiem) · nº de players ·
@@ -76,7 +77,7 @@ avatar provisório (rosto base por cor) introduzido já na Fase 1.
 | **1 — Jogadores & Personagens (F5-base)** | Players CRUD (nome, apelido, cor, ativo) · seed de personagens (base + Requiem) · **avatar provisório** (rosto base por cor) | F0 | `[x]` |
 | **2 — Núcleo de Partidas (F2)** | Schema expandido de `games`/`game_players` · wizard completo (setup → jogadores → estado final) · listagem + detalhe · itens por nome (autocomplete) | **Fase 1** | `[x]` |
 | **3 — Ranking (F3)** | Agregações sincronizadas, métricas novas, Global Board | Fase 2 | `[x]` |
-| **4 — Catálogo de Sprites (F1)** | Import + recorte + salvar + biblioteca | F0 | `[ ]` |
+| **4 — Catálogo de Sprites (F1)** | Import + recorte + salvar + biblioteca | F0 | `[x]` |
 | **5 — Ornamentos (F5a)** | Posicionamento sobre Isaac base, usando o catálogo | Fase 4 | `[ ]` |
 | **6 — Avatar completo (F5b)** | Customização + storage (receita + cache) · substitui o provisório nas telas | Fase 5 | `[ ]` |
 | **7 — Polish visual (F4)** | Frames por página, componentes padronizados, style guide final | tudo | `[ ]` |

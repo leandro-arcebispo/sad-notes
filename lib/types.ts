@@ -41,6 +41,25 @@ export interface PlayerInput {
   base_face: BaseFace;
 }
 
+/* ======================= Catálogo de Sprites (Fase 4) ===================== */
+
+export interface Sprite {
+  id: number;
+  name: string;
+  category: string;
+  /** Caminho relativo a /public — ex.: "sprites/cabelo/hair-01-a1b2c3.png". */
+  path: string;
+  width: number;
+  height: number;
+  /** Proveniência (para re-recorte futuro): sheet de origem + retângulo. */
+  source_sheet: string | null;
+  sx: number | null;
+  sy: number | null;
+  sw: number | null;
+  sh: number | null;
+  created_at: string;
+}
+
 /* ============================ Partidas (Fase 2) ============================ */
 
 export type Edition = "base" | "requiem";

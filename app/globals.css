@@ -726,6 +726,108 @@ h2.title {
   color: var(--accent);
 }
 
+/* ---------- catálogo de sprites ---------- */
+.zoom-btn {
+  padding: 5px 9px;
+  font-size: 12px;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+}
+.zoom-btn.active {
+  color: #1a1208;
+  background: var(--accent);
+  border-color: var(--accent-dim);
+}
+.cropper-grid {
+  display: grid;
+  grid-template-columns: 1fr 220px;
+  gap: 18px;
+  margin-top: 14px;
+}
+.sheet-viewport {
+  max-height: 62vh;
+  overflow: auto;
+  background: #0b0806
+    repeating-conic-gradient(#171009 0% 25%, #0b0806 0% 50%) 0 / 20px 20px;
+  border: 2px solid var(--panel-border);
+  box-shadow: var(--shadow-inset);
+  padding: 10px;
+}
+.sheet-stage {
+  position: relative;
+  flex: none;
+}
+.sel-box {
+  position: absolute;
+  border: 1px solid var(--accent);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.8), inset 0 0 0 9999px rgba(232, 185, 120, 0.12);
+  pointer-events: none;
+}
+.crop-side {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.crop-preview {
+  height: 130px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0b0806
+    repeating-conic-gradient(#171009 0% 25%, #0b0806 0% 50%) 0 / 16px 16px;
+  border: 2px solid var(--panel-border);
+}
+.crop-preview img {
+  max-width: 100%;
+  max-height: 100%;
+  image-rendering: pixelated;
+}
+.sprite-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 10px;
+}
+.sprite-card {
+  position: relative;
+  padding: 8px;
+  background: var(--panel);
+  border: 2px solid var(--panel-border);
+  text-align: center;
+}
+.sprite-thumb {
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0b0806
+    repeating-conic-gradient(#171009 0% 25%, #0b0806 0% 50%) 0 / 14px 14px;
+  margin-bottom: 6px;
+}
+.sprite-thumb img {
+  max-width: 100%;
+  max-height: 100%;
+  image-rendering: pixelated;
+}
+.sprite-name {
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sprite-del {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  padding: 1px 7px;
+  font-size: 14px;
+  line-height: 1.2;
+  box-shadow: none;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.sprite-card:hover .sprite-del {
+  opacity: 1;
+}
+
 /* ---------- utilidades ---------- */
 .stack {
   display: flex;
