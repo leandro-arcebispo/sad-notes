@@ -12,7 +12,15 @@ import { BASE_FACES, type BaseFace, type Sprite, type OrnamentCategory, type Orn
  */
 const STAGE = 256;
 const FACE_BOX = { w: 96, h: 84, left: (STAGE - 96) / 2, top: (STAGE - 84) / 2 };
-const ORN_BASE = { w: 128, h: 128, left: (STAGE - 128) / 2, top: (STAGE - 128) / 2 };
+/** Caixa de referência para o ornamento em escala 100% — o sprite é ajustado
+ * (contain) dentro dela preservando a proporção real, nunca esticado. */
+const ORN_REF = 128;
+
+/** Dimensões do sprite ajustadas (contain) dentro de um box quadrado `ref`. */
+function fitContain(w: number, h: number, ref: number): { w: number; h: number } {
+  if (!w || !h) return { w: ref, h: ref };
+  return w >= h ? { w: ref, h: (h / w) * ref } : { w: (w / h) * ref, h: ref };
+}
 
 export default function OrnamentBuilder({
   sprites,
@@ -90,19 +98,24 @@ export default function OrnamentBuilder({
               src={`/design-system/img/faces/face-${previewFace}.png`}
               alt=""
             />
-            {selectedSprite && (
-              <img
-                className="preview-layer"
-                style={{
-                  width: (ORN_BASE.w * scale) / 100,
-                  height: (ORN_BASE.h * scale) / 100,
-                  left: ORN_BASE.left + offX,
-                  top: ORN_BASE.top + offY,
-                }}
-                src={`/${selectedSprite.path}`}
-                alt=""
-              />
-            )}
+            {selectedSprite && (() => {
+              const fit = fitContain(selectedSprite.width, selectedSprite.height, ORN_REF);
+              const w = (fit.w * scale) / 100;
+              const h = (fit.h * scale) / 100;
+              return (
+                <img
+                  className="preview-layer"
+                  style={{
+                    width: w,
+                    height: h,
+                    left: (STAGE - w) / 2 + offX,
+                    top: (STAGE - h) / 2 + offY,
+                  }}
+                  src={`/${selectedSprite.path}`}
+                  alt=""
+                />
+              );
+            })()}
           </div>
 
           <div className="face-picker" style={{ justifyContent: "center" }}>
