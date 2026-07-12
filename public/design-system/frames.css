@@ -1,0 +1,286 @@
+/*
+  Frame containers — Four Souls ranking system.
+  Usage: <div class="frame frame-brick"> ... </div>
+         <div class="frame frame-library"> ... </div>
+
+  `.frame` carries the shared setup (box model + pixel-art rendering).
+  `.frame-brick` / `.frame-library` swap in the actual border art.
+  See frames.md for when to use which, and how the source images
+  were derived (crop coordinates, mirroring) if they ever need redoing.
+*/
+
+.frame {
+  box-sizing: border-box;
+  border-style: solid;
+  image-rendering: pixelated;
+  padding: 20px;
+}
+
+.frame-brick {
+  border-width: 37px;
+  border-image-source: url("img/frame-brick.webp");
+  border-image-slice: 50 fill;
+  border-image-repeat: repeat;
+  background: #603829;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.8) inset;
+}
+
+.frame-library {
+  border-width: 48px;
+  border-image-source: url("img/frame-library.png");
+  border-image-slice: 48;
+  border-image-repeat: stretch;
+  background-image: url("img/frame-library-floor.png");
+  background-repeat: repeat;
+  background-size: 120px 80px;
+}
+
+.frame-chest {
+  border-width: 50px;
+  border-image-source: url("img/frame-chest.png");
+  border-image-slice: 50;
+  border-image-repeat: stretch;
+  background-image: url("img/frame-chest-floor.png");
+  background-repeat: repeat;
+  background-size: 120px 80px;
+}
+
+.frame-chest-torch {
+  border-width: 50px;
+  border-image-source: url("img/frame-chest-torch.png");
+  border-image-slice: 50;
+  border-image-repeat: stretch;
+  background-image: url("img/frame-chest-torch-floor.png");
+  background-repeat: repeat;
+  background-size: 120px 80px;
+}
+
+.frame-chest-chains {
+  border-width: 50px;
+  border-image-source: url("img/frame-chest-chains.png");
+  border-image-slice: 50;
+  border-image-repeat: stretch;
+  background-image: url("img/frame-chest-chains-floor.png");
+  background-repeat: repeat;
+  background-size: 120px 80px;
+}
+
+.frame-arcade {
+  border-width: 45px;
+  border-image-source: url("img/frame-arcade.png");
+  border-image-slice: 45;
+  border-image-repeat: stretch;
+  background-image: url("img/frame-arcade-floor.png");
+  background-repeat: repeat;
+  background-size: 120px 80px;
+}
+
+.frame-dank-depths {
+  border-width: 48px;
+  border-image-source: url("img/frame-dank-depths.png");
+  border-image-slice: 48;
+  border-image-repeat: stretch;
+  background-image: url("img/frame-dank-depths-floor.png");
+  background-repeat: repeat;
+  background-size: 120px 80px;
+}
+
+.frame-dank-depths-b {
+  border-width: 48px;
+  border-image-source: url("img/frame-dank-depths-b.png");
+  border-image-slice: 48;
+  border-image-repeat: stretch;
+  background-image: url("img/frame-dank-depths-b-floor.png");
+  background-repeat: repeat;
+  background-size: 120px 80px;
+}
+
+.frame-isaacs-room {
+  border-width: 48px;
+  border-image-source: url("img/frame-isaacs-room.png");
+  border-image-slice: 48;
+  border-image-repeat: stretch;
+  background-image: url("img/frame-isaacs-room-floor.png");
+  background-repeat: repeat;
+  background-size: 120px 80px;
+}
+
+.frame-isaacs-room-b {
+  border-width: 48px;
+  border-image-source: url("img/frame-isaacs-room-b.png");
+  border-image-slice: 48;
+  border-image-repeat: stretch;
+  background-image: url("img/frame-isaacs-room-b-floor.png");
+  background-repeat: repeat;
+  background-size: 120px 80px;
+}
+
+.frame-scarred-womb {
+  border-width: 50px;
+  border-image-source: url("img/frame-scarred-womb.png");
+  border-image-slice: 50;
+  border-image-repeat: stretch;
+  background-image: url("img/frame-scarred-womb-floor.png");
+  background-repeat: repeat;
+  background-size: 120px 80px;
+}
+
+.frame-shop {
+  border-width: 48px;
+  border-image-source: url("img/frame-shop.png");
+  border-image-slice: 48;
+  border-image-repeat: stretch;
+  background-image: url("img/frame-shop-floor.png");
+  background-repeat: repeat;
+  background-size: 120px 80px;
+}
+
+.frame-shop-light {
+  border-width: 48px;
+  border-image-source: url("img/frame-shop-light.png");
+  border-image-slice: 48;
+  border-image-repeat: stretch;
+  background-image: url("img/frame-shop-light-floor.png");
+  background-repeat: repeat;
+  background-size: 120px 80px;
+}
+
+.frame-shop-stocked {
+  border-width: 48px;
+  border-image-source: url("img/frame-shop-stocked.png");
+  border-image-slice: 48;
+  border-image-repeat: stretch;
+  background-image: url("img/frame-shop-stocked-floor.png");
+  background-repeat: repeat;
+  background-size: 120px 80px;
+}
+
+.frame-utero {
+  border-width: 48px;
+  border-image-source: url("img/frame-utero.png");
+  border-image-slice: 48;
+  border-image-repeat: stretch;
+  background-image: url("img/frame-utero-floor.png");
+  background-repeat: repeat;
+  background-size: 120px 80px;
+}
+
+.frame-cathedral {
+  border-width: 48px;
+  border-image-source: url("img/frame-cathedral.png");
+  border-image-slice: 48;
+  border-image-repeat: stretch;
+  background-image: url("img/frame-cathedral-floor.png");
+  background-repeat: repeat;
+  background-size: 120px 80px;
+}
+
+.frame-cathedral-candles {
+  border-width: 48px;
+  border-image-source: url("img/frame-cathedral-candles.png");
+  border-image-slice: 48;
+  border-image-repeat: stretch;
+  background-image: url("img/frame-cathedral-candles-floor.png");
+  background-repeat: repeat;
+  background-size: 120px 80px;
+}
+
+.frame-cathedral-skulls {
+  border-width: 48px;
+  border-image-source: url("img/frame-cathedral-skulls.png");
+  border-image-slice: 48;
+  border-image-repeat: stretch;
+  background-image: url("img/frame-cathedral-skulls-floor.png");
+  background-repeat: repeat;
+  background-size: 120px 80px;
+}
+
+.frame-dank-depths-skulls {
+  border-width: 48px;
+  border-image-source: url("img/frame-dank-depths-skulls.png");
+  border-image-slice: 48;
+  border-image-repeat: stretch;
+  background-image: url("img/frame-dank-depths-skulls-floor.png");
+  background-repeat: repeat;
+  background-size: 120px 80px;
+}
+
+.frame-dank-depths-cracks {
+  border-width: 48px;
+  border-image-source: url("img/frame-dank-depths-cracks.png");
+  border-image-slice: 48;
+  border-image-repeat: stretch;
+  background-image: url("img/frame-dank-depths-cracks-floor.png");
+  background-repeat: repeat;
+  background-size: 120px 80px;
+}
+
+.frame-dank-depths-cracks-b {
+  border-width: 48px;
+  border-image-source: url("img/frame-dank-depths-cracks-b.png");
+  border-image-slice: 48;
+  border-image-repeat: stretch;
+  background-image: url("img/frame-dank-depths-cracks-b-floor.png");
+  background-repeat: repeat;
+  background-size: 120px 80px;
+}
+
+.frame-isaacs-room-cobweb {
+  border-width: 48px;
+  border-image-source: url("img/frame-isaacs-room-cobweb.png");
+  border-image-slice: 48;
+  border-image-repeat: stretch;
+  background-image: url("img/frame-isaacs-room-cobweb-floor.png");
+  background-repeat: repeat;
+  background-size: 120px 80px;
+}
+
+.frame-isaacs-room-cobweb-b {
+  border-width: 48px;
+  border-image-source: url("img/frame-isaacs-room-cobweb-b.png");
+  border-image-slice: 48;
+  border-image-repeat: stretch;
+  background-image: url("img/frame-isaacs-room-cobweb-b-floor.png");
+  background-repeat: repeat;
+  background-size: 120px 80px;
+}
+
+.frame-scarred-womb-cracks {
+  border-width: 50px;
+  border-image-source: url("img/frame-scarred-womb-cracks.png");
+  border-image-slice: 50;
+  border-image-repeat: stretch;
+  background-image: url("img/frame-scarred-womb-cracks-floor.png");
+  background-repeat: repeat;
+  background-size: 120px 80px;
+}
+
+.frame-scarred-womb-veiny {
+  border-width: 50px;
+  border-image-source: url("img/frame-scarred-womb-veiny.png");
+  border-image-slice: 50;
+  border-image-repeat: stretch;
+  background-image: url("img/frame-scarred-womb-veiny-floor.png");
+  background-repeat: repeat;
+  background-size: 120px 80px;
+}
+
+.frame-utero-purple {
+  border-width: 48px;
+  border-image-source: url("img/frame-utero-purple.png");
+  border-image-slice: 48;
+  border-image-repeat: stretch;
+  background-image: url("img/frame-utero-purple-floor.png");
+  background-repeat: repeat;
+  background-size: 120px 80px;
+}
+
+.frame-utero-dark {
+  border-width: 48px;
+  border-image-source: url("img/frame-utero-dark.png");
+  border-image-slice: 48;
+  border-image-repeat: stretch;
+  background-image: url("img/frame-utero-dark-floor.png");
+  background-repeat: repeat;
+  background-size: 120px 80px;
+}

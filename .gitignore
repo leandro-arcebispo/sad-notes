@@ -1,0 +1,26 @@
+# dependencies
+/node_modules
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# banco local (SQLite) — dados de dev não versionados
+/data/*.db
+/data/*.db-wal
+/data/*.db-shm
+
+# sprites recortados pelo usuário (gerados em runtime; catálogo vive no banco)
+# obs: mantemos a pasta versionada com .gitkeep, mas ignoramos os PNGs gerados
+/public/sprites/**/*.png
+
+# misc
+.DS_Store
+*.pem
+.env*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

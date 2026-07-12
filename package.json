@@ -1,0 +1,25 @@
+{
+  "name": "sad-notes",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Isaaquinho's Friends Sad Notes (IFSN) — registro de partidas, ranking e torneios de The Binding of Isaac: Four Souls + Requiem.",
+  "scripts": {
+    "dev": "next dev -p 6007",
+    "build": "next build",
+    "start": "next start -p 6007",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.11.1",
+    "next": "^15.5.19",
+    "react": "19.0.0",
+    "react-dom": "19.0.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.10.7",
+    "@types/react": "^19.0.7",
+    "@types/react-dom": "^19.0.3",
+    "typescript": "^5.7.3"
+  }
+}
