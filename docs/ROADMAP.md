@@ -47,8 +47,10 @@ Base de tudo que é visual/customizável. Usável por quem **não** programa.
 - [x] **CRUD de jogadores** (nome, apelido, cor do token, ativo). — *pré-requisito das partidas; entregue na Fase 1.*
 - [x] **Avatar provisório** (Fase 1): rosto base do Isaac na cor escolhida (6 faces),
   com anel na cor do token — dá identidade às tabelas sem depender do catálogo de sprites.
-- [ ] **Cadastro de ornamentos:** posicionar sprite do catálogo sobre o Isaac base
-  (offset/escala/z-order) + categoria (**cabelo** | **diverso**). Último diverso por cima.
+- [x] **Cadastro de ornamentos:** posicionar sprite do catálogo sobre o Isaac base
+  (offset/escala) + categoria (**cabelo** | **diverso**). O "último diverso por cima"
+  é resolvido na tela de customização do avatar (Fase 6), pela ordem de seleção — não
+  é um campo do ornamento em si.
 - [ ] **Customização de avatar:** rosto base (Isaac em várias cores) + 1 cabelo + N diversos.
 - [ ] Avatar usado em ranking, jogadores e partidas (receita + cache PNG). **Substitui o
   avatar provisório** em todas as telas.
@@ -78,7 +80,7 @@ avatar provisório (rosto base por cor) introduzido já na Fase 1.
 | **2 — Núcleo de Partidas (F2)** | Schema expandido de `games`/`game_players` · wizard completo (setup → jogadores → estado final) · listagem + detalhe · itens por nome (autocomplete) | **Fase 1** | `[x]` |
 | **3 — Ranking (F3)** | Agregações sincronizadas, métricas novas, Global Board | Fase 2 | `[x]` |
 | **4 — Catálogo de Sprites (F1)** | Import + recorte + salvar + biblioteca | F0 | `[x]` |
-| **5 — Ornamentos (F5a)** | Posicionamento sobre Isaac base, usando o catálogo | Fase 4 | `[ ]` |
+| **5 — Ornamentos (F5a)** | Posicionamento sobre Isaac base, usando o catálogo | Fase 4 | `[x]` |
 | **6 — Avatar completo (F5b)** | Customização + storage (receita + cache) · substitui o provisório nas telas | Fase 5 | `[ ]` |
 | **7 — Polish visual (F4)** | Frames por página, componentes padronizados, style guide final | tudo | `[ ]` |
 | **Backlog** | Torneios (entidade + ranking próprio), auth, deploy | — | `[ ]` |

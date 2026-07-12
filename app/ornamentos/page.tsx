@@ -1,13 +1,17 @@
 import Frame from "@/components/Frame";
-import ComingSoon from "@/components/ComingSoon";
+import OrnamentBuilder from "@/components/OrnamentBuilder";
+import { listSprites } from "@/lib/sprites";
+import { listOrnaments } from "@/lib/ornaments";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export default function OrnamentosPage() {
+  const sprites = listSprites();
+  const ornaments = listOrnaments();
   return (
     <Frame variant="frame-cathedral" title="Ornamentos">
-      <ComingSoon
-        phase="Fase 4 — Ornamentos"
-        desc="Posicionar um sprite do catálogo sobre o Isaac base, salvando offset/escala/z-order e categoria (cabelo | diverso). Insumo da customização de avatar."
-      />
+      <OrnamentBuilder sprites={sprites} ornaments={ornaments} />
     </Frame>
   );
 }

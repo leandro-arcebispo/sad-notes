@@ -110,9 +110,21 @@ function initSchema(db: Database.Database) {
       created_at   TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS ornaments (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      sprite_id  INTEGER NOT NULL REFERENCES sprites(id) ON DELETE CASCADE,
+      name       TEXT NOT NULL,
+      category   TEXT NOT NULL DEFAULT 'diverso',
+      offset_x   INTEGER NOT NULL DEFAULT 0,
+      offset_y   INTEGER NOT NULL DEFAULT 0,
+      scale      INTEGER NOT NULL DEFAULT 100,
+      created_at TEXT NOT NULL
+    );
+
     CREATE INDEX IF NOT EXISTS idx_players_active ON players(active);
     CREATE INDEX IF NOT EXISTS idx_characters_active ON characters(active);
     CREATE INDEX IF NOT EXISTS idx_sprites_category ON sprites(category);
+    CREATE INDEX IF NOT EXISTS idx_ornaments_category ON ornaments(category);
     CREATE INDEX IF NOT EXISTS idx_games_played_at ON games(played_at);
     CREATE INDEX IF NOT EXISTS idx_gp_game ON game_players(game_id);
     CREATE INDEX IF NOT EXISTS idx_gp_player ON game_players(player_id);

@@ -60,6 +60,38 @@ export interface Sprite {
   created_at: string;
 }
 
+/* =========================== Ornamentos (Fase 5) =========================== */
+
+export type OrnamentCategory = "cabelo" | "diverso";
+
+export interface Ornament {
+  id: number;
+  sprite_id: number;
+  name: string;
+  category: OrnamentCategory;
+  /** Deslocamento em px a partir do centro do estágio de preview (256×256). */
+  offset_x: number;
+  offset_y: number;
+  /** Escala em porcentagem (20–200), aplicada sobre a caixa base de 128×128. */
+  scale: number;
+  created_at: string;
+}
+
+/** Ornamento com o sprite já resolvido, para exibição. */
+export interface OrnamentFull extends Ornament {
+  sprite_path: string;
+  sprite_name: string;
+}
+
+export interface OrnamentInput {
+  sprite_id: number;
+  name: string;
+  category: OrnamentCategory;
+  offset_x: number;
+  offset_y: number;
+  scale: number;
+}
+
 /* ============================ Partidas (Fase 2) ============================ */
 
 export type Edition = "base" | "requiem";
