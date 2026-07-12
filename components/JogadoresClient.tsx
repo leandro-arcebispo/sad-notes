@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import PlayerAvatar from "./PlayerAvatar";
 import { BASE_FACES, type BaseFace, type Player } from "@/lib/types";
 
@@ -122,12 +123,15 @@ export default function JogadoresClient({ players }: { players: Player[] }) {
         <div className="players-grid">
           {active.map((p) => (
             <div key={p.id} className="player-card">
-              <PlayerAvatar face={p.base_face} color={p.color} size={56} />
+              <PlayerAvatar face={p.base_face} color={p.color} size={56} avatarCache={p.avatar_cache} />
               <div className="player-meta">
                 <div className="player-name pixel-label">{p.name}</div>
                 {p.nickname && <div className="muted">“{p.nickname}”</div>}
               </div>
               <div className="player-actions">
+                <Link href={`/jogadores/${p.id}/avatar`} className="btn">
+                  Avatar
+                </Link>
                 <button className="btn" onClick={() => openEdit(p)}>
                   Editar
                 </button>
@@ -148,7 +152,7 @@ export default function JogadoresClient({ players }: { players: Player[] }) {
           <div className="players-grid" style={{ marginTop: 12 }}>
             {archived.map((p) => (
               <div key={p.id} className="player-card is-archived">
-                <PlayerAvatar face={p.base_face} color={p.color} size={56} />
+                <PlayerAvatar face={p.base_face} color={p.color} size={56} avatarCache={p.avatar_cache} />
                 <div className="player-meta">
                   <div className="player-name pixel-label">{p.name}</div>
                   {p.nickname && <div className="muted">“{p.nickname}”</div>}

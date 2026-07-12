@@ -267,7 +267,7 @@ export default function GameWizard({
                 <div key={pl.id} className={`part-row${on ? " on" : ""}`}>
                   <label className="part-check">
                     <input type="checkbox" checked={on} onChange={() => toggleInclude(pl.id)} />
-                    <PlayerAvatar face={pl.base_face} color={pl.color} size={34} />
+                    <PlayerAvatar face={pl.base_face} color={pl.color} size={34} avatarCache={pl.avatar_cache} />
                     <span className="pixel-label">{pl.name}</span>
                   </label>
                   {on && part && (
@@ -339,7 +339,7 @@ export default function GameWizard({
               return (
                 <div key={p.player_id} className={`final-row${p.is_winner ? " winner" : ""}`}>
                   <div className="final-id">
-                    <PlayerAvatar face={pl.base_face} color={pl.color} size={38} />
+                    <PlayerAvatar face={pl.base_face} color={pl.color} size={38} avatarCache={pl.avatar_cache} />
                     <div>
                       <div className="pixel-label">{pl.name}{p.is_winner ? " 👑" : ""}</div>
                       <div className="muted" style={{ fontSize: 12 }}>

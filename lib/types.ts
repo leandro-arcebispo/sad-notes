@@ -81,6 +81,10 @@ export interface Ornament {
 export interface OrnamentFull extends Ornament {
   sprite_path: string;
   sprite_name: string;
+  /** Dimensões reais do sprite — necessárias pra `fitContain` (evita distorção
+   * ao compor o avatar, mesmo bug já corrigido no OrnamentBuilder). */
+  sprite_width: number;
+  sprite_height: number;
 }
 
 export interface OrnamentInput {
@@ -90,6 +94,23 @@ export interface OrnamentInput {
   offset_x: number;
   offset_y: number;
   scale: number;
+}
+
+/* ========================= Avatar completo (Fase 6) ========================= */
+
+/** Um ornamento aplicado a um jogador — carrega o row id (p/ remover/reordenar)
+ * além dos dados do ornamento em si (posição/escala/sprite). */
+export interface AppliedOrnament extends OrnamentFull {
+  row_id: number;
+  sort_order: number;
+}
+
+/** Receita completa do avatar de um jogador: base + no máx. 1 cabelo + N diversos
+ * (ordem = empilhamento; o último da lista aparece por cima). */
+export interface AvatarRecipe {
+  base_face: BaseFace;
+  hair: AppliedOrnament | null;
+  diversos: AppliedOrnament[];
 }
 
 /* ============================ Partidas (Fase 2) ============================ */
@@ -168,6 +189,7 @@ export interface GameFull extends Game {
     player_name: string;
     player_color: string;
     player_base_face: BaseFace;
+    player_avatar_cache: string | null;
     nickname: string | null;
     character_name: string | null;
     items: { id: number; name: string }[];

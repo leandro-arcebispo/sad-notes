@@ -100,8 +100,8 @@ export function getGame(id: number): GameFull | undefined {
     .prepare(
       `SELECT gp.*,
               p.name AS player_name, p.color AS player_color,
-              p.base_face AS player_base_face, p.nickname AS nickname,
-              c.name AS character_name
+              p.base_face AS player_base_face, p.avatar_cache AS player_avatar_cache,
+              p.nickname AS nickname, c.name AS character_name
          FROM game_players gp
          JOIN players p ON p.id = gp.player_id
     LEFT JOIN characters c ON c.id = gp.character_id

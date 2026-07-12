@@ -17,6 +17,9 @@
 # obs: mantemos a pasta versionada com .gitkeep, mas ignoramos os PNGs gerados
 /public/sprites/**/*.png
 
+# avatares compostos (PNG cacheado, gerado via sharp a partir da receita no banco)
+/public/avatars/*.png
+
 # misc
 .DS_Store
 *.pem
@@ -24,3 +27,4 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+*.tsbuildinfo

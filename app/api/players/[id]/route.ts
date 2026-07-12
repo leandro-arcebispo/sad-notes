@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getPlayer, updatePlayer, setPlayerActive } from "@/lib/players";
-import { parsePlayerInput } from "../route";
+import { parsePlayerInput } from "@/lib/validation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

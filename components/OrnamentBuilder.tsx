@@ -3,24 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BASE_FACES, type BaseFace, type Sprite, type OrnamentCategory, type OrnamentFull } from "@/lib/types";
-
-/**
- * Estágio de preview 256×256. Rosto e caixa base do ornamento ficam
- * centralizados no mesmo ponto (centro do estágio) — assim, com offset 0,0,
- * o ornamento já cai em cima do rosto por padrão. Sliders: escala 20–200%,
- * offset X/Y de -64 a 64 a partir desse centro comum.
- */
-const STAGE = 256;
-const FACE_BOX = { w: 96, h: 84, left: (STAGE - 96) / 2, top: (STAGE - 84) / 2 };
-/** Caixa de referência para o ornamento em escala 100% — o sprite é ajustado
- * (contain) dentro dela preservando a proporção real, nunca esticado. */
-const ORN_REF = 128;
-
-/** Dimensões do sprite ajustadas (contain) dentro de um box quadrado `ref`. */
-function fitContain(w: number, h: number, ref: number): { w: number; h: number } {
-  if (!w || !h) return { w: ref, h: ref };
-  return w >= h ? { w: ref, h: (h / w) * ref } : { w: (w / h) * ref, h: ref };
-}
+import { FACE_BOX, ornamentBox } from "@/lib/avatar-geometry";
 
 export default function OrnamentBuilder({
   sprites,
@@ -99,18 +82,11 @@ export default function OrnamentBuilder({
               alt=""
             />
             {selectedSprite && (() => {
-              const fit = fitContain(selectedSprite.width, selectedSprite.height, ORN_REF);
-              const w = (fit.w * scale) / 100;
-              const h = (fit.h * scale) / 100;
+              const box = ornamentBox(selectedSprite.width, selectedSprite.height, offX, offY, scale);
               return (
                 <img
                   className="preview-layer"
-                  style={{
-                    width: w,
-                    height: h,
-                    left: (STAGE - w) / 2 + offX,
-                    top: (STAGE - h) / 2 + offY,
-                  }}
+                  style={{ width: box.w, height: box.h, left: box.left, top: box.top }}
                   src={`/${selectedSprite.path}`}
                   alt=""
                 />

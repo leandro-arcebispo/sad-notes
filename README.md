@@ -32,7 +32,8 @@ docs/                 BRIEF · ROADMAP (features + ordem) · STYLE-GUIDE
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — todas as features + ordem de implementação.
 - [`docs/STYLE-GUIDE.md`](docs/STYLE-GUIDE.md) — identidade visual (o código vive em `app/globals.css`).
 
-Estado atual: **Fase 5 concluída** — Ornamentos (posicionar sprites do catálogo
-sobre o Isaac base: escala + offset X/Y, categoria cabelo|diverso). Fases 0–4
-prontas (fundação, jogadores/personagens, núcleo de partidas, ranking, sprites).
-Próxima: **Fase 6 — Avatar completo** (compõe base + cabelo + diversos, com cache).
+Estado atual: **Fase 6 concluída** — Avatar completo (base + cabelo + N diversos,
+reordenáveis, com PNG cacheado via `sharp`; substitui o avatar provisório em
+ranking/jogadores/partidas). Fases 0–5 prontas (fundação, jogadores/personagens,
+núcleo de partidas, ranking, sprites, ornamentos).
+Próxima: **Fase 7 — Polish visual** (backlog restante: torneios, auth, deploy).

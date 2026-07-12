@@ -7,6 +7,7 @@ export interface RankingRow {
   name: string;
   color: string;
   base_face: BaseFace;
+  avatar_cache: string | null;
   games: number;
   wins: number;
   win_pct: number; // 0..1
@@ -26,7 +27,7 @@ export function getRanking(): RankingRow[] {
 
   const agg = db
     .prepare(
-      `SELECT p.id AS player_id, p.name, p.color, p.base_face,
+      `SELECT p.id AS player_id, p.name, p.color, p.base_face, p.avatar_cache,
               COUNT(gp.id)              AS games,
               COALESCE(SUM(gp.is_winner), 0) AS wins,
               COALESCE(SUM(gp.souls), 0)     AS souls,
