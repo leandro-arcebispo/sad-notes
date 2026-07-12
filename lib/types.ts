@@ -40,3 +40,85 @@ export interface PlayerInput {
   color: string;
   base_face: BaseFace;
 }
+
+/* ============================ Partidas (Fase 2) ============================ */
+
+export type Edition = "base" | "requiem";
+export type CharacterSelection = "free" | "random";
+export type GameFormat = "solo" | "duo" | "trio";
+
+export const TEAM_SIZE: Record<GameFormat, number> = { solo: 1, duo: 2, trio: 3 };
+
+export interface Game {
+  id: number;
+  played_at: string; // YYYY-MM-DD
+  edition: Edition;
+  souls_to_win: number;
+  character_selection: CharacterSelection;
+  format: GameFormat;
+  tournament_id: number | null; // null = Global Board
+  duration_min: number | null;
+  rounds: number | null;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface GamePlayerRow {
+  id: number;
+  game_id: number;
+  player_id: number;
+  character_id: number | null;
+  had_reroll: number;
+  loot_in_hand: number;
+  coins: number;
+  deaths: number;
+  souls: number;
+  is_winner: number;
+  team: number | null;
+  seat_order: number;
+}
+
+/** Estado final de um jogador, como vem do wizard. */
+export interface GamePlayerInput {
+  player_id: number;
+  character_id: number | null;
+  had_reroll: boolean;
+  loot_in_hand: number;
+  coins: number;
+  deaths: number;
+  souls: number;
+  is_winner: boolean;
+  team: number | null;
+  items: string[]; // nomes — resolvidos/criados por nome no servidor
+}
+
+export interface GamePayload {
+  played_at: string;
+  edition: Edition;
+  souls_to_win: number;
+  character_selection: CharacterSelection;
+  format: GameFormat;
+  tournament_id: number | null;
+  duration_min: number | null;
+  rounds: number | null;
+  notes: string | null;
+  players: GamePlayerInput[];
+}
+
+/** Linha enxuta para a listagem de partidas. */
+export interface GameListItem extends Game {
+  num_players: number;
+  winners: string[]; // nomes dos vencedores
+}
+
+/** Partida expandida para a tela de detalhe. */
+export interface GameFull extends Game {
+  players: (GamePlayerRow & {
+    player_name: string;
+    player_color: string;
+    player_base_face: BaseFace;
+    nickname: string | null;
+    character_name: string | null;
+    items: { id: number; name: string }[];
+  })[];
+}

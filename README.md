@@ -32,6 +32,6 @@ docs/                 BRIEF · ROADMAP (features + ordem) · STYLE-GUIDE
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — todas as features + ordem de implementação.
 - [`docs/STYLE-GUIDE.md`](docs/STYLE-GUIDE.md) — identidade visual (o código vive em `app/globals.css`).
 
-Estado atual: **Fase 1 concluída** — Jogadores (CRUD + avatar provisório) e seed de
-personagens (Four Souls + Requiem). Fase 0 (fundação) também pronta.
-Próxima: **Fase 2 — Núcleo de Partidas**.
+Estado atual: **Fase 2 concluída** — Núcleo de Partidas (wizard de 3 passos,
+listagem e detalhe). Fases 0 (fundação) e 1 (jogadores + personagens) prontas.
+Próxima: **Fase 3 — Ranking** (derivado das partidas).

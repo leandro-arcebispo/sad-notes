@@ -53,8 +53,54 @@ function initSchema(db: Database.Database) {
       active      INTEGER NOT NULL DEFAULT 1
     );
 
+    CREATE TABLE IF NOT EXISTS items (
+      id            INTEGER PRIMARY KEY AUTOINCREMENT,
+      name          TEXT NOT NULL COLLATE NOCASE UNIQUE,
+      first_seen_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS games (
+      id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+      played_at           TEXT NOT NULL,
+      edition             TEXT NOT NULL DEFAULT 'base',
+      souls_to_win        INTEGER NOT NULL DEFAULT 4,
+      character_selection TEXT NOT NULL DEFAULT 'free',
+      format              TEXT NOT NULL DEFAULT 'solo',
+      tournament_id       INTEGER,            -- null = Global Board
+      duration_min        INTEGER,
+      rounds              INTEGER,
+      notes               TEXT,
+      created_at          TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS game_players (
+      id            INTEGER PRIMARY KEY AUTOINCREMENT,
+      game_id       INTEGER NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+      player_id     INTEGER NOT NULL REFERENCES players(id),
+      character_id  INTEGER REFERENCES characters(id),
+      had_reroll    INTEGER NOT NULL DEFAULT 0,
+      loot_in_hand  INTEGER NOT NULL DEFAULT 0,
+      coins         INTEGER NOT NULL DEFAULT 0,
+      deaths        INTEGER NOT NULL DEFAULT 0,
+      souls         INTEGER NOT NULL DEFAULT 0,
+      is_winner     INTEGER NOT NULL DEFAULT 0,
+      team          INTEGER,
+      seat_order    INTEGER NOT NULL DEFAULT 0,
+      UNIQUE (game_id, player_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS game_player_items (
+      game_player_id INTEGER NOT NULL REFERENCES game_players(id) ON DELETE CASCADE,
+      item_id        INTEGER NOT NULL REFERENCES items(id),
+      PRIMARY KEY (game_player_id, item_id)
+    );
+
     CREATE INDEX IF NOT EXISTS idx_players_active ON players(active);
     CREATE INDEX IF NOT EXISTS idx_characters_active ON characters(active);
+    CREATE INDEX IF NOT EXISTS idx_games_played_at ON games(played_at);
+    CREATE INDEX IF NOT EXISTS idx_gp_game ON game_players(game_id);
+    CREATE INDEX IF NOT EXISTS idx_gp_player ON game_players(player_id);
+    CREATE INDEX IF NOT EXISTS idx_gpi_item ON game_player_items(item_id);
   `);
   seedDefaultSettings(db);
   seedCharactersIfEmpty(db);

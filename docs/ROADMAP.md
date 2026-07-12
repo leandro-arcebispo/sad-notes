@@ -16,15 +16,16 @@ Base de tudo que é visual/customizável. Usável por quem **não** programa.
 - [ ] Catálogo no banco: nome, categoria, caminho, dimensões, **origem (sheet + x,y,w,h)**.
 - Motor de recorte portado de `four-souls-mockups/assets` (crop.js/extract.js, zero deps).
 
-### F2 — Cadastro de Partidas (wizard)
-- [ ] **Setup:** almas p/ vencer · edição (Base | Base+Requiem) · nº de players ·
+### F2 — Cadastro de Partidas (wizard) ✅
+- [x] **Setup:** almas p/ vencer · edição (Base | Base+Requiem) · nº de players ·
   seleção de personagem (livre | aleatória c/ re-roll) · formato (solo | duplas | trios) ·
-  vínculo a **Torneio** ou **Global Board**.
-- [ ] **Dados da partida:** duração (min) · nº de rodadas · vencedor(es) · participantes.
-- [ ] **Estado final por player:** personagem · teve re-roll · cartas de loot na mão ·
+  vínculo a **Global Board** (torneios no backlog).
+- [x] **Dados da partida:** duração (min) · nº de rodadas · vencedor(es) · participantes.
+- [x] **Estado final por player:** personagem · teve re-roll · cartas de loot na mão ·
   moedas restantes · itens ao fim · nº de mortes · almas ao fim · venceu?
-- [ ] Listagem enxuta (só o essencial) + tela de **detalhe** completa.
-- [ ] Pesquisar terminologia exata de Four Souls + Requiem na web ao desenhar o formulário.
+- [x] Listagem enxuta (só o essencial) + tela de **detalhe** completa + excluir.
+- [x] Wizard de 3 passos com sorteio/re-roll de personagens, times (duplas/trios) e
+  itens por nome (autocomplete que aprende).
 
 ### F3 — Ranking (derivado das partidas)
 - [ ] Sincronizado automaticamente com o registrado (Global Board).
@@ -71,7 +72,7 @@ avatar provisório (rosto base por cor) introduzido já na Fase 1.
 |---|---|---|---|
 | **0 — Fundação** | Pasta + git, scaffold Next.js, `db.ts`, design system importado, shell (sidebar + frame), docs (BRIEF/ROADMAP/STYLE-GUIDE) | — | `[x]` |
 | **1 — Jogadores & Personagens (F5-base)** | Players CRUD (nome, apelido, cor, ativo) · seed de personagens (base + Requiem) · **avatar provisório** (rosto base por cor) | F0 | `[x]` |
-| **2 — Núcleo de Partidas (F2)** | Schema expandido de `games`/`game_players` · wizard completo (setup → jogadores → estado final) · listagem + detalhe · itens por nome (autocomplete) | **Fase 1** | `[ ]` |
+| **2 — Núcleo de Partidas (F2)** | Schema expandido de `games`/`game_players` · wizard completo (setup → jogadores → estado final) · listagem + detalhe · itens por nome (autocomplete) | **Fase 1** | `[x]` |
 | **3 — Ranking (F3)** | Agregações sincronizadas, métricas novas, Global Board | Fase 2 | `[ ]` |
 | **4 — Catálogo de Sprites (F1)** | Import + recorte + salvar + biblioteca | F0 | `[ ]` |
 | **5 — Ornamentos (F5a)** | Posicionamento sobre Isaac base, usando o catálogo | Fase 4 | `[ ]` |

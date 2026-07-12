@@ -474,6 +474,230 @@ h2.title {
   image-rendering: pixelated;
 }
 
+/* ---------- wizard de partida ---------- */
+.wizard-steps {
+  display: flex;
+  gap: 8px;
+}
+.wstep {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 2px solid var(--panel-border);
+  background: var(--panel);
+  color: var(--text-dim);
+  flex: 1;
+}
+.wstep.active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.wstep.done {
+  color: var(--text);
+}
+.wstep-n {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #120c09;
+  border: 1px solid var(--panel-border);
+  font-family: var(--font-display);
+  font-size: 12px;
+}
+.wstep.active .wstep-n {
+  background: var(--accent);
+  color: #1a1208;
+  border-color: var(--accent);
+}
+.setup-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px 22px;
+}
+.seg {
+  display: flex;
+  gap: 0;
+}
+.seg-btn {
+  font-family: var(--font-display);
+  font-size: 13px;
+  color: var(--text-dim);
+  background: #120c09;
+  border: 2px solid var(--panel-border);
+  border-right-width: 0;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+.seg-btn:last-child {
+  border-right-width: 2px;
+}
+.seg-btn.active {
+  color: #1a1208;
+  background: var(--accent);
+  border-color: var(--accent-dim);
+}
+.wizard-nav {
+  padding-top: 4px;
+}
+
+/* passo 2: participantes */
+.part-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 8px 10px;
+  border: 2px solid var(--panel-border);
+  background: rgba(0, 0, 0, 0.2);
+}
+.part-row.on {
+  border-color: var(--accent-dim);
+  background: rgba(232, 185, 120, 0.05);
+}
+.part-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 200px;
+  cursor: pointer;
+}
+.part-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+.mini-check {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.team-select {
+  width: 110px;
+}
+.reroll.did {
+  color: var(--accent);
+  border-color: var(--accent-dim);
+}
+
+/* passo 3: resultado */
+.final-row {
+  display: grid;
+  grid-template-columns: 200px auto 1fr;
+  gap: 16px;
+  align-items: center;
+  padding: 12px;
+  border: 2px solid var(--panel-border);
+  background: rgba(0, 0, 0, 0.2);
+}
+.final-row.winner {
+  border-color: var(--accent);
+  background: rgba(232, 185, 120, 0.07);
+}
+.final-id {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.final-stats {
+  display: flex;
+  gap: 8px;
+}
+.numbox {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 64px;
+}
+.numbox .input {
+  padding: 6px 8px;
+  text-align: center;
+}
+.mini-label {
+  font-family: var(--font-display);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+}
+.final-items {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+/* item tag input */
+.tag-input {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.item-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  padding: 2px 4px 2px 8px;
+  border: 1px solid var(--accent-dim);
+  color: var(--accent);
+  background: var(--panel);
+}
+.item-tag button {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 2px;
+}
+.item-tag button:hover {
+  color: var(--blood);
+}
+.item-tag.ro {
+  padding: 2px 8px;
+}
+
+/* ---------- telas de partida ---------- */
+.meta-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.clickable-row:hover td {
+  background: rgba(232, 185, 120, 0.08);
+}
+.row-link {
+  color: var(--text);
+  display: block;
+}
+.clickable-row:hover .row-link {
+  color: var(--accent);
+}
+.winners-cell {
+  color: var(--accent);
+}
+.winner-row td {
+  background: rgba(232, 185, 120, 0.06);
+}
+.items-cell {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  font-family: var(--font-body);
+}
+
 /* ---------- utilidades ---------- */
 .stack {
   display: flex;
