@@ -40,11 +40,15 @@ Base de tudo que é visual/customizável. Usável por quem **não** programa.
   conforme as telas nascem.
 
 ### F5 — Players & Avatar
-- [ ] CRUD de jogadores (nome, apelido, cor do token).
+- [ ] **CRUD de jogadores** (nome, apelido, cor do token, ativo). — *pré-requisito das partidas; entra cedo, na Fase 1.*
+- [ ] **Avatar provisório** (Fase 1): rosto base do Isaac na cor escolhida, usando os
+  assets `faces/`/`avatar-*.png` que já temos — dá identidade às tabelas sem depender
+  do catálogo de sprites.
 - [ ] **Cadastro de ornamentos:** posicionar sprite do catálogo sobre o Isaac base
   (offset/escala/z-order) + categoria (**cabelo** | **diverso**). Último diverso por cima.
 - [ ] **Customização de avatar:** rosto base (Isaac em várias cores) + 1 cabelo + N diversos.
-- [ ] Avatar usado em ranking, jogadores e partidas (receita + cache PNG).
+- [ ] Avatar usado em ranking, jogadores e partidas (receita + cache PNG). **Substitui o
+  avatar provisório** em todas as telas.
 
 ### Backlog geral
 - [ ] Torneios como entidade completa (chaveamento/registro atrelado + ranking próprio).
@@ -55,19 +59,30 @@ Base de tudo que é visual/customizável. Usável por quem **não** programa.
 
 ## Ordem de implementação (quando)
 
-Prioriza valor real primeiro e respeita dependências (avatar depende do catálogo).
+Reordenada para **resolver pré-requisitos**: cada fase só depende das anteriores.
+O núcleo de partidas exige o jogador *básico* (não o avatar customizado), então
+"Jogadores" vira uma fase própria e cedo. O avatar customizado (cadeia
+sprites→ornamentos→composição) é cosmético e vem depois, **substituindo** um
+avatar provisório (rosto base por cor) introduzido já na Fase 1.
+
+**Cadeia de valor:** Fundação → Jogadores(+personagens) → Partidas → Ranking.
+**Cadeia do avatar:** Catálogo de Sprites → Ornamentos → Avatar completo.
 
 | Fase | Entrega | Depende de | Status |
 |---|---|---|---|
 | **0 — Fundação** | Pasta + git, scaffold Next.js, `db.ts`, design system importado, shell (sidebar + frame), docs (BRIEF/ROADMAP/STYLE-GUIDE) | — | `[x]` |
-| **1 — Núcleo de Partidas (F2)** | Players CRUD + characters, schema expandido de `games`/`game_players`, wizard completo, listagem + detalhe | F0 | `[ ]` |
-| **2 — Ranking (F3)** | Agregações sincronizadas, métricas novas, Global Board | Fase 1 | `[ ]` |
-| **3 — Catálogo de Sprites (F1)** | Import + recorte + salvar + biblioteca | F0 | `[ ]` |
-| **4 — Ornamentos (F5a)** | Posicionamento sobre Isaac base, usando o catálogo | Fase 3 | `[ ]` |
-| **5 — Avatar (F5b)** | Customização + storage (receita + cache) + uso nas telas | Fase 4 | `[ ]` |
-| **6 — Polish visual (F4)** | Frames por página, componentes padronizados, style guide final | tudo | `[ ]` |
-| **Backlog** | Torneios completos, auth, deploy | — | `[ ]` |
+| **1 — Jogadores & Personagens (F5-base)** | Players CRUD (nome, apelido, cor, ativo) · seed de personagens (base + Requiem) · **avatar provisório** (rosto base por cor) | F0 | `[ ]` |
+| **2 — Núcleo de Partidas (F2)** | Schema expandido de `games`/`game_players` · wizard completo (setup → jogadores → estado final) · listagem + detalhe · itens por nome (autocomplete) | **Fase 1** | `[ ]` |
+| **3 — Ranking (F3)** | Agregações sincronizadas, métricas novas, Global Board | Fase 2 | `[ ]` |
+| **4 — Catálogo de Sprites (F1)** | Import + recorte + salvar + biblioteca | F0 | `[ ]` |
+| **5 — Ornamentos (F5a)** | Posicionamento sobre Isaac base, usando o catálogo | Fase 4 | `[ ]` |
+| **6 — Avatar completo (F5b)** | Customização + storage (receita + cache) · substitui o provisório nas telas | Fase 5 | `[ ]` |
+| **7 — Polish visual (F4)** | Frames por página, componentes padronizados, style guide final | tudo | `[ ]` |
+| **Backlog** | Torneios (entidade + ranking próprio), auth, deploy | — | `[ ]` |
 
-> **Racional:** F2+F3 são o valor central → destravam uso real cedo. O pipeline
-> de avatar (F1→F5) é o mais complexo/novo e vem depois. A identidade visual
-> entra como fundação na Fase 0 e é refinada progressivamente.
+> **Racional:** Fases 1→3 são o valor central → destravam uso real cedo, com o
+> jogador básico como pré-requisito explícito das partidas. O pipeline de avatar
+> (Fases 4→6) é o mais complexo/novo e é cosmético, então vem depois e só troca o
+> avatar provisório. A identidade visual entra como fundação na Fase 0 e é
+> refinada progressivamente. Itens e Torneios não viram fase (itens nascem por
+> nome no cadastro; torneio é `tournament_id` nulo = Global Board até o backlog).

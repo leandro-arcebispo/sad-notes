@@ -33,4 +33,4 @@ docs/                 BRIEF · ROADMAP (features + ordem) · STYLE-GUIDE
 - [`docs/STYLE-GUIDE.md`](docs/STYLE-GUIDE.md) — identidade visual (o código vive em `app/globals.css`).
 
 Estado atual: **Fase 0 (Fundação) concluída** — scaffold, design system, shell e docs.
-Próxima: **Fase 1 — Núcleo de Partidas**.
+Próxima: **Fase 1 — Jogadores & Personagens** (pré-requisito do núcleo de partidas).
