@@ -70,7 +70,7 @@ export default async function PartidaDetailPage({
                 <tr key={p.id} className={p.is_winner ? "winner-row" : ""}>
                   <td>
                     <div className="row" style={{ gap: 10 }}>
-                      <PlayerAvatar face={p.player_base_face} color={p.player_color} size={34} avatarCache={p.player_avatar_cache} />
+                      <PlayerAvatar face={p.player_base_face} size={40} avatarCache={p.player_avatar_cache} />
                       <span>
                         {p.is_winner ? "👑 " : ""}
                         {p.player_name}

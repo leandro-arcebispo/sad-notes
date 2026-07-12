@@ -58,7 +58,7 @@ export default function RankingPage() {
                           <span className="rank-num">{r.rank}</span>
                         )}
                       </span>
-                      <PlayerAvatar face={r.base_face} color={r.color} size={40} avatarCache={r.avatar_cache} />
+                      <PlayerAvatar face={r.base_face} size={48} avatarCache={r.avatar_cache} />
                       <span className="player-name">{r.name}</span>
                     </div>
                   </td>

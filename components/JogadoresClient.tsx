@@ -123,7 +123,7 @@ export default function JogadoresClient({ players }: { players: Player[] }) {
         <div className="players-grid">
           {active.map((p) => (
             <div key={p.id} className="player-card">
-              <PlayerAvatar face={p.base_face} color={p.color} size={56} avatarCache={p.avatar_cache} />
+              <PlayerAvatar face={p.base_face} size={68} avatarCache={p.avatar_cache} />
               <div className="player-meta">
                 <div className="player-name pixel-label">{p.name}</div>
                 {p.nickname && <div className="muted">“{p.nickname}”</div>}
@@ -152,7 +152,7 @@ export default function JogadoresClient({ players }: { players: Player[] }) {
           <div className="players-grid" style={{ marginTop: 12 }}>
             {archived.map((p) => (
               <div key={p.id} className="player-card is-archived">
-                <PlayerAvatar face={p.base_face} color={p.color} size={56} avatarCache={p.avatar_cache} />
+                <PlayerAvatar face={p.base_face} size={68} avatarCache={p.avatar_cache} />
                 <div className="player-meta">
                   <div className="player-name pixel-label">{p.name}</div>
                   {p.nickname && <div className="muted">“{p.nickname}”</div>}
@@ -255,7 +255,7 @@ function PlayerForm({
           <div className="muted pixel-label" style={{ fontSize: 12 }}>
             Prévia
           </div>
-          <PlayerAvatar face={form.base_face} color={form.color} size={96} />
+          <PlayerAvatar face={form.base_face} size={110} />
           <div className="player-name pixel-label">{form.name || "—"}</div>
           {form.nickname && <div className="muted">“{form.nickname}”</div>}
         </div>

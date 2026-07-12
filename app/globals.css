@@ -346,16 +346,12 @@ h2.title {
   margin-bottom: 24px;
 }
 
-/* ---------- avatar de jogador (provisório) ---------- */
+/* ---------- avatar de jogador ---------- */
 .player-avatar {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex: none;
-  background: #120c09;
-  border: 2px solid var(--accent);
-  box-shadow: var(--shadow-inset);
-  overflow: hidden;
 }
 .player-avatar img {
   object-fit: contain;
