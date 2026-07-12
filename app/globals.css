@@ -698,6 +698,34 @@ h2.title {
   font-family: var(--font-body);
 }
 
+/* ---------- ranking ---------- */
+.rank-player {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.rank-badge {
+  width: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.rank-fire {
+  width: 26px;
+  height: 32px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+.rank-num {
+  font-family: var(--font-display);
+  font-size: 15px;
+  color: var(--text-dim);
+}
+.ranking-table tbody tr:nth-child(1) .player-name {
+  color: var(--accent);
+}
+
 /* ---------- utilidades ---------- */
 .stack {
   display: flex;

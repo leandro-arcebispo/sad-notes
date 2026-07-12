@@ -27,11 +27,13 @@ Base de tudo que é visual/customizável. Usável por quem **não** programa.
 - [x] Wizard de 3 passos com sorteio/re-roll de personagens, times (duplas/trios) e
   itens por nome (autocomplete que aprende).
 
-### F3 — Ranking (derivado das partidas)
-- [ ] Sincronizado automaticamente com o registrado (Global Board).
-- [ ] Métricas sugeridas: **win-rate %**, almas/partida, colocação média,
-  K/D (mortes), duração média, personagem favorito, streak atual, rating tipo ELO.
-- [ ] *(Backlog)* Ranking por torneio específico.
+### F3 — Ranking (derivado das partidas) ✅
+- [x] Sincronizado automaticamente com o registrado (Global Board), sempre calculado.
+- [x] Colunas: Vitórias · Partidas · Win% · Almas · **Moedas** · Mortes · Streak.
+- [x] Pódio (top 3) com chama animada por posição (`fire-rank1/2/3`); ordena por
+  vitórias ↓, desempate win% ↓ e almas ↓.
+- [ ] *(Backlog)* Métricas extras (colocação média, duração, personagem favorito,
+  rating tipo ELO) e ranking por torneio específico.
 
 ### F4 — Identidade Visual Geral
 - [x] Paleta, tipografia e componentes padrão em `app/globals.css` (v1).
@@ -73,7 +75,7 @@ avatar provisório (rosto base por cor) introduzido já na Fase 1.
 | **0 — Fundação** | Pasta + git, scaffold Next.js, `db.ts`, design system importado, shell (sidebar + frame), docs (BRIEF/ROADMAP/STYLE-GUIDE) | — | `[x]` |
 | **1 — Jogadores & Personagens (F5-base)** | Players CRUD (nome, apelido, cor, ativo) · seed de personagens (base + Requiem) · **avatar provisório** (rosto base por cor) | F0 | `[x]` |
 | **2 — Núcleo de Partidas (F2)** | Schema expandido de `games`/`game_players` · wizard completo (setup → jogadores → estado final) · listagem + detalhe · itens por nome (autocomplete) | **Fase 1** | `[x]` |
-| **3 — Ranking (F3)** | Agregações sincronizadas, métricas novas, Global Board | Fase 2 | `[ ]` |
+| **3 — Ranking (F3)** | Agregações sincronizadas, métricas novas, Global Board | Fase 2 | `[x]` |
 | **4 — Catálogo de Sprites (F1)** | Import + recorte + salvar + biblioteca | F0 | `[ ]` |
 | **5 — Ornamentos (F5a)** | Posicionamento sobre Isaac base, usando o catálogo | Fase 4 | `[ ]` |
 | **6 — Avatar completo (F5b)** | Customização + storage (receita + cache) · substitui o provisório nas telas | Fase 5 | `[ ]` |
