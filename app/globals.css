@@ -10,6 +10,11 @@
   src: url("/design-system/img/IsaacGame.ttf") format("truetype");
   font-display: swap;
 }
+@font-face {
+  font-family: "Upheaval";
+  src: url("/fonts/upheavtt.ttf") format("truetype");
+  font-display: swap;
+}
 
 :root {
   /* -- superfícies -- */
@@ -39,7 +44,7 @@
     inset -2px -2px 0 rgba(0, 0, 0, 0.35);
 
   /* -- tipografia -- */
-  --font-display: "IsaacGame", Georgia, serif; /* títulos, nav, cabeçalho de tabela */
+  --font-display: "Upheaval", "IsaacGame", Georgia, serif; /* títulos, nav, cabeçalho de tabela */
   --font-body: "Segoe UI", system-ui, -apple-system, sans-serif; /* corpo, formulários */
 
   --sidebar-w: 56px;
