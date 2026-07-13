@@ -28,6 +28,8 @@ docs/                 BRIEF · ROADMAP (features + ordem) · STYLE-GUIDE
 
 ## Documentação
 
+- [`HANDOFF.md`](HANDOFF.md) — **leia primeiro se estiver retomando o projeto numa sessão nova**:
+  estado atual, decisões já tomadas, armadilhas técnicas conhecidas.
 - [`docs/BRIEF.md`](docs/BRIEF.md) — visão, stack, decisões-chave.
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — todas as features + ordem de implementação.
 - [`docs/STYLE-GUIDE.md`](docs/STYLE-GUIDE.md) — identidade visual (o código vive em `app/globals.css`).
