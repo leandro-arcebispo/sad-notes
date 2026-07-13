@@ -14,6 +14,7 @@ import {
   type GamePlayerInput,
   type PlayerInput,
 } from "./types";
+import { HAIR_COLORS, DEFAULT_HAIR_COLOR } from "./hair-colors";
 
 export function parsePlayerInput(
   body: unknown
@@ -38,7 +39,11 @@ export function parsePlayerInput(
     ? (b.base_face as BaseFace)
     : "white";
 
-  return { value: { name, nickname, color, base_face } };
+  const hair_color = HAIR_COLORS.some((c) => c.key === b.hair_color)
+    ? (b.hair_color as string)
+    : DEFAULT_HAIR_COLOR;
+
+  return { value: { name, nickname, color, base_face, hair_color } };
 }
 
 const EDITIONS: Edition[] = ["base", "requiem"];

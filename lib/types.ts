@@ -17,6 +17,8 @@ export interface Player {
   color: string;
   /** Rosto base do avatar provisório (Fase 1). Vira a camada de baixo do avatar composto (Fase 6). */
   base_face: BaseFace;
+  /** Chave de tintura aplicada ao ornamento de cabelo — ver lib/hair-colors.ts. */
+  hair_color: string;
   /** Caminho do PNG achatado do avatar composto (Fase 6). Null até lá. */
   avatar_cache: string | null;
   active: number; // 1 | 0 (soft-delete: jogadores com histórico nunca são apagados)
@@ -39,6 +41,7 @@ export interface PlayerInput {
   nickname: string | null;
   color: string;
   base_face: BaseFace;
+  hair_color: string;
 }
 
 /* ======================= Catálogo de Sprites (Fase 4) ===================== */
@@ -109,6 +112,8 @@ export interface AppliedOrnament extends OrnamentFull {
  * (ordem = empilhamento; o último da lista aparece por cima). */
 export interface AvatarRecipe {
   base_face: BaseFace;
+  /** Chave de tintura do cabelo (ver lib/hair-colors.ts) — só tem efeito se `hair` não for null. */
+  hair_color: string;
   hair: AppliedOrnament | null;
   diversos: AppliedOrnament[];
 }

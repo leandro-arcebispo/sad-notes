@@ -3,6 +3,7 @@ import path from "node:path";
 import fs from "node:fs";
 import crypto from "node:crypto";
 import { STAGE, FACE_BOX, ornamentBox, AVATAR_FRAME, AVATAR_FRAME_OFFSET } from "./avatar-geometry";
+import { findHairColor } from "./hair-colors";
 import type { AppliedOrnament, BaseFace } from "./types";
 
 const PUBLIC_DIR = path.join(process.cwd(), "public");
@@ -17,14 +18,21 @@ type Layer = { input: Buffer; left: number; top: number };
 
 async function layerBuffer(
   relPath: string,
-  box: { w: number; h: number; left: number; top: number }
+  box: { w: number; h: number; left: number; top: number },
+  tint?: { hue: number; saturation: number; brightness: number }
 ): Promise<Layer> {
   const abs = path.join(PUBLIC_DIR, relPath);
   const w = Math.max(1, Math.round(box.w));
   const h = Math.max(1, Math.round(box.h));
-  const buf = await sharp(abs)
+  let buf = await sharp(abs)
     .resize(w, h, { kernel: "nearest", fit: "fill" })
     .toBuffer();
+  // Tintura aplicada num passo separado (própria instância sharp() a partir do
+  // buffer já redimensionado) — mesma cautela do resto do arquivo: encadear
+  // .resize().modulate() numa pipeline só não garante ordem de execução.
+  if (tint) {
+    buf = await sharp(buf).modulate(tint).toBuffer();
+  }
   return { input: buf, left: Math.round(box.left), top: Math.round(box.top) };
 }
 
@@ -32,6 +40,7 @@ async function layerBuffer(
  * num único PNG, seguindo a mesma geometria do editor/ornament builder. */
 export async function composeAvatarPng(recipe: {
   base_face: BaseFace;
+  hair_color: string;
   hair: AppliedOrnament | null;
   diversos: AppliedOrnament[];
 }): Promise<Buffer> {
@@ -42,7 +51,12 @@ export async function composeAvatarPng(recipe: {
 
   if (recipe.hair) {
     const box = ornamentBox(recipe.hair.sprite_width, recipe.hair.sprite_height, recipe.hair.offset_x, recipe.hair.offset_y, recipe.hair.scale);
-    layers.push(await layerBuffer(recipe.hair.sprite_path, box));
+    const hairColor = findHairColor(recipe.hair_color);
+    const tint =
+      hairColor.key === "natural"
+        ? undefined
+        : { hue: hairColor.hue, saturation: hairColor.saturation, brightness: hairColor.brightness };
+    layers.push(await layerBuffer(recipe.hair.sprite_path, box, tint));
   }
   for (const orn of recipe.diversos) {
     const box = ornamentBox(orn.sprite_width, orn.sprite_height, orn.offset_x, orn.offset_y, orn.scale);
@@ -86,7 +100,7 @@ export async function composeAvatarPng(recipe: {
  */
 export async function writeAvatarCache(
   playerId: number,
-  recipe: { base_face: BaseFace; hair: AppliedOrnament | null; diversos: AppliedOrnament[] },
+  recipe: { base_face: BaseFace; hair_color: string; hair: AppliedOrnament | null; diversos: AppliedOrnament[] },
   previousPath: string | null
 ): Promise<string> {
   fs.mkdirSync(AVATARS_DIR, { recursive: true });

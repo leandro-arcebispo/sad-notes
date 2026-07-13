@@ -23,10 +23,10 @@ export function getAvatarRecipe(playerId: number): AvatarRecipe {
   const rows = rowsForPlayer(playerId);
   const hair = (rows.find((r) => r.category === "cabelo") as AppliedOrnament) ?? null;
   const diversos = rows.filter((r) => r.category === "diverso") as AppliedOrnament[];
-  return { base_face: player.base_face, hair, diversos };
+  return { base_face: player.base_face, hair_color: player.hair_color, hair, diversos };
 }
 
-async function regenerateCache(playerId: number): Promise<void> {
+export async function regenerateCache(playerId: number): Promise<void> {
   const player = getPlayer(playerId);
   if (!player) return;
   const recipe = getAvatarRecipe(playerId);

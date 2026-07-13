@@ -39,6 +39,7 @@ function initSchema(db: Database.Database) {
       nickname     TEXT,
       color        TEXT NOT NULL DEFAULT '#e8b978',
       base_face    TEXT NOT NULL DEFAULT 'white',
+      hair_color   TEXT NOT NULL DEFAULT 'natural',
       avatar_cache TEXT,
       active       INTEGER NOT NULL DEFAULT 1,
       created_at   TEXT NOT NULL
@@ -147,9 +148,14 @@ function initSchema(db: Database.Database) {
 
 /** Migrações idempotentes para bancos já existentes (colunas novas em tabelas antigas). */
 function migrateSchema(db: Database.Database) {
-  const cols = db.prepare("PRAGMA table_info(game_players)").all() as { name: string }[];
-  if (!cols.some((c) => c.name === "treasures")) {
+  const gpCols = db.prepare("PRAGMA table_info(game_players)").all() as { name: string }[];
+  if (!gpCols.some((c) => c.name === "treasures")) {
     db.exec("ALTER TABLE game_players ADD COLUMN treasures INTEGER NOT NULL DEFAULT 0");
+  }
+
+  const playerCols = db.prepare("PRAGMA table_info(players)").all() as { name: string }[];
+  if (!playerCols.some((c) => c.name === "hair_color")) {
+    db.exec("ALTER TABLE players ADD COLUMN hair_color TEXT NOT NULL DEFAULT 'natural'");
   }
 }
 

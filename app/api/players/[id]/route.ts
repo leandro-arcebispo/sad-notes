@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getPlayer, updatePlayer, setPlayerActive } from "@/lib/players";
+import { regenerateCache } from "@/lib/player-avatar";
 import { parsePlayerInput } from "@/lib/validation";
 
 export const runtime = "nodejs";
@@ -9,7 +10,8 @@ type Ctx = { params: Promise<{ id: string }> };
 
 export async function PATCH(req: Request, { params }: Ctx) {
   const id = Number((await params).id);
-  if (!getPlayer(id)) {
+  const before = getPlayer(id);
+  if (!before) {
     return NextResponse.json({ error: "jogador não encontrado" }, { status: 404 });
   }
   const body = await req.json().catch(() => null);
@@ -24,5 +26,15 @@ export async function PATCH(req: Request, { params }: Ctx) {
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
-  return NextResponse.json(updatePlayer(id, parsed.value));
+  const updated = updatePlayer(id, parsed.value);
+  // Rosto base e cor do cabelo são camadas do avatar composto — se mudaram, o
+  // PNG cacheado (usado no ranking, cards etc.) precisa ser regenerado.
+  if (
+    parsed.value.base_face !== before.base_face ||
+    parsed.value.hair_color !== before.hair_color
+  ) {
+    await regenerateCache(id);
+    return NextResponse.json(getPlayer(id));
+  }
+  return NextResponse.json(updated);
 }

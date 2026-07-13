@@ -1,4 +1,3 @@
-import Frame from "@/components/Frame";
 import JogadoresClient from "@/components/JogadoresClient";
 import { listPlayers } from "@/lib/players";
 
@@ -7,9 +6,5 @@ export const dynamic = "force-dynamic";
 
 export default function JogadoresPage() {
   const players = listPlayers();
-  return (
-    <Frame variant="frame-utero" title="Jogadores">
-      <JogadoresClient players={players} />
-    </Frame>
-  );
+  return <JogadoresClient players={players} />;
 }

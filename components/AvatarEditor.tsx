@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import AvatarComposer from "./AvatarComposer";
-import type { AvatarRecipe, OrnamentFull, Player } from "@/lib/types";
+import { BASE_FACES, type AvatarRecipe, type BaseFace, type OrnamentFull, type Player } from "@/lib/types";
+import { HAIR_COLORS, hairColorCssFilter } from "@/lib/hair-colors";
 
 export default function AvatarEditor({
   player,
@@ -19,6 +20,43 @@ export default function AvatarEditor({
   const router = useRouter();
   const [recipe, setRecipe] = useState(initialRecipe);
   const [busy, setBusy] = useState(false);
+
+  // -------- identidade (nome, história triste, rosto base) --------
+  const [name, setName] = useState(player.name);
+  const [nickname, setNickname] = useState(player.nickname ?? "");
+  const [identityError, setIdentityError] = useState<string | null>(null);
+  const [savingIdentity, setSavingIdentity] = useState(false);
+
+  function pickFace(f: BaseFace) {
+    setRecipe((r) => ({ ...r, base_face: f }));
+  }
+
+  async function saveIdentity() {
+    if (!name.trim()) {
+      setIdentityError("Nome é obrigatório.");
+      return;
+    }
+    setIdentityError(null);
+    setSavingIdentity(true);
+    const res = await fetch(`/api/players/${player.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: name.trim(),
+        nickname: nickname.trim() || null,
+        color: player.color,
+        base_face: recipe.base_face,
+        hair_color: recipe.hair_color,
+      }),
+    });
+    setSavingIdentity(false);
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}));
+      setIdentityError(j.error ?? "Erro ao salvar.");
+      return;
+    }
+    router.refresh();
+  }
 
   async function call(url: string, method: string, body?: unknown) {
     setBusy(true);
@@ -37,6 +75,26 @@ export default function AvatarEditor({
 
   const setHair = (ornamentId: number | null) =>
     call(`/api/players/${player.id}/avatar/hair`, "PUT", { ornament_id: ornamentId });
+
+  async function setHairColorKey(key: string) {
+    setBusy(true);
+    const res = await fetch(`/api/players/${player.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: name.trim() || player.name,
+        nickname: nickname.trim() || null,
+        color: player.color,
+        base_face: recipe.base_face,
+        hair_color: key,
+      }),
+    });
+    setBusy(false);
+    if (res.ok) {
+      setRecipe((r) => ({ ...r, hair_color: key }));
+      router.refresh();
+    }
+  }
   const addDiverso = (ornamentId: number) =>
     call(`/api/players/${player.id}/avatar/diversos`, "POST", { ornament_id: ornamentId });
   const removeDiverso = (rowId: number) =>
@@ -52,11 +110,58 @@ export default function AvatarEditor({
       <div className="ornament-layout">
         <div className="preview-col">
           <AvatarComposer recipe={recipe} />
-          <div className="pixel-label">{player.name}</div>
+          <div className="pixel-label">{name || "—"}</div>
           {busy && <div className="muted" style={{ fontSize: 12 }}>atualizando…</div>}
         </div>
 
         <div className="controls-col">
+          {/* -------- identidade -------- */}
+          <section className="stack" style={{ gap: 8 }}>
+            <h2 className="title" style={{ fontSize: 18 }}>Identidade</h2>
+            <div className="field">
+              <label>Nome</label>
+              <input
+                className="input"
+                value={name}
+                maxLength={40}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </div>
+            <div className="field">
+              <label>História triste</label>
+              <input
+                className="input"
+                value={nickname}
+                maxLength={40}
+                onChange={(e) => setNickname(e.target.value)}
+              />
+            </div>
+            <div className="field">
+              <label>Rosto base</label>
+              <div className="face-picker">
+                {BASE_FACES.map((f) => (
+                  <button
+                    key={f}
+                    type="button"
+                    className={`face-opt${recipe.base_face === f ? " selected" : ""}`}
+                    onClick={() => pickFace(f)}
+                    title={f}
+                  >
+                    <img src={`/design-system/img/faces/face-${f}.png`} alt={f} />
+                  </button>
+                ))}
+              </div>
+            </div>
+            {identityError && (
+              <div style={{ color: "var(--blood)" }}>{identityError}</div>
+            )}
+            <div className="row" style={{ justifyContent: "flex-end" }}>
+              <button className="btn btn-accent" onClick={saveIdentity} disabled={savingIdentity}>
+                Salvar
+              </button>
+            </div>
+          </section>
+
           {/* -------- cabelo (só um) -------- */}
           <section className="stack" style={{ gap: 8 }}>
             <div className="row" style={{ justifyContent: "space-between" }}>
@@ -85,6 +190,33 @@ export default function AvatarEditor({
                 ))}
               </div>
             )}
+
+            {recipe.hair && (() => {
+              const hairSpritePath = recipe.hair.sprite_path;
+              return (
+              <div className="stack" style={{ gap: 6, marginTop: 4 }}>
+                <div className="muted" style={{ fontSize: 12 }}>Cor do cabelo</div>
+                <div className="hair-color-row">
+                  {HAIR_COLORS.map((c) => (
+                    <button
+                      key={c.key}
+                      type="button"
+                      className={`hair-color-pick${recipe.hair_color === c.key ? " selected" : ""}`}
+                      title={c.label}
+                      onClick={() => setHairColorKey(c.key)}
+                      disabled={busy}
+                    >
+                      <img
+                        src={`/${hairSpritePath}`}
+                        alt={c.label}
+                        style={{ filter: hairColorCssFilter(c.key) }}
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+              );
+            })()}
           </section>
 
           {/* -------- diversos (vários, empilhados) -------- */}

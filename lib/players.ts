@@ -17,8 +17,8 @@ export function getPlayer(id: number): Player | undefined {
 export function createPlayer(input: PlayerInput): Player {
   const res = getDb()
     .prepare(
-      `INSERT INTO players (name, nickname, color, base_face, created_at)
-       VALUES (@name, @nickname, @color, @base_face, @created_at)`
+      `INSERT INTO players (name, nickname, color, base_face, hair_color, created_at)
+       VALUES (@name, @nickname, @color, @base_face, @hair_color, @created_at)`
     )
     .run({ ...input, created_at: nowIso() });
   return getPlayer(Number(res.lastInsertRowid))!;
@@ -29,7 +29,7 @@ export function updatePlayer(
   id: number,
   patch: Partial<PlayerInput & { active: number }>
 ): Player | undefined {
-  const fields = ["name", "nickname", "color", "base_face", "active"] as const;
+  const fields = ["name", "nickname", "color", "base_face", "hair_color", "active"] as const;
   const set: string[] = [];
   const values: Record<string, unknown> = { id };
   for (const f of fields) {

@@ -3,27 +3,21 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Frame from "./Frame";
 import PlayerAvatar from "./PlayerAvatar";
 import { BASE_FACES, type BaseFace, type Player } from "@/lib/types";
 
-const TOKEN_COLORS = [
-  "#e8b978", "#a01c1c", "#3f7f4f", "#3b6ea5", "#8a4fbf",
-  "#c98a2b", "#c95c8a", "#5f9ea0", "#b0a89a",
-];
+const DEFAULT_COLOR = "#e8b978";
 
 type FormState = {
-  id: number | null;
   name: string;
   nickname: string;
-  color: string;
   base_face: BaseFace;
 };
 
 const emptyForm = (): FormState => ({
-  id: null,
   name: "",
   nickname: "",
-  color: TOKEN_COLORS[0],
   base_face: "white",
 });
 
@@ -40,16 +34,6 @@ export default function JogadoresClient({ players }: { players: Player[] }) {
     setError(null);
     setForm(emptyForm());
   }
-  function openEdit(p: Player) {
-    setError(null);
-    setForm({
-      id: p.id,
-      name: p.name,
-      nickname: p.nickname ?? "",
-      color: p.color,
-      base_face: p.base_face,
-    });
-  }
   function refresh() {
     startTransition(() => router.refresh());
   }
@@ -63,17 +47,14 @@ export default function JogadoresClient({ players }: { players: Player[] }) {
     const payload = {
       name: form.name.trim(),
       nickname: form.nickname.trim() || null,
-      color: form.color,
+      color: DEFAULT_COLOR,
       base_face: form.base_face,
     };
-    const res = await fetch(
-      form.id ? `/api/players/${form.id}` : "/api/players",
-      {
-        method: form.id ? "PATCH" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      }
-    );
+    const res = await fetch("/api/players", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
     if (!res.ok) {
       const j = await res.json().catch(() => ({}));
       setError(j.error ?? "Erro ao salvar.");
@@ -93,81 +74,90 @@ export default function JogadoresClient({ players }: { players: Player[] }) {
   }
 
   return (
-    <div className="stack">
-      {!form && (
-        <div className="row" style={{ justifyContent: "flex-end" }}>
+    <Frame
+      variant="frame-utero"
+      title="Jogadores"
+      actions={
+        !form && (
           <button className="btn btn-accent" onClick={openNew}>
-            + Novo jogador
+            + New Born
           </button>
-        </div>
-      )}
+        )
+      }
+    >
+      <div className="stack">
+        {form && (
+          <PlayerForm
+            form={form}
+            setForm={setForm}
+            onSubmit={submit}
+            onCancel={() => setForm(null)}
+            error={error}
+            pending={pending}
+          />
+        )}
 
-      {form && (
-        <PlayerForm
-          form={form}
-          setForm={setForm}
-          onSubmit={submit}
-          onCancel={() => setForm(null)}
-          error={error}
-          pending={pending}
-        />
-      )}
-
-      {active.length === 0 && !form ? (
-        <div className="panel">
-          <div className="center-empty">
-            Nenhum jogador ainda. Recrute o bando com “Novo jogador”.
-          </div>
-        </div>
-      ) : (
-        <div className="players-grid">
-          {active.map((p) => (
-            <div key={p.id} className="player-card">
-              <PlayerAvatar face={p.base_face} size={68} avatarCache={p.avatar_cache} />
-              <div className="player-meta">
-                <div className="player-name pixel-label">{p.name}</div>
-                {p.nickname && <div className="muted">“{p.nickname}”</div>}
-              </div>
-              <div className="player-actions">
-                <Link href={`/jogadores/${p.id}/avatar`} className="btn">
-                  Avatar
-                </Link>
-                <button className="btn" onClick={() => openEdit(p)}>
-                  Editar
-                </button>
-                <button className="btn btn-danger" onClick={() => setActive(p, false)}>
-                  Arquivar
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {archived.length > 0 && (
-        <details className="archived">
-          <summary className="pixel-label">
-            Arquivados ({archived.length})
-          </summary>
-          <div className="players-grid" style={{ marginTop: 12 }}>
-            {archived.map((p) => (
-              <div key={p.id} className="player-card is-archived">
-                <PlayerAvatar face={p.base_face} size={68} avatarCache={p.avatar_cache} />
-                <div className="player-meta">
-                  <div className="player-name pixel-label">{p.name}</div>
-                  {p.nickname && <div className="muted">“{p.nickname}”</div>}
-                </div>
-                <div className="player-actions">
-                  <button className="btn" onClick={() => setActive(p, true)}>
-                    Reativar
-                  </button>
+        {!form && (
+          <>
+            {active.length === 0 ? (
+              <div className="panel">
+                <div className="center-empty">
+                  Nenhum jogador ainda. Recrute o bando com “New Born”.
                 </div>
               </div>
-            ))}
-          </div>
-        </details>
-      )}
-    </div>
+            ) : (
+              <div className="players-grid">
+                {active.map((p) => (
+                  <div key={p.id} className="player-card">
+                    <div className="player-top">
+                      <PlayerAvatar face={p.base_face} size={68} avatarCache={p.avatar_cache} />
+                      <div className="player-meta">
+                        <div className="player-name pixel-label">{p.name}</div>
+                        {p.nickname && <div className="muted">“{p.nickname}”</div>}
+                      </div>
+                    </div>
+                    <div className="player-actions">
+                      <Link href={`/jogadores/${p.id}/avatar`} className="btn">
+                        Editar
+                      </Link>
+                      <button className="btn btn-danger" onClick={() => setActive(p, false)}>
+                        Arquivar
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {archived.length > 0 && (
+              <details className="archived">
+                <summary className="pixel-label">
+                  Arquivados ({archived.length})
+                </summary>
+                <div className="players-grid" style={{ marginTop: 12 }}>
+                  {archived.map((p) => (
+                    <div key={p.id} className="player-card is-archived">
+                      <div className="player-top">
+                        <PlayerAvatar face={p.base_face} size={68} avatarCache={p.avatar_cache} />
+                        <div className="player-meta">
+                          <div className="player-name pixel-label">{p.name}</div>
+                          {p.nickname && <div className="muted">“{p.nickname}”</div>}
+                        </div>
+                      </div>
+                      <div className="player-actions">
+                        <button className="btn" onClick={() => setActive(p, true)}>
+                          Reativar
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </details>
+            )}
+          </>
+        )}
+      </div>
+    </Frame>
   );
 }
 
@@ -202,7 +192,7 @@ function PlayerForm({
             />
           </div>
           <div className="field">
-            <label>Apelido (opcional)</label>
+            <label>História triste</label>
             <input
               className="input"
               value={form.nickname}
@@ -210,28 +200,6 @@ function PlayerForm({
               onChange={(e) => setForm({ ...form, nickname: e.target.value })}
               onKeyDown={(e) => e.key === "Enter" && onSubmit()}
             />
-          </div>
-          <div className="field">
-            <label>Cor do token</label>
-            <div className="swatch-row">
-              {TOKEN_COLORS.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  className={`swatch${form.color === c ? " selected" : ""}`}
-                  style={{ background: c }}
-                  onClick={() => setForm({ ...form, color: c })}
-                  aria-label={c}
-                />
-              ))}
-              <input
-                type="color"
-                className="swatch swatch-custom"
-                value={form.color}
-                onChange={(e) => setForm({ ...form, color: e.target.value })}
-                aria-label="Cor personalizada"
-              />
-            </div>
           </div>
           <div className="field">
             <label>Rosto base</label>
@@ -268,7 +236,7 @@ function PlayerForm({
           Cancelar
         </button>
         <button className="btn btn-accent" onClick={onSubmit} disabled={pending}>
-          {form.id ? "Salvar" : "Criar jogador"}
+          Criar jogador
         </button>
       </div>
     </div>
