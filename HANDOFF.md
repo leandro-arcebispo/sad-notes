@@ -14,7 +14,7 @@ para um grupo de ~12 amigos. Estética pixel-art dark/dungeon/sad.
 - **Stack:** Next.js 15 (App Router) · React 19 · TypeScript · better-sqlite3 · sharp
 - **Porta:** 6007 (`npm run dev`, registrado em `C:\Workspace\.claude\launch.json` como `sad-notes`)
 - **Banco:** `data/sad-notes.db` (SQLite, WAL) — não versionado
-- **Git:** identidade local ao repo ("Leandro" / leandro.arcebispo@proton.me), 14 commits até agora
+- **Git:** identidade local ao repo ("Leandro" / leandro.arcebispo@proton.me), 17 commits até agora
 
 ## ⚠️ Não confundir com as pastas irmãs
 
@@ -79,10 +79,43 @@ Sessão 2026-07-13 (revisão página a página, começando pelo Ranking):
   nas telas de Partidas/Jogadores/etc. além do que já foi pedido até ele
   confirmar a próxima página.
 
+Sessão 2026-07-13 (continuação — tela de Jogadores, commit `20e2b49`):
+- **Editar + Avatar unificados.** `/jogadores/[id]/avatar` (antes só
+  ornamentos) agora tem uma seção "Identidade" no topo (Nome, História
+  triste, Rosto base + botão Salvar) além de Cabelo/Diversos. O botão
+  "Avatar" separado no card do jogador sumiu — só existe "Editar" (que leva
+  pra essa tela) e "Arquivar". O form inline de editar na lista de Jogadores
+  (`JogadoresClient`) só serve mais pra **criar** jogador novo; ficou sem o
+  campo `id` no `FormState` e sempre faz POST.
+- **Cor do Token removida da UI.** O campo `players.color` continua existindo
+  no banco (usado em queries antigas, não removido pra evitar migração), mas
+  não tem mais nenhum picker/swatch — todo jogador novo recebe um hex fixo
+  (`DEFAULT_COLOR` em `JogadoresClient.tsx`) e o valor de um jogador existente
+  é preservado ao salvar (ver armadilha técnica #6 abaixo).
+- **Form de criar sem distração.** Enquanto `form` (criar jogador) está
+  aberto em `JogadoresClient`, a grid de cards (ativos e arquivados) fica
+  escondida — evita o usuário se perder entre o form e os cards durante o
+  cadastro.
+- **Nova feature: cor de cabelo.** `lib/hair-colors.ts` define uma paleta de
+  10 "tinturas" (Natural + 9 cores) como trincas `{hue, saturation,
+  brightness}`. O mesmo trio alimenta o filtro CSS do preview
+  (`AvatarComposer`, client) **e** o `sharp().modulate()` na composição do
+  PNG cacheado (`avatar-compose.ts`, servidor) — os dois ficam idênticos
+  porque usam os mesmos números. Novo campo `players.hair_color` (migração
+  idempotente em `migrateSchema()`, default `'natural'`). O seletor só
+  aparece na seção "Cabelo" do editor quando o jogador já tem um cabelo
+  aplicado (a cor não faz sentido sem cabelo). Cada swatch mostra o próprio
+  sprite do cabelo do jogador já tingido (preview fiel, não é um chip de cor
+  genérico).
+- **Estado real:** Mané (id 9) tem cabelo aplicado mas `hair_color` foi
+  deixado em `'natural'` de propósito (testei "Azul"/"Ruivo" durante o
+  desenvolvimento e reverti pra não alterar o dado real dele).
+
 ### Dados reais do usuário no banco (não são teste — não apagar)
 
-- Jogadores: **Mané** (id 9, tem cabelo customizado aplicado) e **Robertinho**
-  (id 10, sem customização — usa o fallback de rosto base).
+- Jogadores: **Mané** (id 9, tem cabelo customizado aplicado, `hair_color`
+  = `'natural'`) e **Robertinho** (id 10, sem customização — usa o fallback
+  de rosto base).
 - Ao menos 1 partida registrada (o usuário testou o wizard pela própria UI).
 - Sprite **"cuia-hair-1"** (categoria `hair-styles`) e ornamento
   **"hairs-cuia-01"** (categoria `cabelo`) — cadastrados pelo próprio usuário.
@@ -164,7 +197,25 @@ análise de pixel direto no arquivo PNG gerado (com `sharp`, rodando um script
 Node descartável a partir da raiz do projeto — `cd` explícito, senão
 `better-sqlite3`/`sharp` não resolvem).
 
-### 6. Scripts de debug descartáveis
+### 6. `PATCH /api/players/[id]` não é parcial de verdade
+
+`parsePlayerInput` (em `lib/validation.ts`) sempre valida o payload **inteiro**
+e preenche default pra qualquer campo ausente (`hair_color` ausente → volta
+pra `'natural'`, `color` ausente → volta pro hex padrão, etc.) — não é um
+PATCH parcial real, é um PUT disfarçado. **Já causou um bug**: o botão
+"Salvar" da seção Identidade em `AvatarEditor.tsx` mandava só
+`{name, nickname, color, base_face}` sem `hair_color`, e isso resetava
+silenciosamente a cor do cabelo toda vez que o usuário editava o nome.
+
+**Regra:** qualquer PATCH pra esse endpoint precisa mandar **todos** os
+campos de `PlayerInput` (`name`, `nickname`, `color`, `base_face`,
+`hair_color`), mesmo os que não mudaram — sempre a partir do estado local
+mais atual (`recipe.hair_color`, `player.color`, etc.), nunca omitindo um
+campo assumindo que o backend vai preservar o valor antigo. Se adicionar um
+novo campo em `PlayerInput` no futuro, procure todo `fetch(`/api/players/`
+em `components/` e atualize os payloads.
+
+### 7. Scripts de debug descartáveis
 
 Vários bugs foram investigados com scripts `_debug.mjs`/`_clean.mjs` na raiz
 do projeto, **sempre removidos depois** (`rm -f`). Se você ver algum desses
@@ -175,8 +226,9 @@ arquivos sobrando no repo, pode apagar sem dó — não são parte do projeto.
 ```
 app/
   page.tsx                      Ranking (frame-chest-torch)
-  jogadores/page.tsx             Lista de jogadores
-  jogadores/[id]/avatar/page.tsx Editor de avatar (Fase 6)
+  jogadores/page.tsx             Lista de jogadores (StatIcon do "+ New Born" via Frame actions)
+  jogadores/[id]/avatar/page.tsx Editor unificado: Identidade (nome/história
+                                  triste/rosto) + Avatar (cabelo+cor+diversos)
   partidas/page.tsx               Lista de partidas
   partidas/nova/page.tsx          Wizard de cadastro
   partidas/[id]/page.tsx          Detalhe da partida
@@ -192,6 +244,9 @@ lib/
   sprites.ts, ornaments.ts, player-avatar.ts        data layer do pipeline de avatar
   avatar-geometry.ts   geometria PURA compartilhada (cliente+servidor)
   avatar-compose.ts    composição via sharp + cache PNG (só servidor)
+  hair-colors.ts       paleta de tintura de cabelo (hue/sat/brightness),
+                        compartilhada entre CSS filter (cliente) e
+                        sharp().modulate() (servidor)
   ranking.ts           agregações do ranking
 components/
   Frame, Sidebar, ComingSoon           shell/layout
