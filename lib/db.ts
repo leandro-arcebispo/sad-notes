@@ -82,6 +82,7 @@ function initSchema(db: Database.Database) {
       loot_in_hand  INTEGER NOT NULL DEFAULT 0,
       coins         INTEGER NOT NULL DEFAULT 0,
       deaths        INTEGER NOT NULL DEFAULT 0,
+      treasures     INTEGER NOT NULL DEFAULT 0,
       souls         INTEGER NOT NULL DEFAULT 0,
       is_winner     INTEGER NOT NULL DEFAULT 0,
       team          INTEGER,
@@ -139,8 +140,17 @@ function initSchema(db: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_gp_player ON game_players(player_id);
     CREATE INDEX IF NOT EXISTS idx_gpi_item ON game_player_items(item_id);
   `);
+  migrateSchema(db);
   seedDefaultSettings(db);
   seedCharactersIfEmpty(db);
+}
+
+/** Migrações idempotentes para bancos já existentes (colunas novas em tabelas antigas). */
+function migrateSchema(db: Database.Database) {
+  const cols = db.prepare("PRAGMA table_info(game_players)").all() as { name: string }[];
+  if (!cols.some((c) => c.name === "treasures")) {
+    db.exec("ALTER TABLE game_players ADD COLUMN treasures INTEGER NOT NULL DEFAULT 0");
+  }
 }
 
 function seedCharactersIfEmpty(db: Database.Database) {

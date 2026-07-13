@@ -144,6 +144,7 @@ export interface GamePlayerRow {
   loot_in_hand: number;
   coins: number;
   deaths: number;
+  treasures: number;
   souls: number;
   is_winner: number;
   team: number | null;
@@ -158,6 +159,7 @@ export interface GamePlayerInput {
   loot_in_hand: number;
   coins: number;
   deaths: number;
+  treasures: number;
   souls: number;
   is_winner: boolean;
   team: number | null;

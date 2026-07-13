@@ -7,9 +7,12 @@ import type { ReactNode } from "react";
 type NavEntry = { href: string; label: string; icon: ReactNode; exact?: boolean };
 
 const NAV: NavEntry[] = [
-  { href: "/", label: "Ranking", exact: true, icon: <IconTrophy /> },
-  { href: "/partidas", label: "Partidas", icon: <IconScroll /> },
-  { href: "/jogadores", label: "Jogadores", icon: <IconUser /> },
+  { href: "/", label: "Ranking", exact: true, icon: <img src="/design-system/img/icon-nav-ranking.png" alt="" /> },
+  { href: "/partidas", label: "Partidas", icon: <img src="/design-system/img/icon-report.png" alt="" /> },
+  { href: "/jogadores", label: "Jogadores", icon: <img src="/design-system/img/icon-isaac-avatar.png" alt="" /> },
+];
+
+const ADMIN_NAV: NavEntry[] = [
   { href: "/sprites", label: "Sprites", icon: <IconGrid /> },
   { href: "/ornamentos", label: "Ornamentos", icon: <IconStar /> },
 ];
@@ -22,7 +25,7 @@ export default function Sidebar() {
   return (
     <nav className="sidebar">
       <div className="sidebar-brand">
-        <span className="pixel-label">IFSN</span>
+        <img src="/sprites/app-components/app-logo.png" alt="Sad Notes" />
       </div>
       <div className="nav-divider" />
       {NAV.map((e) => (
@@ -36,6 +39,18 @@ export default function Sidebar() {
         </Link>
       ))}
       <div className="sidebar-footer">
+        <div className="nav-divider" />
+        <div className="nav-group-label">Admin</div>
+        {ADMIN_NAV.map((e) => (
+          <Link
+            key={e.href}
+            href={e.href}
+            className={`nav-item${isActive(e) ? " active" : ""}`}
+          >
+            <span className="nav-icon">{e.icon}</span>
+            <span className="nav-label">{e.label}</span>
+          </Link>
+        ))}
         <div className="nav-divider" />
         <Link
           href="/configuracoes"
@@ -60,31 +75,6 @@ function svg(children: ReactNode) {
       strokeLinecap="round" strokeLinejoin="round">
       {children}
     </svg>
-  );
-}
-function IconTrophy() {
-  return svg(
-    <>
-      <path d="M6 4h12v4a6 6 0 0 1-12 0V4z" />
-      <path d="M6 6H4a2 2 0 0 0 2 4M18 6h2a2 2 0 0 1-2 4" />
-      <path d="M12 14v3M9 20h6M10 20l.5-3h3l.5 3" />
-    </>
-  );
-}
-function IconScroll() {
-  return svg(
-    <>
-      <path d="M7 5h10v12a3 3 0 0 1-3 3H7z" />
-      <path d="M7 20a3 3 0 0 1-3-3h6M10 9h5M10 13h5" />
-    </>
-  );
-}
-function IconUser() {
-  return svg(
-    <>
-      <circle cx="12" cy="8" r="4" />
-      <path d="M4 20a8 8 0 0 1 16 0" />
-    </>
   );
 }
 function IconGrid() {

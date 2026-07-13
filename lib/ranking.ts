@@ -14,6 +14,7 @@ export interface RankingRow {
   souls: number;
   coins: number;
   deaths: number;
+  treasures: number;
   streak: number; // sequência de vitórias mais recente
 }
 
@@ -32,7 +33,8 @@ export function getRanking(): RankingRow[] {
               COALESCE(SUM(gp.is_winner), 0) AS wins,
               COALESCE(SUM(gp.souls), 0)     AS souls,
               COALESCE(SUM(gp.coins), 0)     AS coins,
-              COALESCE(SUM(gp.deaths), 0)    AS deaths
+              COALESCE(SUM(gp.deaths), 0)    AS deaths,
+              COALESCE(SUM(gp.treasures), 0) AS treasures
          FROM players p
          JOIN game_players gp ON gp.player_id = p.id
         GROUP BY p.id`

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Frame from "@/components/Frame";
+import StatIcon from "@/components/StatIcon";
 import { listGames } from "@/lib/games";
 import type { Edition, GameFormat } from "@/lib/types";
 
@@ -13,7 +14,7 @@ export default function PartidasPage() {
   const games = listGames();
   return (
     <Frame
-      variant="frame-dank-depths"
+      variant="frame-library"
       title="Partidas"
       actions={
         <Link href="/partidas/nova" className="btn btn-accent">
@@ -44,7 +45,9 @@ export default function PartidasPage() {
                 <th>Edição</th>
                 <th>Formato</th>
                 <th style={{ textAlign: "center" }}>Jogadores</th>
-                <th style={{ textAlign: "center" }}>Almas</th>
+                <th style={{ textAlign: "center" }}>
+                  <span className="th-icon"><StatIcon name="souls" /> Almas</span>
+                </th>
                 <th>Vencedor(es)</th>
               </tr>
             </thead>

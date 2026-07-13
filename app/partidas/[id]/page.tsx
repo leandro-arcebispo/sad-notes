@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Frame from "@/components/Frame";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import DeleteGameButton from "@/components/DeleteGameButton";
+import StatIcon from "@/components/StatIcon";
 import { getGame } from "@/lib/games";
 import type { Edition, GameFormat } from "@/lib/types";
 
@@ -22,7 +23,7 @@ export default async function PartidaDetailPage({
 
   return (
     <Frame
-      variant="frame-dank-depths"
+      variant="frame-library"
       title={`Partida · ${game.played_at}`}
       actions={
         <span className="row" style={{ gap: 8 }}>
@@ -35,7 +36,7 @@ export default async function PartidaDetailPage({
         <div className="meta-chips">
           <span className="badge">{EDITION_LABEL[game.edition]}</span>
           <span className="badge">{FORMAT_LABEL[game.format]}</span>
-          <span className="badge">🏆 {game.souls_to_win} almas p/ vencer</span>
+          <span className="badge"><StatIcon name="souls" size={14} /> {game.souls_to_win} almas p/ vencer</span>
           <span className="badge">🎭 {game.character_selection === "random" ? "Aleatória" : "Livre"}</span>
           {game.duration_min != null && <span className="badge">⏱ {game.duration_min} min</span>}
           {game.rounds != null && <span className="badge">🔁 {game.rounds} rodadas</span>}
@@ -58,10 +59,18 @@ export default async function PartidaDetailPage({
               <tr>
                 <th>Jogador</th>
                 <th>Personagem</th>
-                <th style={{ textAlign: "center" }}>Almas</th>
-                <th style={{ textAlign: "center" }}>Moedas</th>
-                <th style={{ textAlign: "center" }}>Loot</th>
-                <th style={{ textAlign: "center" }}>Mortes</th>
+                <th style={{ textAlign: "center" }}>
+                  <span className="th-icon"><StatIcon name="souls" /> Almas</span>
+                </th>
+                <th style={{ textAlign: "center" }}>
+                  <span className="th-icon"><StatIcon name="coins" /> Moedas</span>
+                </th>
+                <th style={{ textAlign: "center" }}>
+                  <span className="th-icon"><StatIcon name="loot" /> Loot</span>
+                </th>
+                <th style={{ textAlign: "center" }}>
+                  <span className="th-icon"><StatIcon name="deaths" /> Mortes</span>
+                </th>
                 <th>Itens</th>
               </tr>
             </thead>

@@ -12,7 +12,7 @@ export default function NovaPartidaPage() {
   const characters = listCharacters();
   const itemSuggestions = listItems().map((i) => i.name);
   return (
-    <Frame variant="frame-dank-depths" title="Nova partida">
+    <Frame variant="frame-library" title="Nova partida">
       <GameWizard
         players={players}
         characters={characters}

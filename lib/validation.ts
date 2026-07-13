@@ -102,6 +102,7 @@ export function parseGamePayload(
       loot_in_hand: Math.max(0, toInt(p.loot_in_hand)),
       coins: Math.max(0, toInt(p.coins)),
       deaths: Math.max(0, toInt(p.deaths)),
+      treasures: Math.max(0, toInt(p.treasures)),
       souls: Math.max(0, toInt(p.souls)),
       is_winner: Boolean(p.is_winner),
       team: toIntOrNull(p.team),

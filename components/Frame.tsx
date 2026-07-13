@@ -6,6 +6,7 @@ type FrameVariant =
   | "frame-library"
   | "frame-dank-depths"
   | "frame-cathedral"
+  | "frame-utero"
   | "frame-utero-purple"
   | "frame-scarred-womb"
   | "frame-brick";

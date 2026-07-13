@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export default function JogadoresPage() {
   const players = listPlayers();
   return (
-    <Frame variant="frame-library" title="Jogadores">
+    <Frame variant="frame-utero" title="Jogadores">
       <JogadoresClient players={players} />
     </Frame>
   );

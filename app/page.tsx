@@ -1,6 +1,7 @@
 import Frame from "@/components/Frame";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import RankFire from "@/components/RankFire";
+import StatIcon from "@/components/StatIcon";
 import { getRanking } from "@/lib/ranking";
 
 export const runtime = "nodejs";
@@ -25,25 +26,33 @@ export default function RankingPage() {
         <div className="panel" style={{ padding: 0 }}>
           <table className="data-table ranking-table">
             <colgroup>
-              <col style={{ width: "28%" }} />
+              <col style={{ width: "30%" }} />
               <col style={{ width: "12%" }} />
               <col style={{ width: "12%" }} />
               <col style={{ width: "10%" }} />
               <col style={{ width: "12%" }} />
               <col style={{ width: "12%" }} />
-              <col style={{ width: "8%" }} />
-              <col style={{ width: "10%" }} />
+              <col style={{ width: "12%" }} />
             </colgroup>
             <thead>
               <tr>
                 <th>Jogador</th>
-                <th style={{ textAlign: "center" }}>Vitórias</th>
-                <th style={{ textAlign: "center" }}>Partidas</th>
+                <th style={{ textAlign: "center" }}>
+                  <span className="th-icon"><StatIcon name="wins" size={25} /> Vitórias</span>
+                </th>
+                <th style={{ textAlign: "center" }}>
+                  <span className="th-icon"><StatIcon name="games" size={25} /> Partidas</span>
+                </th>
                 <th style={{ textAlign: "center" }}>Win %</th>
-                <th style={{ textAlign: "center" }}>Almas</th>
-                <th style={{ textAlign: "center" }}>Moedas</th>
-                <th style={{ textAlign: "center" }}>Mortes</th>
-                <th style={{ textAlign: "center" }}>Streak</th>
+                <th style={{ textAlign: "center" }}>
+                  <span className="th-icon"><StatIcon name="souls" size={25} /> Almas</span>
+                </th>
+                <th style={{ textAlign: "center" }}>
+                  <span className="th-icon"><StatIcon name="coins" size={25} /> Moedas</span>
+                </th>
+                <th style={{ textAlign: "center" }}>
+                  <span className="th-icon"><StatIcon name="treasures" size={25} /> Tesouros</span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -67,10 +76,7 @@ export default function RankingPage() {
                   <td style={{ textAlign: "center" }}>{pct(r.win_pct)}</td>
                   <td style={{ textAlign: "center" }}>{r.souls}</td>
                   <td style={{ textAlign: "center" }}>{r.coins}</td>
-                  <td style={{ textAlign: "center" }}>{r.deaths}</td>
-                  <td style={{ textAlign: "center" }}>
-                    {r.streak > 0 ? `🔥${r.streak}` : "—"}
-                  </td>
+                  <td style={{ textAlign: "center" }}>{r.treasures}</td>
                 </tr>
               ))}
             </tbody>

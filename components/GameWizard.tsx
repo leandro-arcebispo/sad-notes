@@ -22,6 +22,7 @@ type Part = {
   loot_in_hand: number;
   coins: number;
   deaths: number;
+  treasures: number;
   souls: number;
   items: string[];
   is_winner: boolean;
@@ -95,6 +96,7 @@ export default function GameWizard({
               loot_in_hand: 0,
               coins: 0,
               deaths: 0,
+              treasures: 0,
               souls: 0,
               items: [],
               is_winner: false,
@@ -175,6 +177,7 @@ export default function GameWizard({
         loot_in_hand: p.loot_in_hand,
         coins: p.coins,
         deaths: p.deaths,
+        treasures: p.treasures,
         souls: p.souls,
         is_winner: p.is_winner,
         team: p.team,
@@ -352,6 +355,7 @@ export default function GameWizard({
                     <NumBox label="Almas" value={p.souls} onChange={(v) => patch(p.player_id, { souls: v })} />
                     <NumBox label="Moedas" value={p.coins} onChange={(v) => patch(p.player_id, { coins: v })} />
                     <NumBox label="Loot" value={p.loot_in_hand} onChange={(v) => patch(p.player_id, { loot_in_hand: v })} />
+                    <NumBox label="Tesouros" value={p.treasures} onChange={(v) => patch(p.player_id, { treasures: v })} />
                     <NumBox label="Mortes" value={p.deaths} onChange={(v) => patch(p.player_id, { deaths: v })} />
                   </div>
                   <div className="final-items">

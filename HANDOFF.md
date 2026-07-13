@@ -46,8 +46,38 @@ para o detalhamento feature a feature):
 | 6 | Avatar completo (base+cabelo+diversos, cache PNG via sharp) | `f9c2ccf` + 3 fixes |
 
 Depois da Fase 6 vieram ajustes visuais pontuais (avatar sem moldura, mais
-zoom, fonte nova "Upheaval"). **Falta:** Fase 7 (Polish visual) e o Backlog
+zoom, fonte nova "Upheaval", ícones pixel-art do design system distribuídos
+nos cabeçalhos de tabela — `components/StatIcon.tsx`, usado em Ranking,
+Partidas e Detalhe de Partida). **Falta:** Fase 7 (Polish visual) e o Backlog
 (torneios completos, autenticação, deploy) — nada bloqueante, é refinamento.
+
+Sessão 2026-07-13 (revisão página a página, começando pelo Ranking):
+- Novo campo **`treasures`** em `game_players` (coluna adicionada via migração
+  idempotente em `lib/db.ts` → `migrateSchema()`, checa `PRAGMA table_info`
+  antes de rodar `ALTER TABLE` — necessário porque o banco real já existia
+  com dados do usuário). Plumbing completo: `lib/types.ts`
+  (`GamePlayerRow`/`GamePlayerInput`), `lib/validation.ts`, `lib/games.ts`
+  (insert), `lib/ranking.ts` (soma agregada), `components/GameWizard.tsx`
+  (novo `NumBox "Tesouros"` no step 3, entre Loot e Mortes).
+- Ranking (`app/page.tsx`): coluna "Mortes" **removida** e substituída por
+  "Tesouros" — decisão do usuário: mortes não é penalidade (build de "morrer
+  muito mas vencer" é válida), só um dado a mais, não cabe como métrica de
+  destaque no ranking agregado. **Mortes continua sendo registrada** no
+  wizard e por partida — só sumiu do resumo do Ranking.
+- Ícones do Ranking aumentados para 25px (os das outras tabelas continuam
+  16px, é só o `size` do `StatIcon`, não mudou o default do componente).
+- Ícone `icon-tesouros-new.png` já existia em `public/design-system/img/`
+  (copiado junto com o design system inteiro), só faltava ser referenciado.
+- Ícone do item "Ranking" da sidebar trocado do SVG genérico (`IconTrophy`,
+  removido) para o troféu pixel-art da POC (`four-souls-poc/index.html`,
+  primeiro `<img>` em base64 do nav). Extraído e salvo como
+  `public/design-system/img/icon-nav-ranking.png`. Se precisar extrair mais
+  ícones da POC no futuro, eles estão embutidos como `data:image/png;base64`
+  direto no HTML (não em arquivos separados) — procurar por
+  `src="data:image/png;base64,` em `four-souls-poc/index.html`.
+- Trabalho está indo **página por página** a pedido do usuário — não mexer
+  nas telas de Partidas/Jogadores/etc. além do que já foi pedido até ele
+  confirmar a próxima página.
 
 ### Dados reais do usuário no banco (não são teste — não apagar)
 

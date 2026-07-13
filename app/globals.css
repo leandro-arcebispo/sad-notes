@@ -226,6 +226,18 @@ h2.title {
   background: rgba(232, 185, 120, 0.06);
 }
 
+/* ---------- ícones de estatística (moedas, almas, loot...) ---------- */
+.stat-icon {
+  image-rendering: pixelated;
+  vertical-align: -3px;
+}
+.th-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
 /* ---------- badges / tags ---------- */
 .badge {
   display: inline-flex;
@@ -254,28 +266,29 @@ h2.title {
   top: 0;
   left: 0;
   height: 100vh;
-  width: var(--sidebar-w);
+  width: var(--sidebar-w-open);
   background: var(--panel);
   border-right: 1px solid var(--panel-border);
   overflow: hidden;
-  transition: width 0.18s ease;
   z-index: 100;
   display: flex;
   flex-direction: column;
   padding-top: 10px;
 }
-.sidebar:hover {
-  width: var(--sidebar-w-open);
-  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.5);
-}
 .sidebar-brand {
-  height: 40px;
+  height: 116px;
   display: flex;
   align-items: center;
   padding-left: 18px;
   color: var(--accent);
   font-size: 18px;
   letter-spacing: 0.12em;
+}
+.sidebar-brand img {
+  height: 100px;
+  width: auto;
+  object-fit: contain;
+  image-rendering: pixelated;
 }
 .nav-item {
   display: flex;
@@ -311,28 +324,42 @@ h2.title {
 .nav-item.active .nav-icon svg {
   filter: grayscale(0) opacity(1);
 }
+.nav-icon img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  filter: grayscale(1) opacity(0.75);
+  transition: filter 0.15s ease;
+}
+.nav-item:hover .nav-icon img,
+.nav-item.active .nav-icon img {
+  filter: grayscale(0) opacity(1);
+}
 .nav-label {
   font-family: var(--font-display);
   font-size: 14px;
   letter-spacing: 0.02em;
-  opacity: 0;
-  transition: opacity 0.12s ease;
-}
-.sidebar:hover .nav-label {
-  opacity: 1;
-  transition: opacity 0.18s ease 0.05s;
 }
 .nav-divider {
   height: 1px;
   background: var(--panel-border);
   margin: 8px 14px;
 }
+.nav-group-label {
+  font-family: var(--font-display);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+  padding: 4px 18px 6px;
+}
 .sidebar-footer {
   margin-top: auto;
   margin-bottom: 10px;
 }
 .main {
-  margin-left: var(--sidebar-w);
+  margin-left: var(--sidebar-w-open);
   padding: 32px 40px;
   min-height: 100vh;
 }

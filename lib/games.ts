@@ -36,8 +36,8 @@ export function createGame(payload: GamePayload): GameFull {
     const insGP = db.prepare(
       `INSERT INTO game_players
          (game_id, player_id, character_id, had_reroll, loot_in_hand, coins,
-          deaths, souls, is_winner, team, seat_order)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          deaths, treasures, souls, is_winner, team, seat_order)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     );
     const insItem = db.prepare(
       "INSERT OR IGNORE INTO game_player_items (game_player_id, item_id) VALUES (?, ?)"
@@ -52,6 +52,7 @@ export function createGame(payload: GamePayload): GameFull {
         pl.loot_in_hand,
         pl.coins,
         pl.deaths,
+        pl.treasures,
         pl.souls,
         pl.is_winner ? 1 : 0,
         pl.team,
