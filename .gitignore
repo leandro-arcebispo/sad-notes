@@ -20,6 +20,9 @@
 # avatares compostos (PNG cacheado, gerado via sharp a partir da receita no banco)
 /public/avatars/*.png
 
+# arquivos-fonte do GIMP (working files de arte; não devem ser servidos em /public)
+/public/gimp-projects/
+
 # misc
 .DS_Store
 *.pem

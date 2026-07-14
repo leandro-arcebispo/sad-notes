@@ -111,6 +111,60 @@ Sessão 2026-07-13 (continuação — tela de Jogadores, commit `20e2b49`):
   deixado em `'natural'` de propósito (testei "Azul"/"Ruivo" durante o
   desenvolvimento e reverti pra não alterar o dado real dele).
 
+Sessão 2026-07-13 (continuação — Backlog / Feedback no Admin):
+- **Nova tela `/backlog`** (item no menu Admin da `Sidebar`, ícone `IconBug`).
+  Form pros amigos reportarem bug/melhoria/feature pro backlog do app +
+  lista gerenciável. Tabela nova `feedback` (criada no `initSchema` via
+  `CREATE TABLE IF NOT EXISTS` — não precisou de migração idempotente por ser
+  tabela zerada).
+- **Campos:** `kind` (bug|melhoria|feature, segmentado), `description` (texto
+  livre, obrigatório, até 2000 chars), `area` (funcionalidade afetada — select
+  de `FEEDBACK_AREAS` em `lib/types.ts`; `na` = "N/A feature nova", forçado
+  quando kind=feature), `priority` (baixa|media|alta), `status`
+  (aberto|andamento|concluido|descartado, default aberto, editável na lista),
+  `player_id` (quem reportou — só jogadores **ativos**, `null` = anônimo),
+  `created_at` automático.
+- **Plumbing:** `lib/feedback.ts` (data layer), `parseFeedbackInput` em
+  `lib/validation.ts`, `app/api/feedback/route.ts` (GET/POST) +
+  `app/api/feedback/[id]/route.ts` (PATCH status / DELETE),
+  `components/BacklogClient.tsx`, CSS `.backlog-*`/`.bl-tag`/`.textarea` no fim
+  do `globals.css`.
+- **Robertinho (id 10) foi arquivado** pelo usuário entre sessões (`active=0`),
+  por isso só o Mané aparece no select "quem está reportando" (correto: só
+  ativos preenchem). Verificado end-to-end (criar/PATCH/DELETE via UI+API).
+- ⚠️ O `confirm()` do botão "Remover" **trava o Browser pane** neste ambiente
+  (igual screenshot/zoom, ver armadilha #5). Funciona normal num browser real;
+  pra testar delete aqui, use a API direto (`curl -X DELETE`).
+
+Sessão 2026-07-13 (continuação — preparação pra hospedar / publicar):
+- **Plano de hospedagem escolhido:** self-host na máquina do usuário (o app já
+  roda nela) exposto via **Cloudflare Tunnel**. Motivo: a arquitetura grava em
+  disco local (SQLite em `data/`, PNGs em `public/sprites` e `public/avatars`)
+  e usa módulos nativos (`better-sqlite3`, `sharp`) — incompatível com
+  serverless efêmero (Vercel/Netlify) sem re-arquitetar. Fly.io seria a opção
+  "sempre-online" (volume persistente) mas pede cartão. Não re-arquitetar por
+  enquanto: uso baixo, ~12 amigos.
+- **Trava de acesso implementada:** `middleware.ts` na raiz — HTTP Basic Auth
+  protegendo TODAS as páginas e rotas de API (menos `_next/static`,
+  `_next/image`, `favicon.ico`). Só ativa quando `BASIC_AUTH_PASSWORD` está
+  definido (ver `.env.local.example`); sem a var (dev) libera tudo. Usuário do
+  prompt = `BASIC_AUTH_USER` (default `amigos`). Comparação constant-time,
+  roda no edge runtime (usa `atob`, não node crypto). **Antes de abrir o túnel,
+  defina `BASIC_AUTH_PASSWORD` em `.env.local`.** Se usar Cloudflare Access na
+  frente, isto vira 2ª camada.
+- **Build de produção validado:** `npm run build` passa limpo (Next 15.5.20,
+  módulos nativos compilam sem precisar de `next.config`/`serverExternalPackages`;
+  middleware registrado, 34 kB). Auth testada com `next start` numa porta
+  separada: sem auth→401, senha errada→401, senha certa→200, idem nas rotas de
+  API. **O app nunca tinha rodado em produção antes — só `dev`; agora roda.**
+- **Runbook pra publicar:** `.env.local` com a senha → `npm run build` →
+  `npm run start` (porta 6007, produção) → `cloudflared tunnel --url
+  http://localhost:6007` (URL efêmera) ou túnel nomeado no domínio do usuário.
+  Backup = copiar `data/*.db*` + `public/avatars` + `public/sprites`.
+- **Ainda no backlog de publicação (não bloqueante):** rotação de backup
+  automática e, se quiser sempre-online sem depender do PC ligado, migrar pra
+  Fly.io (Dockerfile + volume) — nada disso foi feito ainda.
+
 ### Dados reais do usuário no banco (não são teste — não apagar)
 
 - Jogadores: **Mané** (id 9, tem cabelo customizado aplicado, `hair_color`
@@ -234,6 +288,7 @@ app/
   partidas/[id]/page.tsx          Detalhe da partida
   sprites/page.tsx                 Catálogo de sprites (Fase 4)
   ornamentos/page.tsx              Cadastro de ornamentos (Fase 5)
+  backlog/page.tsx                 Backlog: form de bug/melhoria/feature + lista (Admin)
   api/**                           Rotas REST (players, games, characters,
                                     items, sprites, ornaments, players/[id]/avatar/*)
 lib/
@@ -241,6 +296,7 @@ lib/
   types.ts            todos os tipos (Player, Game, Sprite, Ornament, AvatarRecipe...)
   validation.ts        parsePlayerInput / parseGamePayload
   players.ts, characters.ts, games.ts, items.ts   data layer core
+  feedback.ts         data layer do Backlog (list/create/updateStatus/delete)
   sprites.ts, ornaments.ts, player-avatar.ts        data layer do pipeline de avatar
   avatar-geometry.ts   geometria PURA compartilhada (cliente+servidor)
   avatar-compose.ts    composição via sharp + cache PNG (só servidor)
@@ -252,6 +308,7 @@ components/
   Frame, Sidebar, ComingSoon           shell/layout
   PlayerAvatar                        avatar (cache PNG ou fallback de rosto)
   JogadoresClient, GameWizard, DeleteGameButton, ItemTagInput
+  BacklogClient                        form + lista do Backlog (Admin)
   SpritesClient                        catálogo de sprites
   OrnamentBuilder                       cadastro de ornamentos
   AvatarComposer, AvatarEditor          editor de avatar (Fase 6)
