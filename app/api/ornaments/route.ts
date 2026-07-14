@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getDb } from "@/lib/db";
+import { get } from "@/lib/db";
 import { listOrnaments, createOrnament } from "@/lib/ornaments";
 import type { OrnamentCategory } from "@/lib/types";
 
@@ -8,8 +8,8 @@ export const dynamic = "force-dynamic";
 
 const CATEGORIES: OrnamentCategory[] = ["cabelo", "diverso"];
 
-export function GET() {
-  return NextResponse.json(listOrnaments());
+export async function GET() {
+  return NextResponse.json(await listOrnaments());
 }
 
 export async function POST(req: Request) {
@@ -22,7 +22,7 @@ export async function POST(req: Request) {
   if (!sprite_id) {
     return NextResponse.json({ error: "sprite_id é obrigatório" }, { status: 400 });
   }
-  const sprite = getDb().prepare("SELECT id FROM sprites WHERE id = ?").get(sprite_id);
+  const sprite = await get<{ id: number }>("SELECT id FROM sprites WHERE id = ?", [sprite_id]);
   if (!sprite) {
     return NextResponse.json({ error: "sprite não encontrado" }, { status: 400 });
   }
@@ -39,7 +39,7 @@ export async function POST(req: Request) {
     return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : fallback;
   };
 
-  const ornament = createOrnament({
+  const ornament = await createOrnament({
     sprite_id,
     name,
     category,

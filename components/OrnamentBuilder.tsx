@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BASE_FACES, type BaseFace, type Sprite, type OrnamentCategory, type OrnamentFull } from "@/lib/types";
 import { FACE_BOX, ornamentBox } from "@/lib/avatar-geometry";
+import { assetUrl } from "@/lib/asset-url";
 
 export default function OrnamentBuilder({
   sprites,
@@ -87,7 +88,7 @@ export default function OrnamentBuilder({
                 <img
                   className="preview-layer"
                   style={{ width: box.w, height: box.h, left: box.left, top: box.top }}
-                  src={`/${selectedSprite.path}`}
+                  src={assetUrl(selectedSprite.path)}
                   alt=""
                 />
               );
@@ -154,7 +155,7 @@ export default function OrnamentBuilder({
                     onClick={() => setSelectedSprite(s)}
                     title={s.name}
                   >
-                    <img src={`/${s.path}`} alt={s.name} />
+                    <img src={assetUrl(s.path)} alt={s.name} />
                   </button>
                 ))}
               </div>
@@ -181,7 +182,7 @@ export default function OrnamentBuilder({
           <div className="ornament-list">
             {ornaments.map((o) => (
               <div key={o.id} className="ornament-row">
-                <div className="ornament-thumb"><img src={`/${o.sprite_path}`} alt={o.name} /></div>
+                <div className="ornament-thumb"><img src={assetUrl(o.sprite_path)} alt={o.name} /></div>
                 <div className="ornament-meta">
                   <div className="pixel-label">{o.name}</div>
                   <div className="muted" style={{ fontSize: 12 }}>

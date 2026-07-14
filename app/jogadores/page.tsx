@@ -4,7 +4,7 @@ import { listPlayers } from "@/lib/players";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export default function JogadoresPage() {
-  const players = listPlayers();
+export default async function JogadoresPage() {
+  const players = await listPlayers();
   return <JogadoresClient players={players} />;
 }

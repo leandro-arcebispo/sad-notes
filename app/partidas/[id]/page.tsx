@@ -18,7 +18,7 @@ export default async function PartidaDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const game = getGame(Number((await params).id));
+  const game = await getGame(Number((await params).id));
   if (!game) notFound();
 
   return (

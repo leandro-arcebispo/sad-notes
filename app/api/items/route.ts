@@ -4,6 +4,6 @@ import { listItems } from "@/lib/items";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export function GET() {
-  return NextResponse.json(listItems());
+export async function GET() {
+  return NextResponse.json(await listItems());
 }

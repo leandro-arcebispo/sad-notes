@@ -7,10 +7,10 @@ import { listItems } from "@/lib/items";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export default function NovaPartidaPage() {
-  const players = listPlayers(false); // só ativos
-  const characters = listCharacters();
-  const itemSuggestions = listItems().map((i) => i.name);
+export default async function NovaPartidaPage() {
+  const players = await listPlayers(false); // só ativos
+  const characters = await listCharacters();
+  const itemSuggestions = (await listItems()).map((i) => i.name);
   return (
     <Frame variant="frame-library" title="Nova partida">
       <GameWizard

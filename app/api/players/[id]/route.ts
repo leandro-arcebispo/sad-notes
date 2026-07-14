@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { getPlayer, updatePlayer, setPlayerActive } from "@/lib/players";
-import { regenerateCache } from "@/lib/player-avatar";
 import { parsePlayerInput } from "@/lib/validation";
 
 export const runtime = "nodejs";
@@ -10,7 +9,7 @@ type Ctx = { params: Promise<{ id: string }> };
 
 export async function PATCH(req: Request, { params }: Ctx) {
   const id = Number((await params).id);
-  const before = getPlayer(id);
+  const before = await getPlayer(id);
   if (!before) {
     return NextResponse.json({ error: "jogador não encontrado" }, { status: 404 });
   }
@@ -18,7 +17,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
 
   // Toggle de ativo/arquivado (não exige os campos do formulário).
   if (body && typeof body === "object" && "active" in body && Object.keys(body).length === 1) {
-    const updated = setPlayerActive(id, Boolean((body as { active: unknown }).active));
+    const updated = await setPlayerActive(id, Boolean((body as { active: unknown }).active));
     return NextResponse.json(updated);
   }
 
@@ -26,15 +25,9 @@ export async function PATCH(req: Request, { params }: Ctx) {
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
-  const updated = updatePlayer(id, parsed.value);
-  // Rosto base e cor do cabelo são camadas do avatar composto — se mudaram, o
-  // PNG cacheado (usado no ranking, cards etc.) precisa ser regenerado.
-  if (
-    parsed.value.base_face !== before.base_face ||
-    parsed.value.hair_color !== before.hair_color
-  ) {
-    await regenerateCache(id);
-    return NextResponse.json(getPlayer(id));
-  }
+  const updated = await updatePlayer(id, parsed.value);
+  // Rosto base e cor do cabelo são camadas do avatar composto. A regeneração do
+  // PNG cacheado agora acontece no cliente (Canvas) — o AvatarEditor recompõe e
+  // faz upload via PUT /avatar/cache após esta chamada.
   return NextResponse.json(updated);
 }

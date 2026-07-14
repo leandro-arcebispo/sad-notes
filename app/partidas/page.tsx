@@ -10,8 +10,8 @@ export const dynamic = "force-dynamic";
 const EDITION_LABEL: Record<Edition, string> = { base: "Base", requiem: "Requiem" };
 const FORMAT_LABEL: Record<GameFormat, string> = { solo: "Solo", duo: "Duplas", trio: "Trios" };
 
-export default function PartidasPage() {
-  const games = listGames();
+export default async function PartidasPage() {
+  const games = await listGames();
   return (
     <Frame
       variant="frame-library"

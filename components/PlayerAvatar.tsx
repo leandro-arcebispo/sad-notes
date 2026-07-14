@@ -1,4 +1,5 @@
 import type { BaseFace } from "@/lib/types";
+import { assetUrl } from "@/lib/asset-url";
 
 /**
  * Avatar do jogador: usa o PNG composto cacheado (Fase 6 — base + cabelo +
@@ -14,7 +15,7 @@ export default function PlayerAvatar({
   size?: number;
   avatarCache?: string | null;
 }) {
-  const src = avatarCache ? `/${avatarCache}` : `/design-system/img/faces/face-${face}.png`;
+  const src = avatarCache ? assetUrl(avatarCache) : `/design-system/img/faces/face-${face}.png`;
   return (
     <span className="player-avatar" style={{ width: size, height: size }}>
       <img src={src} alt="" width={size} height={size} />

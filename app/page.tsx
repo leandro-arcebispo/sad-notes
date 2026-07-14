@@ -9,8 +9,8 @@ export const dynamic = "force-dynamic";
 
 const pct = (v: number) => `${Math.round(v * 100)}%`;
 
-export default function RankingPage() {
-  const rows = getRanking();
+export default async function RankingPage() {
+  const rows = await getRanking();
 
   return (
     <Frame variant="frame-chest-torch" title="Ranking">

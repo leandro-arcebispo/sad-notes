@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import AvatarComposer from "./AvatarComposer";
 import { BASE_FACES, type AvatarRecipe, type BaseFace, type OrnamentFull, type Player } from "@/lib/types";
 import { HAIR_COLORS, hairColorCssFilter } from "@/lib/hair-colors";
+import { assetUrl } from "@/lib/asset-url";
+import { composeAvatarDataUrl } from "@/lib/avatar-canvas";
 
 export default function AvatarEditor({
   player,
@@ -49,13 +51,39 @@ export default function AvatarEditor({
         hair_color: recipe.hair_color,
       }),
     });
-    setSavingIdentity(false);
     if (!res.ok) {
+      setSavingIdentity(false);
       const j = await res.json().catch(() => ({}));
       setIdentityError(j.error ?? "Erro ao salvar.");
       return;
     }
+    // rosto base pode ter mudado → recompõe o avatar
+    await syncAvatar(recipe);
+    setSavingIdentity(false);
     router.refresh();
+  }
+
+  /**
+   * Compõe o PNG do avatar no navegador (Canvas) a partir da receita atual e
+   * envia pra storage (Blob em prod / disco em dev). Sem cabelo nem diversos,
+   * limpa o cache — o avatar volta a ser só o rosto base. Não bloqueia a edição
+   * se falhar (ex.: CORS de imagem).
+   */
+  async function syncAvatar(next: AvatarRecipe) {
+    try {
+      if (!next.hair && next.diversos.length === 0) {
+        await fetch(`/api/players/${player.id}/avatar/cache`, { method: "DELETE" });
+        return;
+      }
+      const dataUrl = await composeAvatarDataUrl(next);
+      await fetch(`/api/players/${player.id}/avatar/cache`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dataUrl }),
+      });
+    } catch (e) {
+      console.error("falha ao gerar/enviar avatar", e);
+    }
   }
 
   async function call(url: string, method: string, body?: unknown) {
@@ -65,12 +93,13 @@ export default function AvatarEditor({
       headers: body ? { "Content-Type": "application/json" } : undefined,
       body: body ? JSON.stringify(body) : undefined,
     });
-    setBusy(false);
     if (res.ok) {
-      const next = await res.json();
+      const next: AvatarRecipe = await res.json();
       setRecipe(next);
+      await syncAvatar(next); // recompõe e sobe o PNG
       router.refresh(); // atualiza avatar_cache exibido em outras telas (players, ranking)
     }
+    setBusy(false);
   }
 
   const setHair = (ornamentId: number | null) =>
@@ -89,11 +118,13 @@ export default function AvatarEditor({
         hair_color: key,
       }),
     });
-    setBusy(false);
     if (res.ok) {
-      setRecipe((r) => ({ ...r, hair_color: key }));
+      const nextRecipe = { ...recipe, hair_color: key };
+      setRecipe(nextRecipe);
+      await syncAvatar(nextRecipe);
       router.refresh();
     }
+    setBusy(false);
   }
   const addDiverso = (ornamentId: number) =>
     call(`/api/players/${player.id}/avatar/diversos`, "POST", { ornament_id: ornamentId });
@@ -185,7 +216,7 @@ export default function AvatarEditor({
                     onClick={() => setHair(o.id)}
                     disabled={busy}
                   >
-                    <img src={`/${o.sprite_path}`} alt={o.name} />
+                    <img src={assetUrl(o.sprite_path)} alt={o.name} />
                   </button>
                 ))}
               </div>
@@ -207,7 +238,7 @@ export default function AvatarEditor({
                       disabled={busy}
                     >
                       <img
-                        src={`/${hairSpritePath}`}
+                        src={assetUrl(hairSpritePath)}
                         alt={c.label}
                         style={{ filter: hairColorCssFilter(c.key) }}
                       />
@@ -235,7 +266,7 @@ export default function AvatarEditor({
                     onClick={() => addDiverso(o.id)}
                     disabled={busy}
                   >
-                    <img src={`/${o.sprite_path}`} alt={o.name} />
+                    <img src={assetUrl(o.sprite_path)} alt={o.name} />
                   </button>
                 ))}
               </div>

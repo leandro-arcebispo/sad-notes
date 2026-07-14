@@ -10,14 +10,13 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "better-sqlite3": "^12.11.1",
+    "@libsql/client": "^0.17.4",
+    "@vercel/blob": "^2.6.1",
     "next": "^15.5.19",
     "react": "19.0.0",
-    "react-dom": "19.0.0",
-    "sharp": "^0.35.3"
+    "react-dom": "19.0.0"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^22.10.7",
     "@types/react": "^19.0.7",
     "@types/react-dom": "^19.0.3",

@@ -1,6 +1,7 @@
 import type { AvatarRecipe } from "@/lib/types";
 import { FACE_BOX, ornamentBox } from "@/lib/avatar-geometry";
 import { hairColorCssFilter } from "@/lib/hair-colors";
+import { assetUrl } from "@/lib/asset-url";
 
 /** Renderiza a receita do avatar (base + cabelo + diversos) empilhada no
  * estágio, com a mesma geometria usada no OrnamentBuilder e no compositor
@@ -32,7 +33,7 @@ export default function AvatarComposer({ recipe }: { recipe: AvatarRecipe }) {
               top: box.top,
               filter: hairColorCssFilter(recipe.hair_color),
             }}
-            src={`/${recipe.hair.sprite_path}`}
+            src={assetUrl(recipe.hair.sprite_path)}
             alt=""
           />
         );
@@ -44,7 +45,7 @@ export default function AvatarComposer({ recipe }: { recipe: AvatarRecipe }) {
             key={orn.row_id}
             className="preview-layer"
             style={{ width: box.w, height: box.h, left: box.left, top: box.top }}
-            src={`/${orn.sprite_path}`}
+            src={assetUrl(orn.sprite_path)}
             alt=""
           />
         );

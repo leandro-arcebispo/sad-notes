@@ -5,8 +5,8 @@ import { parseGamePayload } from "@/lib/validation";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export function GET() {
-  return NextResponse.json(listGames());
+export async function GET() {
+  return NextResponse.json(await listGames());
 }
 
 export async function POST(req: Request) {
@@ -15,5 +15,5 @@ export async function POST(req: Request) {
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
-  return NextResponse.json(createGame(parsed.value), { status: 201 });
+  return NextResponse.json(await createGame(parsed.value), { status: 201 });
 }

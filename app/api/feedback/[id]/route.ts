@@ -14,7 +14,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
   if (!FEEDBACK_STATUSES.includes(status as FeedbackStatus)) {
     return NextResponse.json({ error: "status inválido" }, { status: 400 });
   }
-  const ok = updateFeedbackStatus(id, status as FeedbackStatus);
+  const ok = await updateFeedbackStatus(id, status as FeedbackStatus);
   if (!ok) {
     return NextResponse.json({ error: "item não encontrado" }, { status: 404 });
   }
@@ -22,7 +22,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
 }
 
 export async function DELETE(_req: Request, { params }: Ctx) {
-  const ok = deleteFeedback(Number((await params).id));
+  const ok = await deleteFeedback(Number((await params).id));
   if (!ok) {
     return NextResponse.json({ error: "item não encontrado" }, { status: 404 });
   }

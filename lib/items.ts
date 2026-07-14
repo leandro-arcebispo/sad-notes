@@ -1,21 +1,24 @@
-import type BetterSqlite3 from "better-sqlite3";
-import { getDb, nowIso } from "./db";
+import type { Transaction } from "@libsql/client";
+import { all, nowIso } from "./db";
 
-export function listItems(): { id: number; name: string }[] {
-  return getDb()
-    .prepare("SELECT id, name FROM items ORDER BY name COLLATE NOCASE")
-    .all() as { id: number; name: string }[];
+export async function listItems(): Promise<{ id: number; name: string }[]> {
+  return all<{ id: number; name: string }>(
+    "SELECT id, name FROM items ORDER BY name COLLATE NOCASE"
+  );
 }
 
-/** Resolve um item por nome (case-insensitive), criando-o se não existir. */
-export function resolveItemId(db: BetterSqlite3.Database, name: string): number {
+/** Resolve um item por nome (case-insensitive), criando-o se não existir.
+ * Roda dentro da transação de criação de partida (recebe o `Transaction`). */
+export async function resolveItemId(tx: Transaction, name: string): Promise<number> {
   const trimmed = name.trim();
-  const existing = db
-    .prepare("SELECT id FROM items WHERE name = ?")
-    .get(trimmed) as { id: number } | undefined;
-  if (existing) return existing.id;
-  const res = db
-    .prepare("INSERT INTO items (name, first_seen_at) VALUES (?, ?)")
-    .run(trimmed, nowIso());
+  const existing = await tx.execute({
+    sql: "SELECT id FROM items WHERE name = ?",
+    args: [trimmed],
+  });
+  if (existing.rows.length) return Number(existing.rows[0][0]);
+  const res = await tx.execute({
+    sql: "INSERT INTO items (name, first_seen_at) VALUES (?, ?)",
+    args: [trimmed, nowIso()],
+  });
   return Number(res.lastInsertRowid);
 }

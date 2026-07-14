@@ -1,13 +1,10 @@
-import path from "node:path";
-import fs from "node:fs";
 import crypto from "node:crypto";
-import { getDb, getSetting, nowIso } from "./db";
+import { all, get, getClient, getSetting, run, nowIso } from "./db";
+import { putImage, deleteImage } from "./storage";
 import type { Sprite } from "./types";
 
-const PUBLIC_DIR = path.join(process.cwd(), "public");
-
-function spritesDir(): string {
-  return getSetting("sprites_dir") || "sprites";
+async function spritesDir(): Promise<string> {
+  return (await getSetting("sprites_dir")) || "sprites";
 }
 
 function slugify(s: string): string {
@@ -21,16 +18,16 @@ function slugify(s: string): string {
   );
 }
 
-export function listSprites(): Sprite[] {
-  return getDb()
-    .prepare("SELECT * FROM sprites ORDER BY category COLLATE NOCASE, name COLLATE NOCASE")
-    .all() as Sprite[];
+export async function listSprites(): Promise<Sprite[]> {
+  return all<Sprite>(
+    "SELECT * FROM sprites ORDER BY category COLLATE NOCASE, name COLLATE NOCASE"
+  );
 }
 
-export function listSpriteCategories(): string[] {
-  const rows = getDb()
-    .prepare("SELECT DISTINCT category FROM sprites ORDER BY category COLLATE NOCASE")
-    .all() as { category: string }[];
+export async function listSpriteCategories(): Promise<string[]> {
+  const rows = await all<{ category: string }>(
+    "SELECT DISTINCT category FROM sprites ORDER BY category COLLATE NOCASE"
+  );
   return rows.map((r) => r.category);
 }
 
@@ -47,31 +44,26 @@ export interface CreateSpriteInput {
   sh: number | null;
 }
 
-export function createSprite(input: CreateSpriteInput): Sprite {
+export async function createSprite(input: CreateSpriteInput): Promise<Sprite> {
   const m = /^data:image\/png;base64,(.+)$/s.exec(input.dataUrl.trim());
   if (!m) throw new Error("dataUrl inválido (esperado PNG base64)");
   const buffer = Buffer.from(m[1], "base64");
 
-  const base = spritesDir();
+  const base = await spritesDir();
   const catSlug = slugify(input.category || "outro");
-  const dir = path.join(PUBLIC_DIR, base, catSlug);
-  fs.mkdirSync(dir, { recursive: true });
-
   const suffix = crypto.randomBytes(3).toString("hex");
   const filename = `${slugify(input.name)}-${suffix}.png`;
-  fs.writeFileSync(path.join(dir, filename), buffer);
+  const key = `${base}/${catSlug}/${filename}`;
+  const ref = await putImage(key, buffer, "image/png"); // URL do Blob (prod) ou /path (dev)
 
-  const relPath = `${base}/${catSlug}/${filename}`; // servido em /<relPath>
-  const res = getDb()
-    .prepare(
-      `INSERT INTO sprites
-         (name, category, path, width, height, source_sheet, sx, sy, sw, sh, created_at)
-       VALUES (@name, @category, @path, @width, @height, @source_sheet, @sx, @sy, @sw, @sh, @created_at)`
-    )
-    .run({
+  const { lastId } = await run(
+    `INSERT INTO sprites
+       (name, category, path, width, height, source_sheet, sx, sy, sw, sh, created_at)
+     VALUES (@name, @category, @path, @width, @height, @source_sheet, @sx, @sy, @sw, @sh, @created_at)`,
+    {
       name: input.name.trim(),
       category: (input.category || "outro").trim(),
-      path: relPath,
+      path: ref,
       width: input.width,
       height: input.height,
       source_sheet: input.source_sheet,
@@ -80,28 +72,29 @@ export function createSprite(input: CreateSpriteInput): Sprite {
       sw: input.sw,
       sh: input.sh,
       created_at: nowIso(),
-    });
+    }
+  );
 
-  return getDb()
-    .prepare("SELECT * FROM sprites WHERE id = ?")
-    .get(Number(res.lastInsertRowid)) as Sprite;
+  return (await get<Sprite>("SELECT * FROM sprites WHERE id = ?", [lastId]))!;
 }
 
-export function deleteSprite(id: number): boolean {
-  const row = getDb().prepare("SELECT path FROM sprites WHERE id = ?").get(id) as
-    | { path: string }
-    | undefined;
+export async function deleteSprite(id: number): Promise<boolean> {
+  const row = await get<{ path: string }>("SELECT path FROM sprites WHERE id = ?", [id]);
   if (!row) return false;
 
-  // Remove o arquivo, garantindo que fica dentro de /public (defesa básica).
-  const abs = path.join(PUBLIC_DIR, row.path);
-  if (abs.startsWith(PUBLIC_DIR) && fs.existsSync(abs)) {
-    try {
-      fs.unlinkSync(abs);
-    } catch {
-      /* arquivo já ausente — segue e remove a linha */
-    }
-  }
-  getDb().prepare("DELETE FROM sprites WHERE id = ?").run(id);
+  await deleteImage(row.path);
+  // Cascata manual: player_ornaments → ornaments (deste sprite) → sprite.
+  const db = await getClient();
+  await db.batch(
+    [
+      {
+        sql: "DELETE FROM player_ornaments WHERE ornament_id IN (SELECT id FROM ornaments WHERE sprite_id = ?)",
+        args: [id],
+      },
+      { sql: "DELETE FROM ornaments WHERE sprite_id = ?", args: [id] },
+      { sql: "DELETE FROM sprites WHERE id = ?", args: [id] },
+    ],
+    "write"
+  );
   return true;
 }

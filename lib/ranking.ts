@@ -1,4 +1,4 @@
-import { getDb } from "./db";
+import { all } from "./db";
 import type { BaseFace } from "./types";
 
 export interface RankingRow {
@@ -23,25 +23,21 @@ export interface RankingRow {
  * jogaram ao menos uma partida. Ordenação: vitórias ↓, depois win% ↓, depois
  * almas ↓. O ranking nunca é digitado — é sempre calculado daqui.
  */
-export function getRanking(): RankingRow[] {
-  const db = getDb();
+export async function getRanking(): Promise<RankingRow[]> {
+  const agg = await all<Omit<RankingRow, "rank" | "win_pct" | "streak">>(
+    `SELECT p.id AS player_id, p.name, p.color, p.base_face, p.avatar_cache,
+            COUNT(gp.id)              AS games,
+            COALESCE(SUM(gp.is_winner), 0) AS wins,
+            COALESCE(SUM(gp.souls), 0)     AS souls,
+            COALESCE(SUM(gp.coins), 0)     AS coins,
+            COALESCE(SUM(gp.deaths), 0)    AS deaths,
+            COALESCE(SUM(gp.treasures), 0) AS treasures
+       FROM players p
+       JOIN game_players gp ON gp.player_id = p.id
+      GROUP BY p.id`
+  );
 
-  const agg = db
-    .prepare(
-      `SELECT p.id AS player_id, p.name, p.color, p.base_face, p.avatar_cache,
-              COUNT(gp.id)              AS games,
-              COALESCE(SUM(gp.is_winner), 0) AS wins,
-              COALESCE(SUM(gp.souls), 0)     AS souls,
-              COALESCE(SUM(gp.coins), 0)     AS coins,
-              COALESCE(SUM(gp.deaths), 0)    AS deaths,
-              COALESCE(SUM(gp.treasures), 0) AS treasures
-         FROM players p
-         JOIN game_players gp ON gp.player_id = p.id
-        GROUP BY p.id`
-    )
-    .all() as Omit<RankingRow, "rank" | "win_pct" | "streak">[];
-
-  const streaks = computeStreaks(db);
+  const streaks = await computeStreaks();
 
   const rows: RankingRow[] = agg.map((r) => ({
     ...r,
@@ -60,15 +56,13 @@ export function getRanking(): RankingRow[] {
 }
 
 /** Sequência de vitórias mais recente de cada jogador (partidas mais novas primeiro). */
-function computeStreaks(db: ReturnType<typeof getDb>): Map<number, number> {
-  const seq = db
-    .prepare(
-      `SELECT gp.player_id, gp.is_winner
-         FROM game_players gp
-         JOIN games g ON g.id = gp.game_id
-        ORDER BY gp.player_id, g.played_at DESC, g.id DESC`
-    )
-    .all() as { player_id: number; is_winner: number }[];
+async function computeStreaks(): Promise<Map<number, number>> {
+  const seq = await all<{ player_id: number; is_winner: number }>(
+    `SELECT gp.player_id, gp.is_winner
+       FROM game_players gp
+       JOIN games g ON g.id = gp.game_id
+      ORDER BY gp.player_id, g.played_at DESC, g.id DESC`
+  );
 
   const out = new Map<number, number>();
   const stopped = new Set<number>();

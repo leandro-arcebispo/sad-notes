@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 type Ctx = { params: Promise<{ id: string }> };
 
 export async function DELETE(_req: Request, { params }: Ctx) {
-  const ok = deleteOrnament(Number((await params).id));
+  const ok = await deleteOrnament(Number((await params).id));
   if (!ok) {
     return NextResponse.json({ error: "ornamento não encontrado" }, { status: 404 });
   }

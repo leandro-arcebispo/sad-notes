@@ -15,11 +15,11 @@ export default async function PlayerAvatarPage({
   params: Promise<{ id: string }>;
 }) {
   const id = Number((await params).id);
-  const player = getPlayer(id);
+  const player = await getPlayer(id);
   if (!player) notFound();
 
-  const ornaments = listOrnaments();
-  const recipe = getAvatarRecipe(id);
+  const ornaments = await listOrnaments();
+  const recipe = await getAvatarRecipe(id);
 
   return (
     <Frame

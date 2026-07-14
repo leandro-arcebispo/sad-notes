@@ -1,33 +1,72 @@
-import Database from "better-sqlite3";
-import path from "node:path";
-import fs from "node:fs";
+import { createClient, type Client, type InArgs, type Row } from "@libsql/client";
 import { SEED_CHARACTERS } from "./seed-characters";
 
 /**
- * Conexão SQLite (singleton). Cada fase do projeto estende `initSchema` com as
- * suas tabelas. A Fase 0 criou a infra + `settings`; a Fase 1 adiciona
- * `players` e `characters` (com seed do roster Four Souls + Requiem).
+ * Conexão libSQL (Turso em produção; arquivo local em dev). Substituiu o
+ * better-sqlite3 síncrono na migração pro Vercel — o cliente do libSQL é
+ * assíncrono, então toda a camada de dados usa `await`.
+ *
+ * - **Produção:** `TURSO_DATABASE_URL` + `TURSO_AUTH_TOKEN` (Turso).
+ * - **Dev:** sem essas vars, cai para `file:./data/sad-notes.db` (mesmo arquivo
+ *   SQLite de antes; o dialeto é idêntico), então dá pra rodar/testar local sem
+ *   nenhuma conta na nuvem.
  */
 
-const DATA_DIR = path.join(process.cwd(), "data");
-if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+let _client: Client | null = null;
+let _ready: Promise<void> | null = null;
 
-const DB_PATH = path.join(DATA_DIR, "sad-notes.db");
-
-let _db: Database.Database | null = null;
-
-export function getDb(): Database.Database {
-  if (_db) return _db;
-  const db = new Database(DB_PATH);
-  db.pragma("journal_mode = WAL");
-  db.pragma("foreign_keys = ON");
-  initSchema(db);
-  _db = db;
-  return db;
+function rawClient(): Client {
+  if (_client) return _client;
+  const url = process.env.TURSO_DATABASE_URL || "file:./data/sad-notes.db";
+  const authToken = process.env.TURSO_AUTH_TOKEN;
+  _client = createClient(
+    authToken ? { url, authToken, intMode: "number" } : { url, intMode: "number" }
+  );
+  return _client;
 }
 
-function initSchema(db: Database.Database) {
-  db.exec(`
+/** Cliente pronto (schema garantido). Use os helpers `all/get/run` no lugar. */
+export async function getClient(): Promise<Client> {
+  const c = rawClient();
+  if (!_ready) _ready = initSchema(c);
+  await _ready;
+  return c;
+}
+
+function rowToObject<T>(columns: string[], row: Row): T {
+  const o: Record<string, unknown> = {};
+  for (let i = 0; i < columns.length; i++) o[columns[i]] = row[i];
+  return o as T;
+}
+
+/** SELECT → array de objetos planos (serializáveis em JSON). */
+export async function all<T>(sql: string, args?: InArgs): Promise<T[]> {
+  const db = await getClient();
+  const rs = await db.execute(args === undefined ? sql : { sql, args });
+  return rs.rows.map((r) => rowToObject<T>(rs.columns, r));
+}
+
+/** SELECT de uma linha (ou undefined). */
+export async function get<T>(sql: string, args?: InArgs): Promise<T | undefined> {
+  const rows = await all<T>(sql, args);
+  return rows[0];
+}
+
+/** INSERT/UPDATE/DELETE → { lastId, changes }. */
+export async function run(
+  sql: string,
+  args?: InArgs
+): Promise<{ lastId: number; changes: number }> {
+  const db = await getClient();
+  const rs = await db.execute(args === undefined ? sql : { sql, args });
+  return {
+    lastId: rs.lastInsertRowid !== undefined ? Number(rs.lastInsertRowid) : 0,
+    changes: rs.rowsAffected,
+  };
+}
+
+async function initSchema(db: Client): Promise<void> {
+  await db.executeMultiple(`
     CREATE TABLE IF NOT EXISTS settings (
       key   TEXT PRIMARY KEY,
       value TEXT NOT NULL
@@ -67,7 +106,7 @@ function initSchema(db: Database.Database) {
       souls_to_win        INTEGER NOT NULL DEFAULT 4,
       character_selection TEXT NOT NULL DEFAULT 'free',
       format              TEXT NOT NULL DEFAULT 'solo',
-      tournament_id       INTEGER,            -- null = Global Board
+      tournament_id       INTEGER,
       duration_min        INTEGER,
       rounds              INTEGER,
       notes               TEXT,
@@ -133,12 +172,12 @@ function initSchema(db: Database.Database) {
 
     CREATE TABLE IF NOT EXISTS feedback (
       id          INTEGER PRIMARY KEY AUTOINCREMENT,
-      kind        TEXT NOT NULL DEFAULT 'bug',   -- bug | melhoria | feature
+      kind        TEXT NOT NULL DEFAULT 'bug',
       description TEXT NOT NULL,
-      area        TEXT NOT NULL DEFAULT 'geral',  -- funcionalidade afetada; 'na' p/ features
-      priority    TEXT NOT NULL DEFAULT 'media',  -- baixa | media | alta
-      status      TEXT NOT NULL DEFAULT 'aberto', -- aberto | andamento | concluido | descartado
-      player_id   INTEGER REFERENCES players(id), -- quem preencheu (null se jogador removido)
+      area        TEXT NOT NULL DEFAULT 'geral',
+      priority    TEXT NOT NULL DEFAULT 'media',
+      status      TEXT NOT NULL DEFAULT 'aberto',
+      player_id   INTEGER REFERENCES players(id),
       created_at  TEXT NOT NULL
     );
 
@@ -154,66 +193,44 @@ function initSchema(db: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_feedback_status ON feedback(status);
     CREATE INDEX IF NOT EXISTS idx_feedback_created ON feedback(created_at);
   `);
-  migrateSchema(db);
-  seedDefaultSettings(db);
-  seedCharactersIfEmpty(db);
+  await seedDefaultSettings(db);
+  await seedCharactersIfEmpty(db);
 }
 
-/** Migrações idempotentes para bancos já existentes (colunas novas em tabelas antigas). */
-function migrateSchema(db: Database.Database) {
-  const gpCols = db.prepare("PRAGMA table_info(game_players)").all() as { name: string }[];
-  if (!gpCols.some((c) => c.name === "treasures")) {
-    db.exec("ALTER TABLE game_players ADD COLUMN treasures INTEGER NOT NULL DEFAULT 0");
-  }
-
-  const playerCols = db.prepare("PRAGMA table_info(players)").all() as { name: string }[];
-  if (!playerCols.some((c) => c.name === "hair_color")) {
-    db.exec("ALTER TABLE players ADD COLUMN hair_color TEXT NOT NULL DEFAULT 'natural'");
-  }
-}
-
-function seedCharactersIfEmpty(db: Database.Database) {
-  const { n } = db.prepare("SELECT COUNT(*) AS n FROM characters").get() as {
-    n: number;
-  };
+async function seedCharactersIfEmpty(db: Client): Promise<void> {
+  const rs = await db.execute("SELECT COUNT(*) AS n FROM characters");
+  const n = Number(rs.rows[0][0]);
   if (n > 0) return;
-  const insert = db.prepare(
-    "INSERT INTO characters (name, expansion, tainted) VALUES (?, ?, ?)"
+  await db.batch(
+    SEED_CHARACTERS.map((c) => ({
+      sql: "INSERT INTO characters (name, expansion, tainted) VALUES (?, ?, ?)",
+      args: [c.name, c.expansion, c.tainted ? 1 : 0],
+    })),
+    "write"
   );
-  const seed = db.transaction(() => {
-    for (const c of SEED_CHARACTERS) {
-      insert.run(c.name, c.expansion, c.tainted ? 1 : 0);
-    }
-  });
-  seed();
 }
 
-/** Configurações padrão idempotentes (INSERT OR IGNORE). */
-function seedDefaultSettings(db: Database.Database) {
-  const put = db.prepare(
-    "INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)"
-  );
-  const seed = db.transaction(() => {
-    // Diretório (relativo a /public) onde o catálogo de sprites grava os PNGs.
-    put.run("sprites_dir", "sprites");
+async function seedDefaultSettings(db: Client): Promise<void> {
+  await db.execute({
+    sql: "INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)",
+    args: ["sprites_dir", "sprites"],
   });
-  seed();
 }
 
-export function getSetting(key: string): string | null {
-  const row = getDb()
-    .prepare("SELECT value FROM settings WHERE key = ?")
-    .get(key) as { value: string } | undefined;
+export async function getSetting(key: string): Promise<string | null> {
+  const row = await get<{ value: string }>(
+    "SELECT value FROM settings WHERE key = ?",
+    [key]
+  );
   return row?.value ?? null;
 }
 
-export function setSetting(key: string, value: string): void {
-  getDb()
-    .prepare(
-      "INSERT INTO settings (key, value) VALUES (?, ?) " +
-        "ON CONFLICT(key) DO UPDATE SET value = excluded.value"
-    )
-    .run(key, value);
+export async function setSetting(key: string, value: string): Promise<void> {
+  await run(
+    "INSERT INTO settings (key, value) VALUES (?, ?) " +
+      "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+    [key, value]
+  );
 }
 
 export function nowIso(): string {

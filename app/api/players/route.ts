@@ -5,8 +5,8 @@ import { parsePlayerInput } from "@/lib/validation";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export function GET() {
-  return NextResponse.json(listPlayers());
+export async function GET() {
+  return NextResponse.json(await listPlayers());
 }
 
 export async function POST(req: Request) {
@@ -15,5 +15,5 @@ export async function POST(req: Request) {
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
-  return NextResponse.json(createPlayer(parsed.value), { status: 201 });
+  return NextResponse.json(await createPlayer(parsed.value), { status: 201 });
 }

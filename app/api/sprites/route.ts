@@ -4,8 +4,8 @@ import { listSprites, createSprite } from "@/lib/sprites";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export function GET() {
-  return NextResponse.json(listSprites());
+export async function GET() {
+  return NextResponse.json(await listSprites());
 }
 
 export async function POST(req: Request) {
@@ -29,7 +29,7 @@ export async function POST(req: Request) {
     v === null || v === undefined ? null : Number.isFinite(Number(v)) ? Math.trunc(Number(v)) : null;
 
   try {
-    const sprite = createSprite({
+    const sprite = await createSprite({
       name,
       category: typeof b.category === "string" && b.category.trim() ? b.category.trim() : "outro",
       dataUrl: b.dataUrl,

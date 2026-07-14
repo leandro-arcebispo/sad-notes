@@ -11,9 +11,14 @@ ranking e (no futuro) torneios de *The Binding of Isaac: Four Souls + Requiem*,
 para um grupo de ~12 amigos. Estética pixel-art dark/dungeon/sad.
 
 - **Raiz:** `C:\Workspace\sad-notes`
-- **Stack:** Next.js 15 (App Router) · React 19 · TypeScript · better-sqlite3 · sharp
+- **Stack:** Next.js 15 (App Router) · React 19 · TypeScript · **libSQL/Turso**
+  (`@libsql/client`) · **Vercel Blob** (`@vercel/blob`). ⚠️ **Migrado do
+  better-sqlite3 + sharp** — esses dois foram REMOVIDOS (ver sessão de migração
+  pro Vercel abaixo). Não reintroduza.
 - **Porta:** 6007 (`npm run dev`, registrado em `C:\Workspace\.claude\launch.json` como `sad-notes`)
-- **Banco:** `data/sad-notes.db` (SQLite, WAL) — não versionado
+- **Banco:** Turso em produção (`TURSO_DATABASE_URL`/`TURSO_AUTH_TOKEN`); em dev,
+  fallback pra arquivo local `data/sad-notes.db` (mesmo formato SQLite) — não
+  versionado. Toda a camada de dados é **assíncrona** (`await`).
 - **Git:** identidade local ao repo ("Leandro" / leandro.arcebispo@proton.me), 17 commits até agora
 
 ## ⚠️ Não confundir com as pastas irmãs
@@ -135,6 +140,47 @@ Sessão 2026-07-13 (continuação — Backlog / Feedback no Admin):
 - ⚠️ O `confirm()` do botão "Remover" **trava o Browser pane** neste ambiente
   (igual screenshot/zoom, ver armadilha #5). Funciona normal num browser real;
   pra testar delete aqui, use a API direto (`curl -X DELETE`).
+
+Sessão 2026-07-14 (MIGRAÇÃO GRANDE — pronta pro Vercel):
+Decisão do usuário: hospedar no Vercel. Como a arquitetura antiga gravava em
+disco local (SQLite + PNGs) e usava módulos nativos, foi re-arquitetada:
+- **Banco: better-sqlite3 (sync) → libSQL/Turso (async).** Novo `lib/db.ts`
+  exporta `getClient()` + helpers `all/get/run` (mapeiam Row→objeto plano, senão
+  o JSON serializa como array!). Prod usa Turso (`TURSO_DATABASE_URL` +
+  `TURSO_AUTH_TOKEN`); sem essas vars cai em `file:./data/sad-notes.db` (dá pra
+  rodar/testar local sem conta). **Toda a camada de dados virou `async`** —
+  todos os `lib/*.ts`, todas as rotas `app/api/**` e todos os server components
+  (páginas) usam `await`. `getSetting`/`setSetting` também são async.
+- **FKs não são forçadas** nas conexões HTTP do libSQL → as cascatas
+  `ON DELETE CASCADE` viraram **cascata manual** via `db.batch([...], "write")`
+  em `deleteGame`, `deleteSprite`, `deleteOrnament`. Transação interativa
+  (`db.transaction("write")`) em `createGame`; `resolveItemId` agora recebe o
+  `Transaction`.
+- **Imagens: `public/*` (disco) → Vercel Blob.** Nova `lib/storage.ts`
+  (`putImage`/`deleteImage`): com `BLOB_READ_WRITE_TOKEN` usa o Blob (devolve
+  URL `https://`), senão grava em `public/` e devolve `/path` (fallback dev).
+  `sprites.path` e `players.avatar_cache` agora guardam **URL OU /path** — use
+  sempre `assetUrl()` (`lib/asset-url.ts`) pra renderizar (nunca mais `/${path}`).
+- **Avatar: composição sharp no servidor → Canvas no cliente.** `avatar-compose.ts`
+  foi DELETADO. Nova `lib/avatar-canvas.ts` (`composeAvatarDataUrl`) compõe no
+  navegador reaproveitando a MESMA geometria (`avatar-geometry.ts`) e o MESMO
+  filtro de tintura (`hairColorCssFilter`) do preview → preview == PNG final.
+  O `AvatarEditor` chama `syncAvatar()` após cada mudança: compõe e faz
+  `PUT /api/players/[id]/avatar/cache` (nova rota) que grava na storage e
+  atualiza `avatar_cache`; sem cabelo nem diversos, faz `DELETE` (volta pro
+  rosto base). As rotas de mutação de ornamento **não** regeneram mais nada no
+  servidor.
+- **`sharp` e `better-sqlite3` REMOVIDOS** do package.json. `next.config.ts`
+  novo com `serverExternalPackages: ["@libsql/client","libsql"]`.
+- **Testado local (modo file: + storage local):** build limpo, tsc zero erros,
+  leitura de dados reais, criar+deletar partida (transação+cascata), e o fluxo
+  de avatar ponta a ponta no browser (hair→200, cache→200, PNG gerado, avatar_cache
+  gravado, zero erro no console). Jogador de teste (id 14) criado e apagado —
+  Mané/Robertinho intactos.
+- **Falta só provisionar (é do usuário):** criar banco Turso + Blob store no
+  Vercel e setar as env vars (`.env.local.example` documenta todas). "Começar do
+  zero" na nuvem foi a decisão — **não há script de migração de dados**; o banco
+  Turso sobe vazio (schema criado no 1º acesso via `CREATE TABLE IF NOT EXISTS`).
 
 Sessão 2026-07-13 (continuação — preparação pra hospedar / publicar):
 - **Plano de hospedagem escolhido:** self-host na máquina do usuário (o app já
@@ -292,14 +338,16 @@ app/
   api/**                           Rotas REST (players, games, characters,
                                     items, sprites, ornaments, players/[id]/avatar/*)
 lib/
-  db.ts               conexão SQLite + schema completo + settings
+  db.ts               conexão libSQL (async) + helpers all/get/run + schema + settings
   types.ts            todos os tipos (Player, Game, Sprite, Ornament, AvatarRecipe...)
   validation.ts        parsePlayerInput / parseGamePayload
   players.ts, characters.ts, games.ts, items.ts   data layer core
   feedback.ts         data layer do Backlog (list/create/updateStatus/delete)
   sprites.ts, ornaments.ts, player-avatar.ts        data layer do pipeline de avatar
   avatar-geometry.ts   geometria PURA compartilhada (cliente+servidor)
-  avatar-compose.ts    composição via sharp + cache PNG (só servidor)
+  avatar-canvas.ts     composição do avatar via Canvas (só cliente/navegador)
+  storage.ts           putImage/deleteImage — Vercel Blob (prod) / public/ (dev)
+  asset-url.ts         assetUrl() — resolve URL do Blob OU /path local
   hair-colors.ts       paleta de tintura de cabelo (hue/sat/brightness),
                         compartilhada entre CSS filter (cliente) e
                         sharp().modulate() (servidor)

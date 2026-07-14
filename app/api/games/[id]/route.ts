@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 type Ctx = { params: Promise<{ id: string }> };
 
 export async function GET(_req: Request, { params }: Ctx) {
-  const game = getGame(Number((await params).id));
+  const game = await getGame(Number((await params).id));
   if (!game) {
     return NextResponse.json({ error: "partida não encontrada" }, { status: 404 });
   }
@@ -15,7 +15,7 @@ export async function GET(_req: Request, { params }: Ctx) {
 }
 
 export async function DELETE(_req: Request, { params }: Ctx) {
-  const ok = deleteGame(Number((await params).id));
+  const ok = await deleteGame(Number((await params).id));
   if (!ok) {
     return NextResponse.json({ error: "partida não encontrada" }, { status: 404 });
   }

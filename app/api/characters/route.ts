@@ -4,6 +4,6 @@ import { listCharacters } from "@/lib/characters";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export function GET() {
-  return NextResponse.json(listCharacters());
+export async function GET() {
+  return NextResponse.json(await listCharacters());
 }
