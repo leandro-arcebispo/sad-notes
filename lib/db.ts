@@ -131,6 +131,17 @@ function initSchema(db: Database.Database) {
       created_at  TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS feedback (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      kind        TEXT NOT NULL DEFAULT 'bug',   -- bug | melhoria | feature
+      description TEXT NOT NULL,
+      area        TEXT NOT NULL DEFAULT 'geral',  -- funcionalidade afetada; 'na' p/ features
+      priority    TEXT NOT NULL DEFAULT 'media',  -- baixa | media | alta
+      status      TEXT NOT NULL DEFAULT 'aberto', -- aberto | andamento | concluido | descartado
+      player_id   INTEGER REFERENCES players(id), -- quem preencheu (null se jogador removido)
+      created_at  TEXT NOT NULL
+    );
+
     CREATE INDEX IF NOT EXISTS idx_players_active ON players(active);
     CREATE INDEX IF NOT EXISTS idx_characters_active ON characters(active);
     CREATE INDEX IF NOT EXISTS idx_sprites_category ON sprites(category);
@@ -140,6 +151,8 @@ function initSchema(db: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_gp_game ON game_players(game_id);
     CREATE INDEX IF NOT EXISTS idx_gp_player ON game_players(player_id);
     CREATE INDEX IF NOT EXISTS idx_gpi_item ON game_player_items(item_id);
+    CREATE INDEX IF NOT EXISTS idx_feedback_status ON feedback(status);
+    CREATE INDEX IF NOT EXISTS idx_feedback_created ON feedback(created_at);
   `);
   migrateSchema(db);
   seedDefaultSettings(db);

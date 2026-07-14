@@ -6,9 +6,16 @@
  */
 import {
   BASE_FACES,
+  FEEDBACK_AREAS,
+  FEEDBACK_KINDS,
+  FEEDBACK_PRIORITIES,
   type BaseFace,
   type CharacterSelection,
   type Edition,
+  type FeedbackArea,
+  type FeedbackInput,
+  type FeedbackKind,
+  type FeedbackPriority,
   type GameFormat,
   type GamePayload,
   type GamePlayerInput,
@@ -44,6 +51,40 @@ export function parsePlayerInput(
     : DEFAULT_HAIR_COLOR;
 
   return { value: { name, nickname, color, base_face, hair_color } };
+}
+
+export function parseFeedbackInput(
+  body: unknown
+): { value: FeedbackInput } | { error: string } {
+  if (!body || typeof body !== "object") return { error: "corpo inválido" };
+  const b = body as Record<string, unknown>;
+
+  const description =
+    typeof b.description === "string" ? b.description.trim() : "";
+  if (!description) return { error: "descreva o bug/melhoria/feature" };
+
+  const kind: FeedbackKind = FEEDBACK_KINDS.includes(b.kind as FeedbackKind)
+    ? (b.kind as FeedbackKind)
+    : "bug";
+
+  const area: FeedbackArea = FEEDBACK_AREAS.some((a) => a.key === b.area)
+    ? (b.area as FeedbackArea)
+    : "geral";
+
+  const priority: FeedbackPriority = FEEDBACK_PRIORITIES.includes(
+    b.priority as FeedbackPriority
+  )
+    ? (b.priority as FeedbackPriority)
+    : "media";
+
+  const player_id =
+    b.player_id === null || b.player_id === undefined || b.player_id === ""
+      ? null
+      : Math.trunc(Number(b.player_id)) || null;
+
+  return {
+    value: { kind, description: description.slice(0, 2000), area, priority, player_id },
+  };
 }
 
 const EDITIONS: Edition[] = ["base", "requiem"];

@@ -118,6 +118,61 @@ export interface AvatarRecipe {
   diversos: AppliedOrnament[];
 }
 
+/* ===================== Backlog / Feedback (Admin) ======================= */
+
+export const FEEDBACK_KINDS = ["bug", "melhoria", "feature"] as const;
+export type FeedbackKind = (typeof FEEDBACK_KINDS)[number];
+
+export const FEEDBACK_PRIORITIES = ["baixa", "media", "alta"] as const;
+export type FeedbackPriority = (typeof FEEDBACK_PRIORITIES)[number];
+
+export const FEEDBACK_STATUSES = [
+  "aberto",
+  "andamento",
+  "concluido",
+  "descartado",
+] as const;
+export type FeedbackStatus = (typeof FEEDBACK_STATUSES)[number];
+
+/** Funcionalidades do app, para localizar onde é o bug/melhoria.
+ * `na` = "Não se aplica" (usado por features novas). */
+export const FEEDBACK_AREAS = [
+  { key: "ranking", label: "Ranking" },
+  { key: "partidas", label: "Partidas" },
+  { key: "jogadores", label: "Jogadores" },
+  { key: "avatar", label: "Avatar / Customização" },
+  { key: "sprites", label: "Sprites" },
+  { key: "ornamentos", label: "Ornamentos" },
+  { key: "configuracoes", label: "Configurações" },
+  { key: "geral", label: "Geral / App todo" },
+  { key: "na", label: "N/A (feature nova)" },
+] as const;
+export type FeedbackArea = (typeof FEEDBACK_AREAS)[number]["key"];
+
+export interface Feedback {
+  id: number;
+  kind: FeedbackKind;
+  description: string;
+  area: FeedbackArea;
+  priority: FeedbackPriority;
+  status: FeedbackStatus;
+  player_id: number | null;
+  created_at: string;
+}
+
+/** Linha do backlog com o nome do autor já resolvido, para a listagem. */
+export interface FeedbackFull extends Feedback {
+  player_name: string | null;
+}
+
+export interface FeedbackInput {
+  kind: FeedbackKind;
+  description: string;
+  area: FeedbackArea;
+  priority: FeedbackPriority;
+  player_id: number | null;
+}
+
 /* ============================ Partidas (Fase 2) ============================ */
 
 export type Edition = "base" | "requiem";

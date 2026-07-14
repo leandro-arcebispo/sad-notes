@@ -13,6 +13,7 @@ const NAV: NavEntry[] = [
 ];
 
 const ADMIN_NAV: NavEntry[] = [
+  { href: "/backlog", label: "Backlog", icon: <IconBug /> },
   { href: "/sprites", label: "Sprites", icon: <IconGrid /> },
   { href: "/ornamentos", label: "Ornamentos", icon: <IconStar /> },
 ];
@@ -89,6 +90,14 @@ function IconGrid() {
 }
 function IconStar() {
   return svg(<path d="M12 3l2.6 5.6 6.4.8-4.7 4.4 1.2 6.2L12 17.8 6.3 20.4l1.2-6.2L2.8 9.4l6.4-.8z" />);
+}
+function IconBug() {
+  return svg(
+    <>
+      <rect x="8" y="8" width="8" height="11" rx="4" />
+      <path d="M12 3v4M9 6l1.5 2M15 6l-1.5 2M8 11H4M8 15H4.5M16 11h4M16 15h3.5M8.5 19l-2 2M15.5 19l2 2" />
+    </>
+  );
 }
 function IconGear() {
   return svg(

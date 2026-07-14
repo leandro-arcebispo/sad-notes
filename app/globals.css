@@ -1011,3 +1011,82 @@ h2.title {
   padding: 48px 16px;
   letter-spacing: 0.04em;
 }
+
+/* ---------- Backlog / Feedback (Admin) ---------- */
+.textarea {
+  resize: vertical;
+  min-height: 88px;
+  line-height: 1.4;
+}
+.backlog-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.backlog-row {
+  background-color: var(--panel);
+  border: 2px solid var(--panel-border);
+  border-left-width: 5px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-hard);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+/* faixa lateral colorida por status */
+.backlog-row.status-aberto { border-left-color: var(--accent); }
+.backlog-row.status-andamento { border-left-color: var(--coin); }
+.backlog-row.status-concluido { border-left-color: #4f8a4f; }
+.backlog-row.status-descartado {
+  border-left-color: var(--text-mute);
+  opacity: 0.6;
+}
+.backlog-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.backlog-meta {
+  font-size: 12px;
+  margin-left: auto;
+}
+.backlog-desc {
+  margin: 0;
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.backlog-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.backlog-actions .select {
+  padding: 5px 8px;
+  font-size: 13px;
+}
+.backlog-actions .btn {
+  padding: 5px 12px;
+  font-size: 12px;
+}
+/* etiquetas de tipo/prioridade */
+.bl-tag {
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  padding: 3px 9px;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius);
+  text-transform: uppercase;
+}
+.bl-tag.kind-bug { color: #ffb0b0; border-color: var(--blood); background: rgba(160, 28, 28, 0.18); }
+.bl-tag.kind-melhoria { color: var(--accent); border-color: var(--accent-dim); background: rgba(232, 185, 120, 0.12); }
+.bl-tag.kind-feature { color: var(--soul); border-color: #5a4d7a; background: rgba(205, 180, 255, 0.12); }
+.bl-tag.prio-baixa { color: var(--text-dim); }
+.bl-tag.prio-media { color: var(--coin); border-color: #7a6a2e; }
+.bl-tag.prio-alta { color: #ffb0b0; border-color: var(--blood); }
