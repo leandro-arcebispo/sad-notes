@@ -17,6 +17,8 @@ import fs from "node:fs";
  */
 
 const useBlob = () => Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+/** Rodando num ambiente serverless (Vercel), onde o filesystem é read-only. */
+const isServerless = () => Boolean(process.env.VERCEL);
 
 /** Grava a imagem e devolve a referência a guardar no banco (URL ou caminho). */
 export async function putImage(
@@ -32,6 +34,14 @@ export async function putImage(
       allowOverwrite: true,
     });
     return res.url;
+  }
+  // Sem Blob no Vercel: o fallback de disco falharia com um ENOENT confuso
+  // (filesystem read-only). Erro claro em vez disso.
+  if (isServerless()) {
+    throw new Error(
+      "Storage de imagens não configurado: BLOB_READ_WRITE_TOKEN ausente. " +
+        "Anexe um Vercel Blob store ao projeto (Storage → Blob) e refaça o deploy."
+    );
   }
   const abs = path.join(process.cwd(), "public", key);
   fs.mkdirSync(path.dirname(abs), { recursive: true });
@@ -52,6 +62,7 @@ export async function deleteImage(ref: string | null | undefined): Promise<void>
     }
     return;
   }
+  if (isServerless()) return; // caminho local não existe no serverless
   const rel = ref.replace(/^\//, "");
   const pub = path.join(process.cwd(), "public");
   const abs = path.join(pub, rel);
