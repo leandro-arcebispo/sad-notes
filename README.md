@@ -54,7 +54,11 @@ em object storage (Blob), sem escrever em disco.
    detectado automaticamente).
 
 3. **Anexar o Blob**: no projeto, **Storage → Create → Blob** e conecte ao
-   projeto (injeta `BLOB_READ_WRITE_TOKEN`).
+   projeto (injeta `BLOB_READ_WRITE_TOKEN`). ⚠️ **Escolha acesso _Public_** — os
+   sprites/avatares são servidos como URLs públicas em `<img>` e carregados no
+   Canvas. Um store **privado quebra** (`Cannot use public access on a private
+   store`) e o modo de acesso **não pode ser mudado depois de criado** — se
+   errar, apague e crie um novo público.
 
 4. **Env vars** em *Settings → Environment Variables*: `TURSO_DATABASE_URL`,
    `TURSO_AUTH_TOKEN`, `BASIC_AUTH_PASSWORD` (e `BASIC_AUTH_USER` se quiser).
