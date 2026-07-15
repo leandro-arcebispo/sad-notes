@@ -26,7 +26,7 @@ export default function Sidebar() {
   return (
     <nav className="sidebar">
       <div className="sidebar-brand">
-        <img src="/sprites/app-components/app-logo.png" alt="Sad Notes" />
+        <img src="/brand/app-logo.png" alt="Sad Notes" />
       </div>
       <div className="nav-divider" />
       {NAV.map((e) => (
