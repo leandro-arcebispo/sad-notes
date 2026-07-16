@@ -1090,3 +1090,90 @@ h2.title {
 .bl-tag.prio-baixa { color: var(--text-dim); }
 .bl-tag.prio-media { color: var(--coin); border-color: #7a6a2e; }
 .bl-tag.prio-alta { color: #ffb0b0; border-color: var(--blood); }
+
+/* ---------- Galeria de spritesheets ---------- */
+.sheet-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+.sheet-card {
+  position: relative;
+  background: var(--panel);
+  border: 2px solid var(--panel-border);
+  box-shadow: var(--shadow-hard);
+  display: flex;
+  flex-direction: column;
+}
+.sheet-thumb {
+  display: block;
+  height: 160px;
+  background-color: #0d0906;
+  background-image:
+    linear-gradient(45deg, #1a1310 25%, transparent 25%),
+    linear-gradient(-45deg, #1a1310 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #1a1310 75%),
+    linear-gradient(-45deg, transparent 75%, #1a1310 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+  border-bottom: 2px solid var(--panel-border);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.sheet-thumb img {
+  max-width: 100%;
+  max-height: 100%;
+  image-rendering: pixelated;
+  object-fit: contain;
+}
+.sheet-meta { padding: 8px 10px; }
+.sheet-name {
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sheet-del {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  padding: 2px 9px;
+  font-size: 14px;
+  line-height: 1.2;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.sheet-card:hover .sheet-del { opacity: 1; }
+
+/* seletor de sheets salvas dentro do cortador */
+.saved-sheets-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--panel-border);
+}
+.saved-sheet-pick {
+  width: 46px;
+  height: 46px;
+  padding: 2px;
+  background: #0d0906;
+  border: 2px solid var(--panel-border);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.saved-sheet-pick:hover { border-color: var(--accent-dim); }
+.saved-sheet-pick.active { border-color: var(--accent); }
+.saved-sheet-pick img {
+  max-width: 100%;
+  max-height: 100%;
+  image-rendering: pixelated;
+  object-fit: contain;
+}

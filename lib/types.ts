@@ -63,6 +63,20 @@ export interface Sprite {
   created_at: string;
 }
 
+/* ===================== Spritesheets (fonte, não cortadas) ================= */
+
+/** Sprite-sheet original guardada no site (Blob), fonte pros recortes.
+ * Visível a todos na galeria e carregável no cortador. */
+export interface SpriteSheet {
+  id: number;
+  name: string;
+  /** URL do Blob (prod) ou /path local (dev). */
+  path: string;
+  width: number;
+  height: number;
+  created_at: string;
+}
+
 /* =========================== Ornamentos (Fase 5) =========================== */
 
 export type OrnamentCategory = "cabelo" | "diverso";

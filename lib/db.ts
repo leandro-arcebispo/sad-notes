@@ -151,6 +151,15 @@ async function initSchema(db: Client): Promise<void> {
       created_at   TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS sheets (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      name       TEXT NOT NULL,
+      path       TEXT NOT NULL,
+      width      INTEGER NOT NULL,
+      height     INTEGER NOT NULL,
+      created_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS ornaments (
       id         INTEGER PRIMARY KEY AUTOINCREMENT,
       sprite_id  INTEGER NOT NULL REFERENCES sprites(id) ON DELETE CASCADE,
@@ -192,6 +201,7 @@ async function initSchema(db: Client): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_gpi_item ON game_player_items(item_id);
     CREATE INDEX IF NOT EXISTS idx_feedback_status ON feedback(status);
     CREATE INDEX IF NOT EXISTS idx_feedback_created ON feedback(created_at);
+    CREATE INDEX IF NOT EXISTS idx_sheets_created ON sheets(created_at);
   `);
   await seedDefaultSettings(db);
   await seedCharactersIfEmpty(db);

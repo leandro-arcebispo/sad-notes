@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { Sprite } from "@/lib/types";
+import type { Sprite, SpriteSheet } from "@/lib/types";
 import { assetUrl } from "@/lib/asset-url";
 
 type Sheet = { dataUrl: string; w: number; h: number; name: string };
@@ -14,9 +14,11 @@ const CATEGORY_HINTS = ["cabelo", "diverso", "avatar-base", "item", "icone", "ou
 export default function SpritesClient({
   sprites,
   categories,
+  savedSheets = [],
 }: {
   sprites: Sprite[];
   categories: string[];
+  savedSheets?: SpriteSheet[];
 }) {
   const router = useRouter();
   const imgRef = useRef<HTMLImageElement | null>(null);
@@ -49,6 +51,23 @@ export default function SpritesClient({
       img.src = src;
     };
     reader.readAsDataURL(file);
+  }
+
+  /** Carrega uma spritesheet salva (Blob) no cortador. `crossOrigin` é
+   * essencial: sem ele, o canvas fica "tingido" e o recorte (toDataURL) quebra. */
+  function loadSavedSheet(s: SpriteSheet) {
+    const url = assetUrl(s.path);
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      imgRef.current = img;
+      setSheet({ dataUrl: url, w: img.naturalWidth, h: img.naturalHeight, name: s.name });
+      setSel(null);
+      setPreview(null);
+      setMsg(null);
+    };
+    img.onerror = () => setMsg("Não consegui carregar essa sheet.");
+    img.src = url;
   }
 
   function makeCrop(r: Rect): string | null {
@@ -159,9 +178,26 @@ export default function SpritesClient({
           )}
         </div>
 
+        {savedSheets.length > 0 && (
+          <div className="saved-sheets-row">
+            <span className="muted" style={{ fontSize: 12 }}>Salvas no site:</span>
+            {savedSheets.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                className={`saved-sheet-pick${sheet?.name === s.name ? " active" : ""}`}
+                title={`${s.name} · ${s.width}×${s.height}`}
+                onClick={() => loadSavedSheet(s)}
+              >
+                <img src={assetUrl(s.path)} alt={s.name} />
+              </button>
+            ))}
+          </div>
+        )}
+
         {!sheet ? (
           <div className="center-empty">
-            Importe um sprite-sheet e arraste na imagem para recortar um sprite.
+            Importe um sprite-sheet {savedSheets.length > 0 ? "(ou escolha uma salva) " : ""}e arraste na imagem para recortar um sprite.
           </div>
         ) : (
           <div className="cropper-grid">

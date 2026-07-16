@@ -10,6 +10,7 @@ const NAV: NavEntry[] = [
   { href: "/", label: "Ranking", exact: true, icon: <img src="/design-system/img/icon-nav-ranking.png" alt="" /> },
   { href: "/partidas", label: "Partidas", icon: <img src="/design-system/img/icon-report.png" alt="" /> },
   { href: "/jogadores", label: "Jogadores", icon: <img src="/design-system/img/icon-isaac-avatar.png" alt="" /> },
+  { href: "/spritesheets", label: "Spritesheets", icon: <IconSheets /> },
 ];
 
 const ADMIN_NAV: NavEntry[] = [
@@ -90,6 +91,16 @@ function IconGrid() {
 }
 function IconStar() {
   return svg(<path d="M12 3l2.6 5.6 6.4.8-4.7 4.4 1.2 6.2L12 17.8 6.3 20.4l1.2-6.2L2.8 9.4l6.4-.8z" />);
+}
+function IconSheets() {
+  return svg(
+    <>
+      <rect x="3" y="3" width="18" height="14" rx="1" />
+      <path d="M3 13l4-4 4 4 3-3 4 4" />
+      <circle cx="8" cy="8" r="1.4" />
+      <path d="M7 21h14M7 21v-2" />
+    </>
+  );
 }
 function IconBug() {
   return svg(

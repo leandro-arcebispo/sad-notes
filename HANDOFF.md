@@ -211,6 +211,31 @@ Sessão 2026-07-13 (continuação — preparação pra hospedar / publicar):
   automática e, se quiser sempre-online sem depender do PC ligado, migrar pra
   Fly.io (Dockerfile + volume) — nada disso foi feito ainda.
 
+Sessão 2026-07-16 (Spritesheets — fonte, não cortadas):
+- **Nova feature:** guardar as spritesheets originais no site pra todos verem +
+  carregar direto no cortador. Tabela nova `sheets` (id, name, path, width,
+  height, created_at) no `initSchema`. `lib/sheets.ts` (list/create/delete via
+  storage+Blob), `app/api/sheets` (GET/POST) + `[id]` (DELETE),
+  `components/SpritesheetsClient.tsx` (upload + galeria + remover), página
+  `app/spritesheets/page.tsx` (`frame-scarred-womb`). Item **"Spritesheets" no
+  menu principal** da Sidebar (todos veem — decisão do usuário), ícone
+  `IconSheets`. CSS `.sheet-gallery`/`.sheet-card`/`.saved-sheet-pick`.
+- **Integração no cortador (`SpritesClient`):** recebe `savedSheets` da página
+  `/sprites` e mostra uma faixa "Salvas no site" — clicar carrega a sheet via
+  `loadSavedSheet` (cria `Image` com `crossOrigin="anonymous"` — ESSENCIAL, senão
+  o canvas fica tingido e o `toDataURL` do recorte quebra). Reusa o `makeCrop`
+  existente. Verificado no browser (dev): carrega + recorta sem tingir.
+- **Upload:** file → dataURL → POST (mesmo padrão dos sprites). Guarda de
+  tamanho no cliente (~3 MB) por causa do limite de body do Vercel (~4,5 MB) —
+  sheets maiores precisariam de client-direct-upload (`@vercel/blob/client`),
+  não implementado (pixel-art cabe folgado).
+- ⚠️ **ARMADILHA DE TESTE LOCAL:** `npm run start` (produção) retorna **404**
+  pra arquivos gravados em `public/` em RUNTIME (só serve o snapshot do build).
+  Isso afeta o fallback de storage local (sprites/avatars/sheets) — mas **só no
+  `npm run start`**; no `npm run dev` o Next serve dinâmico, e em produção
+  (Vercel) as imagens vão pro Blob (não pro `public/`), então não é bug real.
+  **Pra testar features de imagem localmente, use `npm run dev`, não `start`.**
+
 ### Dados reais do usuário no banco (não são teste — não apagar)
 
 - Jogadores: **Mané** (id 9, tem cabelo customizado aplicado, `hair_color`
