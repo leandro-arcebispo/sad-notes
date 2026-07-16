@@ -10,13 +10,11 @@ const NAV: NavEntry[] = [
   { href: "/", label: "Ranking", exact: true, icon: <img src="/design-system/img/icon-nav-ranking.png" alt="" /> },
   { href: "/partidas", label: "Partidas", icon: <img src="/design-system/img/icon-report.png" alt="" /> },
   { href: "/jogadores", label: "Jogadores", icon: <img src="/design-system/img/icon-isaac-avatar.png" alt="" /> },
-  { href: "/spritesheets", label: "Spritesheets", icon: <IconSheets /> },
+  { href: "/sprites", label: "Oficina", icon: <IconSheets /> },
 ];
 
 const ADMIN_NAV: NavEntry[] = [
   { href: "/backlog", label: "Backlog", icon: <IconBug /> },
-  { href: "/sprites", label: "Sprites", icon: <IconGrid /> },
-  { href: "/ornamentos", label: "Ornamentos", icon: <IconStar /> },
 ];
 
 export default function Sidebar() {
@@ -78,19 +76,6 @@ function svg(children: ReactNode) {
       {children}
     </svg>
   );
-}
-function IconGrid() {
-  return svg(
-    <>
-      <rect x="4" y="4" width="7" height="7" />
-      <rect x="13" y="4" width="7" height="7" />
-      <rect x="4" y="13" width="7" height="7" />
-      <rect x="13" y="13" width="7" height="7" />
-    </>
-  );
-}
-function IconStar() {
-  return svg(<path d="M12 3l2.6 5.6 6.4.8-4.7 4.4 1.2 6.2L12 17.8 6.3 20.4l1.2-6.2L2.8 9.4l6.4-.8z" />);
 }
 function IconSheets() {
   return svg(

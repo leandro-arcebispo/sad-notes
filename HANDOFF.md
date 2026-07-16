@@ -236,6 +236,30 @@ Sessão 2026-07-16 (Spritesheets — fonte, não cortadas):
   (Vercel) as imagens vão pro Blob (não pro `public/`), então não é bug real.
   **Pra testar features de imagem localmente, use `npm run dev`, não `start`.**
 
+Sessão 2026-07-16 (continuação — Oficina: unifica Sprites/Spritesheets/Ornamentos):
+- As 3 telas do pipeline de avatar viraram **uma página só** em `/sprites`
+  (título "Oficina", menu principal, item "Oficina" com `IconSheets`). Toggle em
+  fluxo `Spritesheets → Sprites → Ornamentos` (`components/OficinaTabs.tsx`,
+  client com `useState` da aba) mostrando a etapa ativa; a ordem sugere o caminho
+  (sheet cadastrada → cortada → vira ornamento) mas cada aba é independente.
+- `app/sprites/page.tsx` agora busca tudo em paralelo (`Promise.all`:
+  sheets/sprites/categories/ornaments) e passa pro `OficinaTabs`, que renderiza
+  `SpritesheetsClient` / `SpritesClient` / `OrnamentBuilder` conforme a aba.
+- **Removidas** as páginas `/spritesheets` e `/ornamentos` + seus itens de menu
+  (o item Spritesheets saiu do menu principal; Sprites e Ornamentos saíram do
+  Admin — Admin agora só tem Backlog). Ícones `IconGrid`/`IconStar` removidos da
+  Sidebar. **Redirects** `/spritesheets`→`/sprites` e `/ornamentos`→`/sprites`
+  no `next.config.ts` (307) pra links antigos não darem 404.
+- CSS `.flow-tabs`/`.flow-tab`/`.flow-step`/`.flow-arrow` no globals.css.
+- ⚠️ **ARMADILHA (custou tempo):** existiam DOIS configs — um `next.config.mjs`
+  antigo (pré-migração, `serverExternalPackages: ["better-sqlite3"]`) e o meu
+  `next.config.ts`. **O Next dá precedência ao `.mjs` e ignora o `.ts`
+  silenciosamente** — por isso os redirects (e o `serverExternalPackages` do
+  libsql) nunca aplicavam. Deletei o `.mjs`; agora só existe `next.config.ts`.
+  Se algo em `next.config` "não pega", cheque se não há um segundo arquivo de
+  config vencendo. (Produção funcionava mesmo com o config errado porque o Next
+  externaliza esses pacotes por conta própria.)
+
 ### Dados reais do usuário no banco (não são teste — não apagar)
 
 - Jogadores: **Mané** (id 9, tem cabelo customizado aplicado, `hair_color`
@@ -357,8 +381,8 @@ app/
   partidas/page.tsx               Lista de partidas
   partidas/nova/page.tsx          Wizard de cadastro
   partidas/[id]/page.tsx          Detalhe da partida
-  sprites/page.tsx                 Catálogo de sprites (Fase 4)
-  ornamentos/page.tsx              Cadastro de ornamentos (Fase 5)
+  sprites/page.tsx                 Oficina: abas Spritesheets/Sprites/Ornamentos (OficinaTabs)
+  spritesheets/ e ornamentos/       REMOVIDAS — viraram abas da Oficina (redirect → /sprites)
   backlog/page.tsx                 Backlog: form de bug/melhoria/feature + lista (Admin)
   api/**                           Rotas REST (players, games, characters,
                                     items, sprites, ornaments, players/[id]/avatar/*)

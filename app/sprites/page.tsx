@@ -1,18 +1,27 @@
 import Frame from "@/components/Frame";
-import SpritesClient from "@/components/SpritesClient";
+import OficinaTabs from "@/components/OficinaTabs";
 import { listSprites, listSpriteCategories } from "@/lib/sprites";
+import { listOrnaments } from "@/lib/ornaments";
 import { listSheets } from "@/lib/sheets";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export default async function SpritesPage() {
-  const sprites = await listSprites();
-  const categories = await listSpriteCategories();
-  const savedSheets = await listSheets();
+export default async function OficinaPage() {
+  const [sheets, sprites, categories, ornaments] = await Promise.all([
+    listSheets(),
+    listSprites(),
+    listSpriteCategories(),
+    listOrnaments(),
+  ]);
   return (
-    <Frame variant="frame-utero-purple" title="Catálogo de Sprites">
-      <SpritesClient sprites={sprites} categories={categories} savedSheets={savedSheets} />
+    <Frame variant="frame-utero-purple" title="Oficina">
+      <OficinaTabs
+        sheets={sheets}
+        sprites={sprites}
+        categories={categories}
+        ornaments={ornaments}
+      />
     </Frame>
   );
 }

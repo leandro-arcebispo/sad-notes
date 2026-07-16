@@ -1148,6 +1148,56 @@ h2.title {
 }
 .sheet-card:hover .sheet-del { opacity: 1; }
 
+/* ---------- Oficina: toggle em fluxo (sheet → sprite → ornamento) ---------- */
+.flow-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.flow-tab-wrap { display: inline-flex; align-items: center; gap: 4px; }
+.flow-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  letter-spacing: 0.03em;
+  color: var(--text-dim);
+  background: var(--panel-2);
+  border: 2px solid var(--panel-border);
+  padding: 8px 15px;
+  cursor: pointer;
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.5);
+  transition: transform 0.05s ease, background 0.12s ease, color 0.12s ease;
+}
+.flow-tab:hover { color: var(--accent); border-color: var(--accent-dim); }
+.flow-tab:active { transform: translate(3px, 3px); box-shadow: none; }
+.flow-tab.active {
+  color: #1a1208;
+  background: var(--accent);
+  border-color: var(--accent-dim);
+}
+.flow-step {
+  font-size: 11px;
+  width: 19px;
+  height: 19px;
+  display: grid;
+  place-items: center;
+  border: 1px solid currentColor;
+  opacity: 0.8;
+}
+.flow-arrow {
+  font-family: var(--font-display);
+  color: var(--text-mute);
+  padding: 0 2px;
+}
+.flow-hint {
+  font-size: 13px;
+  margin-top: -2px;
+  margin-bottom: 2px;
+}
+
 /* seletor de sheets salvas dentro do cortador */
 .saved-sheets-row {
   display: flex;
