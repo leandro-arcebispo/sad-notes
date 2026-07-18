@@ -86,6 +86,15 @@ export default function SpritesClient({
     return c.toDataURL("image/png");
   }
 
+  /** Seleciona a imagem inteira como recorte — útil quando a sheet importada
+   * já É o sprite final (ex.: carta de Tesouro, uma imagem por arquivo). */
+  function selectWhole() {
+    if (!sheet) return;
+    const whole: Rect = { x: 0, y: 0, w: sheet.w, h: sheet.h };
+    setSel(whole);
+    setPreview(makeCrop(whole));
+  }
+
   function startSelect(e: React.MouseEvent<HTMLImageElement>) {
     if (!sheet) return;
     e.preventDefault();
@@ -178,6 +187,9 @@ export default function SpritesClient({
                   {z}×
                 </button>
               ))}
+              <button className="btn" onClick={selectWhole} title="Usa a imagem inteira como recorte (ex.: carta de Tesouro)">
+                Imagem inteira
+              </button>
             </div>
           )}
         </div>
