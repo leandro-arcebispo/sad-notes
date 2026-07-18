@@ -132,6 +132,88 @@ export interface AvatarRecipe {
   diversos: AppliedOrnament[];
 }
 
+/* ============= Tesouros & Desbloqueio de cosméticos (Artefatos) ============ */
+
+/** Registro de modos de desbloqueio — escalável: adicionar um modo novo aqui
+ * (ver lib/unlocks.ts pra lógica) sem mexer no resto do sistema. */
+export const UNLOCK_MODES = ["treasure_item", "always"] as const;
+export type UnlockMode = (typeof UNLOCK_MODES)[number];
+
+/** Um Tesouro = um item do jogo. `icon` (posição livre) e `transformation`
+ * (posição correta) são cosméticos aplicáveis ao avatar, cada um resolvido
+ * como um `ornaments` normal (reaproveita 100% do pipeline de avatar). `card`
+ * é só ilustrativa (nunca aplicada ao avatar) — referencia um sprite direto. */
+export interface Treasure {
+  id: number;
+  name: string;
+  icon_ornament_id: number | null;
+  transform_ornament_id: number | null;
+  card_sprite_id: number | null;
+  unlock_mode: UnlockMode;
+  created_at: string;
+}
+
+/** Tesouro com os três sprites já resolvidos, para exibição/CRUD. */
+export interface TreasureFull extends Treasure {
+  icon_sprite_id: number | null;
+  icon_sprite_path: string | null;
+  icon_sprite_name: string | null;
+  icon_sprite_width: number | null;
+  icon_sprite_height: number | null;
+  icon_offset_x: number | null;
+  icon_offset_y: number | null;
+  icon_scale: number | null;
+
+  transform_sprite_id: number | null;
+  transform_sprite_path: string | null;
+  transform_sprite_name: string | null;
+  transform_sprite_width: number | null;
+  transform_sprite_height: number | null;
+  transform_offset_x: number | null;
+  transform_offset_y: number | null;
+  transform_scale: number | null;
+
+  card_sprite_path: string | null;
+  card_sprite_name: string | null;
+}
+
+/** Um slot (ícone ou transformação) de Tesouro, já resolvido pra renderizar no
+ * editor de avatar: geometria do ornamento + se está aplicado no jogador atual. */
+export interface TreasureCosmeticSlot {
+  ornament_id: number;
+  sprite_path: string;
+  sprite_width: number;
+  sprite_height: number;
+  offset_x: number;
+  offset_y: number;
+  scale: number;
+  applied: boolean;
+}
+
+/** Um Tesouro pronto pra tela de customização do avatar de um jogador
+ * específico: seus dois cosméticos (se existirem) + se está desbloqueado. */
+export interface TreasureAvatarOption {
+  id: number;
+  name: string;
+  unlocked: boolean;
+  icon: TreasureCosmeticSlot | null;
+  transform: TreasureCosmeticSlot | null;
+}
+
+export interface TreasureInput {
+  name: string;
+  icon_sprite_id: number | null;
+  icon_offset_x: number;
+  icon_offset_y: number;
+  icon_scale: number;
+  transform_sprite_id: number | null;
+  transform_offset_x: number;
+  transform_offset_y: number;
+  transform_scale: number;
+  card_sprite_id: number | null;
+  unlock_mode: UnlockMode;
+}
+
 /* ===================== Backlog / Feedback (Admin) ======================= */
 
 export const FEEDBACK_KINDS = ["bug", "melhoria", "feature"] as const;
@@ -155,8 +237,8 @@ export const FEEDBACK_AREAS = [
   { key: "partidas", label: "Partidas" },
   { key: "jogadores", label: "Jogadores" },
   { key: "avatar", label: "Avatar / Customização" },
-  { key: "sprites", label: "Sprites" },
-  { key: "ornamentos", label: "Ornamentos" },
+  { key: "artefatos", label: "Artefatos / Tesouros" },
+  { key: "oficina", label: "Oficina (Admin)" },
   { key: "configuracoes", label: "Configurações" },
   { key: "geral", label: "Geral / App todo" },
   { key: "na", label: "N/A (feature nova)" },
@@ -237,7 +319,11 @@ export interface GamePlayerInput {
   souls: number;
   is_winner: boolean;
   team: number | null;
-  items: string[]; // nomes — resolvidos/criados por nome no servidor
+  /** Ids de Tesouros (lib/treasures.ts) que o jogador possuía ao terminar a
+   * partida — é isso que alimenta o desbloqueio (lib/unlocks.ts). Substitui o
+   * texto livre legado (`items`/`game_player_items`, mantido só como histórico
+   * read-only das partidas antigas). */
+  treasure_ids: number[];
 }
 
 export interface GamePayload {
@@ -259,6 +345,13 @@ export interface GameListItem extends Game {
   winners: string[]; // nomes dos vencedores
 }
 
+/** Um Tesouro possuído numa partida, já resolvido pra exibição (ícone). */
+export interface GameTreasureRef {
+  id: number;
+  name: string;
+  icon_sprite_path: string | null;
+}
+
 /** Partida expandida para a tela de detalhe. */
 export interface GameFull extends Game {
   players: (GamePlayerRow & {
@@ -268,6 +361,12 @@ export interface GameFull extends Game {
     player_avatar_cache: string | null;
     nickname: string | null;
     character_name: string | null;
+    /** Itens de texto livre legados (partidas anteriores à Fase 4) — histórico
+     * read-only, exibido junto dos Tesouros na tela de detalhe. */
     items: { id: number; name: string }[];
+    /** Tesouros possuídos ao fim da partida (nome diferente do `treasures`
+     * numérico herdado de GamePlayerRow — aquele é a contagem manual do
+     * wizard, este é a lista de ids/ícones resolvidos). */
+    owned_treasures: GameTreasureRef[];
   })[];
 }

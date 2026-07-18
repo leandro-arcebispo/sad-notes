@@ -10,10 +10,14 @@ const NAV: NavEntry[] = [
   { href: "/", label: "Ranking", exact: true, icon: <img src="/design-system/img/icon-nav-ranking.png" alt="" /> },
   { href: "/partidas", label: "Partidas", icon: <img src="/design-system/img/icon-report.png" alt="" /> },
   { href: "/jogadores", label: "Jogadores", icon: <img src="/design-system/img/icon-isaac-avatar.png" alt="" /> },
-  { href: "/sprites", label: "Oficina", icon: <IconSheets /> },
+];
+
+const ARTIFACTS_NAV: NavEntry[] = [
+  { href: "/artefatos/tesouros", label: "Tesouros", icon: <img src="/design-system/img/icon-treasures.png" alt="" /> },
 ];
 
 const ADMIN_NAV: NavEntry[] = [
+  { href: "/sprites", label: "Oficina", icon: <IconSheets /> },
   { href: "/backlog", label: "Backlog", icon: <IconBug /> },
 ];
 
@@ -29,6 +33,18 @@ export default function Sidebar() {
       </div>
       <div className="nav-divider" />
       {NAV.map((e) => (
+        <Link
+          key={e.href}
+          href={e.href}
+          className={`nav-item${isActive(e) ? " active" : ""}`}
+        >
+          <span className="nav-icon">{e.icon}</span>
+          <span className="nav-label">{e.label}</span>
+        </Link>
+      ))}
+      <div className="nav-divider" />
+      <div className="nav-group-label">Artefatos</div>
+      {ARTIFACTS_NAV.map((e) => (
         <Link
           key={e.href}
           href={e.href}

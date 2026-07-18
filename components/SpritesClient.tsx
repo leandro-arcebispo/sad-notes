@@ -9,15 +9,21 @@ type Sheet = { dataUrl: string; w: number; h: number; name: string };
 type Rect = { x: number; y: number; w: number; h: number };
 
 const ZOOMS = [2, 4, 6, 8, 12];
-const CATEGORY_HINTS = ["cabelo", "diverso", "avatar-base", "item", "icone", "outro"];
+
+/** Papéis de sprite pro pipeline de Tesouros — únicas categorias cadastráveis
+ * daqui pra frente (a Oficina virou um cortador puro; a categoria "cabelo"
+ * legada segue existindo no catálogo, só não é mais oferecida aqui). */
+const TREASURE_CATEGORIES = [
+  { key: "treasure-icon", label: "Ícone" },
+  { key: "treasure-transform", label: "Transformação" },
+  { key: "treasure-card", label: "Carta" },
+] as const;
 
 export default function SpritesClient({
   sprites,
-  categories,
   savedSheets = [],
 }: {
   sprites: Sprite[];
-  categories: string[];
   savedSheets?: SpriteSheet[];
 }) {
   const router = useRouter();
@@ -28,11 +34,9 @@ export default function SpritesClient({
   const [sel, setSel] = useState<Rect | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [name, setName] = useState("");
-  const [category, setCategory] = useState("diverso");
+  const [category, setCategory] = useState<string>(TREASURE_CATEGORIES[0].key);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
-
-  const catOptions = Array.from(new Set([...categories, ...CATEGORY_HINTS]));
 
   function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -236,11 +240,18 @@ export default function SpritesClient({
               </div>
               <div className="field">
                 <label>Categoria</label>
-                <input className="input" list="sprite-cats" value={category}
-                  onChange={(e) => setCategory(e.target.value)} />
-                <datalist id="sprite-cats">
-                  {catOptions.map((c) => <option key={c} value={c} />)}
-                </datalist>
+                <div className="seg">
+                  {TREASURE_CATEGORIES.map((c) => (
+                    <button
+                      key={c.key}
+                      type="button"
+                      className={`seg-btn${category === c.key ? " active" : ""}`}
+                      onClick={() => setCategory(c.key)}
+                    >
+                      {c.label}
+                    </button>
+                  ))}
+                </div>
               </div>
               <button className="btn btn-accent" onClick={save} disabled={busy || !preview || !name.trim()}>
                 {busy ? "Salvando…" : "Salvar sprite"}

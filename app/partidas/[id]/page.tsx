@@ -5,6 +5,7 @@ import PlayerAvatar from "@/components/PlayerAvatar";
 import DeleteGameButton from "@/components/DeleteGameButton";
 import StatIcon from "@/components/StatIcon";
 import { getGame } from "@/lib/games";
+import { assetUrl } from "@/lib/asset-url";
 import type { Edition, GameFormat } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -71,7 +72,7 @@ export default async function PartidaDetailPage({
                 <th style={{ textAlign: "center" }}>
                   <span className="th-icon"><StatIcon name="deaths" /> Mortes</span>
                 </th>
-                <th>Itens</th>
+                <th>Tesouros</th>
               </tr>
             </thead>
             <tbody>
@@ -98,9 +99,26 @@ export default async function PartidaDetailPage({
                   <td style={{ textAlign: "center" }}>{p.loot_in_hand}</td>
                   <td style={{ textAlign: "center" }}>{p.deaths}</td>
                   <td className="items-cell">
-                    {p.items.length
-                      ? p.items.map((i) => <span key={i.id} className="item-tag ro">{i.name}</span>)
-                      : <span className="muted">—</span>}
+                    <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
+                      {p.owned_treasures.map((t) =>
+                        t.icon_sprite_path ? (
+                          <img
+                            key={t.id}
+                            src={assetUrl(t.icon_sprite_path)}
+                            alt={t.name}
+                            title={t.name}
+                            style={{ width: 22, height: 22, objectFit: "contain", imageRendering: "pixelated" }}
+                          />
+                        ) : (
+                          <span key={t.id} className="item-tag ro" title={t.name}>{t.name}</span>
+                        )
+                      )}
+                      {/* itens de texto livre legados (partidas anteriores à Fase 4) */}
+                      {p.items.map((i) => <span key={`legacy-${i.id}`} className="item-tag ro">{i.name}</span>)}
+                      {p.owned_treasures.length === 0 && p.items.length === 0 && (
+                        <span className="muted">—</span>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -1,7 +1,9 @@
-import { all, getClient, run, nowIso } from "./db";
+import { all, get, getClient, run, nowIso } from "./db";
 import { getPlayer } from "./players";
 import { deleteImage } from "./storage";
-import type { AppliedOrnament, AvatarRecipe, OrnamentFull } from "./types";
+import { listTreasures } from "./treasures";
+import { getUnlockedTreasureIds, isTreasureUnlockedForPlayer } from "./unlocks";
+import type { AppliedOrnament, AvatarRecipe, OrnamentFull, TreasureAvatarOption } from "./types";
 
 type OrnRow = OrnamentFull & { row_id: number; sort_order: number };
 
@@ -67,11 +69,22 @@ export async function setPlayerHair(
   return getAvatarRecipe(playerId);
 }
 
-/** Adiciona um item "diverso" no topo da pilha (aparece por cima dos demais). */
+/** Adiciona um item "diverso" no topo da pilha (aparece por cima dos demais).
+ * Se o ornamento for um cosmético de Tesouro (ícone ou transformação), o
+ * servidor confere o desbloqueio antes de aplicar — a UI só oferecer os
+ * desbloqueados é conveniência, isto aqui é a trava real. */
 export async function addPlayerDiverso(
   playerId: number,
   ornamentId: number
 ): Promise<AvatarRecipe> {
+  const owningTreasure = await get<{ id: number }>(
+    "SELECT id FROM treasures WHERE icon_ornament_id = ? OR transform_ornament_id = ?",
+    [ornamentId, ornamentId]
+  );
+  if (owningTreasure && !(await isTreasureUnlockedForPlayer(playerId, owningTreasure.id))) {
+    throw new Error("tesouro bloqueado para este jogador");
+  }
+
   const rows = await all<{ max: number }>(
     `SELECT COALESCE(MAX(po.sort_order), 0) AS max
        FROM player_ornaments po JOIN ornaments o ON o.id = po.ornament_id
@@ -123,4 +136,52 @@ export async function moveDiverso(
     "write"
   );
   return getAvatarRecipe(playerId);
+}
+
+/** Tesouros prontos pra tela de customização de um jogador: cada um com seus
+ * cosméticos (ícone/transformação) resolvidos, se está desbloqueado, e se já
+ * está aplicado no avatar atual — a UI só faz alternar (POST/DELETE em
+ * `player_ornaments`, via `addPlayerDiverso`/`removePlayerOrnament`). */
+export async function listTreasureAvatarOptions(playerId: number): Promise<TreasureAvatarOption[]> {
+  const [treasures, unlockedIds, appliedRows] = await Promise.all([
+    listTreasures(),
+    getUnlockedTreasureIds(playerId),
+    all<{ ornament_id: number }>(
+      "SELECT ornament_id FROM player_ornaments WHERE player_id = ?",
+      [playerId]
+    ),
+  ]);
+  const appliedSet = new Set(appliedRows.map((r) => r.ornament_id));
+
+  return treasures.map((t) => ({
+    id: t.id,
+    name: t.name,
+    unlocked: unlockedIds.has(t.id),
+    icon:
+      t.icon_ornament_id && t.icon_sprite_path
+        ? {
+            ornament_id: t.icon_ornament_id,
+            sprite_path: t.icon_sprite_path,
+            sprite_width: t.icon_sprite_width ?? 0,
+            sprite_height: t.icon_sprite_height ?? 0,
+            offset_x: t.icon_offset_x ?? 0,
+            offset_y: t.icon_offset_y ?? 0,
+            scale: t.icon_scale ?? 100,
+            applied: appliedSet.has(t.icon_ornament_id),
+          }
+        : null,
+    transform:
+      t.transform_ornament_id && t.transform_sprite_path
+        ? {
+            ornament_id: t.transform_ornament_id,
+            sprite_path: t.transform_sprite_path,
+            sprite_width: t.transform_sprite_width ?? 0,
+            sprite_height: t.transform_sprite_height ?? 0,
+            offset_x: t.transform_offset_x ?? 0,
+            offset_y: t.transform_offset_y ?? 0,
+            scale: t.transform_scale ?? 100,
+            applied: appliedSet.has(t.transform_ornament_id),
+          }
+        : null,
+  }));
 }

@@ -260,6 +260,59 @@ Sessão 2026-07-16 (continuação — Oficina: unifica Sprites/Spritesheets/Orna
   config vencendo. (Produção funcionava mesmo com o config errado porque o Next
   externaliza esses pacotes por conta própria.)
 
+Sessão 2026-07-16 (continuação — ARTEFATOS / TESOUROS: sistema de desbloqueio
+de cosméticos, 5 fases, plano completo em `docs/PLANO-ARTEFATOS.md`):
+- **O quê:** cosméticos deixaram de ficar sempre disponíveis. Nasceu a
+  entidade **Tesouro** (`treasures`: `name` único = item do jogo, `icon` +
+  `transformation` = cosméticos de avatar posicionados via ornamento, `card` =
+  ilustrativa) e um **sistema de desbloqueio plugável** (`lib/unlocks.ts`):
+  1º modo `treasure_item` = jogador só usa o cosmético se já terminou uma
+  partida possuindo aquele item (registrado agora em `game_player_treasures`,
+  gravado pelo `GameWizard`/`TreasurePicker` no lugar do texto livre antigo).
+- **Modelo:** `ornaments` continua o primitivo "sprite posicionado"; um
+  Tesouro **possui** até 2 ornamentos (`icon_ornament_id`/`transform_ornament_id`,
+  `category='diverso'`) — reaproveita 100% do pipeline de composição do avatar
+  (`avatar-geometry.ts`, `avatar-canvas.ts`, `player_ornaments`), zero mudança
+  na matemática de render. Cabelo continua livre/base, fora do desbloqueio.
+- **Oficina** (`/sprites`) mudou de lugar (nav principal → Admin) e perdeu a
+  aba Ornamentos — agora só corta sprites, com categorias fixas
+  (`treasure-icon`/`treasure-transform`/`treasure-card`) no lugar do datalist
+  livre. `OrnamentBuilder.tsx` **fica no repo, intencionalmente não deletado**
+  (reservado pra uma futura tela de autoria de cabelo — backlog, não confundir
+  com "dead code" a apagar).
+- **Menu novo "Artefatos" > "Tesouros"** (`/artefatos/tesouros`,
+  `TreasuresClient.tsx`): CRUD completo com tela de posicionamento de 2 slots
+  (ícone/transformação) reaproveitando a geometria/CSS do antigo
+  `OrnamentBuilder`.
+- **Avatar do jogador:** seção "Diversos" virou "Tesouros" — mostra os
+  Tesouros com toggle por slot, bloqueados aparecem esmaecidos/desabilitados
+  (exceto se já aplicados, pra permitir remover). Enforcement real no
+  servidor (`addPlayerDiverso` em `lib/player-avatar.ts` rejeita aplicar
+  cosmético de Tesouro bloqueado), não só na UI.
+- **Wizard de partida:** o texto livre de itens (`ItemTagInput`) foi
+  **retirado e deletado** — o passo 3 agora usa `TreasurePicker` (ícones,
+  0 ou mais). `items`/`game_player_items` (schema antigo) **permanecem só
+  como histórico read-only** das partidas anteriores a esta feature —
+  `lib/items.ts` e `/api/items` foram deletados (sem consumidor).
+  `FEEDBACK_AREAS` atualizado (`sprites`→`oficina`, `ornamentos` removido,
+  `artefatos` novo).
+- **Descoberta técnica:** FKs **são** forçadas em dev local mesmo achando que
+  não (mordeu em `updateTreasure`, ver armadilha #7) e o `ON DELETE CASCADE`
+  do schema **funciona sozinho em dev local** — mas isso NÃO é garantido em
+  produção via Turso HTTP, então toda cascata continua sendo escrita
+  manualmente mesmo assim (`deleteGame` agora limpa `game_player_treasures`
+  explicitamente).
+- **Verificado ponta a ponta** em todas as 5 fases (curl direto na API +
+  Browser pane): criar Tesouro → cortar sprites → posicionar ícone/transform →
+  jogar partida de teste registrando o item → desbloqueio concedido de
+  verdade → aplicar cosmético no avatar → PNG regenerado → enforcement no
+  servidor rejeitando jogador sem desbloqueio → tudo limpo ao final, dados
+  reais intactos.
+- ⚠️ **Achado de dado real (não fui eu):** o usuário criou um Tesouro
+  **"Book of Belial"** e aplicou o ícone dele 3× duplicado no Robertinho
+  usando a UI antiga (antes do toggle da Fase 3) — ver seção "Dados reais"
+  abaixo, não limpar sem avisar.
+
 ### Dados reais do usuário no banco (não são teste — não apagar)
 
 - Jogadores: **Mané** (id 9, tem cabelo customizado aplicado, `hair_color`
@@ -268,6 +321,15 @@ Sessão 2026-07-16 (continuação — Oficina: unifica Sprites/Spritesheets/Orna
 - Ao menos 1 partida registrada (o usuário testou o wizard pela própria UI).
 - Sprite **"cuia-hair-1"** (categoria `hair-styles`) e ornamento
   **"hairs-cuia-01"** (categoria `cabelo`) — cadastrados pelo próprio usuário.
+- Tesouro **"Book of Belial"** (id 3, criado pelo usuário entre sessões, ao
+  testar a tela de Tesouros da Fase 2) com ícone e transformação cadastrados.
+  Robertinho (id 10) tem o ícone desse Tesouro aplicado **3 vezes duplicado**
+  no avatar (mesma posição/escala, visualmente idêntico a 1x — sobrou da UI
+  antiga de "Diversos", que não tinha toggle nem prevenção de duplicata, antes
+  da Fase 3). Inofensivo, mas não é intencional. **Não veio de mim** — descoberto
+  na verificação da Fase 3. Não limpar sem avisar o usuário; o novo toggle na
+  tela de Avatar (Fase 3) deixa fácil ele mesmo remover as cópias extras
+  clicando no ícone do Tesouro (cada clique tira uma aplicação).
 
 **O usuário usa o app entre as sessões de trabalho.** Isso já causou confusão
 mais de uma vez (dados que "apareceram" no banco sem eu ter criado). **Nunca
@@ -294,6 +356,13 @@ antes checar o que já existe e filtrar precisamente pelo que você mesmo criou
    (roster clássico = base; Bethany/Jacob&Esau + 17 tainted = Requiem) — é
    **editável depois** numa tela de Ajustes que ainda não existe; não é dado
    sagrado do jogo real, só um seed inicial.
+6. **Desbloqueio de cosméticos (Artefatos/Tesouros):** cabelo é livre/base
+   (sem desbloqueio); todo cosmético novo do avatar nasce como um **Tesouro**
+   (ícone + transformação) e só pode ser aplicado se desbloqueado. O sistema
+   é **plugável por design** (`lib/unlocks.ts`) — hoje só existe o modo
+   "terminar partida com o item", mas outros modos (vitórias acumuladas,
+   concessão manual, conquistas) podem ser somados sem mexer no resto.
+   Detalhe completo em `docs/PLANO-ARTEFATOS.md`.
 
 ## Armadilhas técnicas já descobertas (não repetir)
 
@@ -364,7 +433,27 @@ campo assumindo que o backend vai preservar o valor antigo. Se adicionar um
 novo campo em `PlayerInput` no futuro, procure todo `fetch(`/api/players/`
 em `components/` e atualize os payloads.
 
-### 7. Scripts de debug descartáveis
+### 7. FKs são forçadas em dev local (arquivo SQLite), mesmo achando que não
+
+O comentário espalhado pelo código ("FKs não são forçadas nas conexões HTTP do
+libSQL", cascata sempre manual) é verdade pra **Turso em produção**, mas em
+**dev local** (`file:./data/sad-notes.db`) as foreign keys **são** aplicadas de
+verdade pelo motor SQLite. Isso mordeu na Fase 1 (`lib/treasures.ts`,
+`updateTreasure`): ao limpar o slot `transform` de um Tesouro, o código
+apagava o ornamento órfão **antes** de atualizar `treasures.transform_ornament_id`
+pra `NULL` — a linha `treasures` ainda apontava pro ornamento no momento do
+`DELETE`, e o SQLite local rejeitou com `SQLITE_CONSTRAINT: FOREIGN KEY
+constraint failed`.
+
+**Regra:** em qualquer fluxo de update/delete que troque ou libere uma FK
+(não só criar linha nova), sempre **repontar/gravar a FK pai primeiro** (ou
+como `NULL`) e só **depois** apagar a linha órfã que ela referenciava — nunca
+o inverso. `deleteTreasure`/`deleteOrnament`/`deleteSprite`/`deleteGame` já
+seguiam essa ordem por acidente (deletam sempre a linha "pai" antes das
+filhas que ela referenciava indiretamente); o bug só apareceu num caminho de
+**update** que ninguém tinha escrito antes.
+
+### 8. Scripts de debug descartáveis
 
 Vários bugs foram investigados com scripts `_debug.mjs`/`_clean.mjs` na raiz
 do projeto, **sempre removidos depois** (`rm -f`). Se você ver algum desses
@@ -377,22 +466,29 @@ app/
   page.tsx                      Ranking (frame-chest-torch)
   jogadores/page.tsx             Lista de jogadores (StatIcon do "+ New Born" via Frame actions)
   jogadores/[id]/avatar/page.tsx Editor unificado: Identidade (nome/história
-                                  triste/rosto) + Avatar (cabelo+cor+diversos)
+                                  triste/rosto) + Cabelo + Tesouros (icon/transform)
   partidas/page.tsx               Lista de partidas
-  partidas/nova/page.tsx          Wizard de cadastro
-  partidas/[id]/page.tsx          Detalhe da partida
-  sprites/page.tsx                 Oficina: abas Spritesheets/Sprites/Ornamentos (OficinaTabs)
-  spritesheets/ e ornamentos/       REMOVIDAS — viraram abas da Oficina (redirect → /sprites)
+  partidas/nova/page.tsx          Wizard de cadastro (passo 3 usa TreasurePicker)
+  partidas/[id]/page.tsx          Detalhe da partida (coluna "Tesouros": ícones + itens legados)
+  sprites/page.tsx                 Oficina (Admin): abas Spritesheets/Sprites — SÓ corta sprites
+  artefatos/tesouros/page.tsx      CRUD de Tesouros + posicionamento (TreasuresClient)
+  spritesheets/ e ornamentos/       REMOVIDAS — redirect → /sprites (next.config.ts)
   backlog/page.tsx                 Backlog: form de bug/melhoria/feature + lista (Admin)
   api/**                           Rotas REST (players, games, characters,
-                                    items, sprites, ornaments, players/[id]/avatar/*)
+                                    sprites, sheets, ornaments, treasures,
+                                    feedback, players/[id]/avatar/*)
+                                    — api/items FOI REMOVIDA (sem consumidor)
 lib/
   db.ts               conexão libSQL (async) + helpers all/get/run + schema + settings
-  types.ts            todos os tipos (Player, Game, Sprite, Ornament, AvatarRecipe...)
-  validation.ts        parsePlayerInput / parseGamePayload
-  players.ts, characters.ts, games.ts, items.ts   data layer core
+  types.ts            todos os tipos (Player, Game, Sprite, Ornament, Treasure,
+                        UnlockMode, AvatarRecipe...)
+  validation.ts        parsePlayerInput / parseGamePayload / parseTreasureInput
+  players.ts, characters.ts, games.ts   data layer core
   feedback.ts         data layer do Backlog (list/create/updateStatus/delete)
-  sprites.ts, ornaments.ts, player-avatar.ts        data layer do pipeline de avatar
+  sprites.ts, ornaments.ts, treasures.ts, player-avatar.ts   data layer do
+                        pipeline de avatar + Tesouros
+  unlocks.ts           sistema de desbloqueio PLUGÁVEL (registro de modos) —
+                        getUnlockedTreasureIds/isTreasureUnlockedForPlayer
   avatar-geometry.ts   geometria PURA compartilhada (cliente+servidor)
   avatar-canvas.ts     composição do avatar via Canvas (só cliente/navegador)
   storage.ts           putImage/deleteImage — Vercel Blob (prod) / public/ (dev)
@@ -401,19 +497,29 @@ lib/
                         compartilhada entre CSS filter (cliente) e
                         sharp().modulate() (servidor)
   ranking.ts           agregações do ranking
+  items.ts             REMOVIDO (Fase 5) — texto livre de itens aposentado;
+                        `items`/`game_player_items` seguem no schema só como
+                        histórico read-only (lidos direto em lib/games.ts)
 components/
   Frame, Sidebar, ComingSoon           shell/layout
   PlayerAvatar                        avatar (cache PNG ou fallback de rosto)
-  JogadoresClient, GameWizard, DeleteGameButton, ItemTagInput
+  JogadoresClient, GameWizard, DeleteGameButton
+  TreasurePicker                       seletor de ícones no wizard (0+ por jogador)
   BacklogClient                        form + lista do Backlog (Admin)
-  SpritesClient                        catálogo de sprites
-  OrnamentBuilder                       cadastro de ornamentos
-  AvatarComposer, AvatarEditor          editor de avatar (Fase 6)
+  SpritesClient                        catálogo de sprites (categorias fixas de Tesouro)
+  TreasuresClient                       CRUD de Tesouros + posicionamento (icon/transform)
+  OrnamentBuilder                       NÃO usado em nenhuma página — reservado
+                                        pra futura tela de autoria de cabelo,
+                                        não é dead code a apagar
+  AvatarComposer, AvatarEditor          editor de avatar (seção Tesouros na Fase 3)
   RankFire                              chama animada do pódio
+  ItemTagInput                          REMOVIDO (Fase 5)
 docs/
-  BRIEF.md      visão geral, stack, decisões-chave
-  ROADMAP.md    todas as features + status + ordem de implementação
-  STYLE-GUIDE.md identidade visual (paleta, tipografia, componentes)
+  BRIEF.md            visão geral, stack, decisões-chave
+  ROADMAP.md          todas as features + status + ordem de implementação
+  STYLE-GUIDE.md       identidade visual (paleta, tipografia, componentes)
+  PLANO-ARTEFATOS.md   plano completo da feature Artefatos/Tesouros (5 fases,
+                        arquitetura, decisões) — leia antes de mexer nesse sistema
 public/
   design-system/   frames (28), fonte IsaacGame, ícones, texturas (copiado dos mockups)
   fonts/            Upheaval (fonte nova do usuário, .ttf usado via @font-face)

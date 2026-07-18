@@ -179,6 +179,22 @@ async function initSchema(db: Client): Promise<void> {
       created_at  TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS treasures (
+      id                    INTEGER PRIMARY KEY AUTOINCREMENT,
+      name                  TEXT NOT NULL COLLATE NOCASE UNIQUE,
+      icon_ornament_id      INTEGER REFERENCES ornaments(id),
+      transform_ornament_id INTEGER REFERENCES ornaments(id),
+      card_sprite_id        INTEGER REFERENCES sprites(id),
+      unlock_mode           TEXT NOT NULL DEFAULT 'treasure_item',
+      created_at            TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS game_player_treasures (
+      game_player_id INTEGER NOT NULL REFERENCES game_players(id) ON DELETE CASCADE,
+      treasure_id    INTEGER NOT NULL REFERENCES treasures(id),
+      PRIMARY KEY (game_player_id, treasure_id)
+    );
+
     CREATE TABLE IF NOT EXISTS feedback (
       id          INTEGER PRIMARY KEY AUTOINCREMENT,
       kind        TEXT NOT NULL DEFAULT 'bug',
@@ -202,6 +218,7 @@ async function initSchema(db: Client): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_feedback_status ON feedback(status);
     CREATE INDEX IF NOT EXISTS idx_feedback_created ON feedback(created_at);
     CREATE INDEX IF NOT EXISTS idx_sheets_created ON sheets(created_at);
+    CREATE INDEX IF NOT EXISTS idx_gpt_treasure ON game_player_treasures(treasure_id);
   `);
   await seedDefaultSettings(db);
   await seedCharactersIfEmpty(db);

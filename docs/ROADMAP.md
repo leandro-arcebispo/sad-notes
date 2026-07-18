@@ -26,7 +26,9 @@ Base de tudo que é visual/customizável. Usável por quem **não** programa.
   moedas restantes · itens ao fim · nº de mortes · almas ao fim · venceu?
 - [x] Listagem enxuta (só o essencial) + tela de **detalhe** completa + excluir.
 - [x] Wizard de 3 passos com sorteio/re-roll de personagens, times (duplas/trios) e
-  itens por nome (autocomplete que aprende).
+  Tesouros possuídos ao fim (seletor por ícone — ver F6; itens por nome livre
+  foi o formato original, aposentado na feature Artefatos, mantido só como
+  histórico read-only nas partidas antigas).
 
 ### F3 — Ranking (derivado das partidas) ✅
 - [x] Sincronizado automaticamente com o registrado (Global Board), sempre calculado.
@@ -52,15 +54,40 @@ Base de tudo que é visual/customizável. Usável por quem **não** programa.
   é resolvido na tela de customização do avatar (Fase 6), pela ordem de seleção — não
   é um campo do ornamento em si.
 - [x] **Customização de avatar:** rosto base (Isaac em várias cores) + 1 cabelo + N diversos,
-  com reordenação (o último/mais acima na pilha aparece por cima).
+  com reordenação (o último/mais acima na pilha aparece por cima). *(A categoria "diverso"
+  livre foi aposentada na feature Artefatos — F6: todo cosmético novo além do cabelo nasce
+  como Tesouro, gated por desbloqueio; o pipeline de posicionamento é o mesmo.)*
 - [x] Avatar usado em ranking, jogadores e partidas (receita em `player_ornaments` + cache
   PNG gerado via `sharp`). **Substitui o avatar provisório** em todas as telas (fallback
   automático pro rosto base quando o jogador não tem avatar customizado ainda).
+
+### F6 — Artefatos & Desbloqueio de Cosméticos ✅
+Plano completo (arquitetura, decisões, verificação fase a fase) em
+`docs/PLANO-ARTEFATOS.md`. Resumo:
+- [x] **Tesouros** (`/artefatos/tesouros`, menu "Artefatos"): CRUD de itens do
+  jogo — nome, ícone (posição livre), transformação (posição correta), carta
+  ilustrativa. Reaproveita o pipeline de ornamentos/avatar sem duplicar
+  matemática de posicionamento.
+- [x] **Sistema de desbloqueio plugável** (`lib/unlocks.ts`): 1º modo
+  "terminar partida com o item"; escalável pra outros modos no futuro
+  (vitórias acumuladas, concessão manual, conquistas) sem tocar no resto.
+- [x] **Oficina** virou só cortador de sprites (perdeu o passo Ornamentos) e
+  mudou de lugar no menu (principal → Admin).
+- [x] **Wizard de partida:** texto livre de itens → seletor de Tesouros por
+  ícone (0+). `items`/`game_player_items` viraram histórico read-only.
+- [x] **Avatar do jogador:** seção "Tesouros" com toggle por cosmético,
+  bloqueados aparecem esmaecidos; enforcement real no servidor.
 
 ### Backlog geral
 - [ ] Torneios como entidade completa (chaveamento/registro atrelado + ranking próprio).
 - [ ] Autenticação / multiusuário.
 - [ ] Deploy (VPS/container com volume em `data/`).
+- [ ] *(da feature Artefatos)* Tela própria de autoria de cabelo (o
+  `OrnamentBuilder` saiu da Oficina mas fica reservado pra isso).
+- [ ] *(da feature Artefatos)* Outros modos de desbloqueio (vitórias
+  acumuladas, concessão manual, conquistas) — o sistema já nasce plugável.
+- [ ] *(da feature Artefatos)* Reposicionamento do ícone por jogador (hoje a
+  posição é autorada uma vez no Tesouro, vale pra todo mundo).
 
 ---
 

@@ -44,9 +44,11 @@ completo (28 variantes) e regras em `public/design-system/frames.md`.
 <Frame variant="frame-chest-torch" title="Ranking"> ...conteúdo... </Frame>
 ```
 
-Uso sugerido por tela (ajustável): Ranking → `frame-chest-torch` · Partidas →
-`frame-dank-depths` · Jogadores → `frame-library` · Sprites → `frame-utero-purple`
-· Ornamentos → `frame-cathedral` · Configurações → `frame-brick`.
+Uso por tela (`grep -rn "variant=" app/**/page.tsx components/*Client.tsx` pra
+conferir o atual): Ranking → `frame-chest-torch` · Partidas/Nova/Detalhe →
+`frame-library` · Jogadores → `frame-utero` · Avatar do jogador → `frame-cathedral`
+· Oficina (Admin) → `frame-utero-purple` · Tesouros (Artefatos) → `frame-chest`
+· Backlog (Admin) → `frame-library` · Configurações → `frame-brick`.
 
 > ⚠️ `frame-cathedral*` tem um entalhe transparente no topo/base (bug conhecido
 > da sheet original) — contra o `--bg` preto some, mas confira antes de usar sobre

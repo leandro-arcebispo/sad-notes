@@ -1,10 +1,10 @@
 import { all, get, getClient, nowIso } from "./db";
-import { resolveItemId } from "./items";
 import type {
   GameFull,
   GameListItem,
   GamePayload,
   GamePlayerRow,
+  GameTreasureRef,
 } from "./types";
 
 export async function createGame(payload: GamePayload): Promise<GameFull> {
@@ -56,12 +56,10 @@ export async function createGame(payload: GamePayload): Promise<GameFull> {
         ],
       });
       const gpId = Number(r.lastInsertRowid);
-      for (const name of pl.items) {
-        if (!name.trim()) continue;
-        const itemId = await resolveItemId(tx, name);
+      for (const treasureId of pl.treasure_ids) {
         await tx.execute({
-          sql: "INSERT OR IGNORE INTO game_player_items (game_player_id, item_id) VALUES (?, ?)",
-          args: [gpId, itemId],
+          sql: "INSERT OR IGNORE INTO game_player_treasures (game_player_id, treasure_id) VALUES (?, ?)",
+          args: [gpId, treasureId],
         });
       }
     }
@@ -109,11 +107,22 @@ export async function getGame(id: number): Promise<GameFull | undefined> {
   )) as GameFull["players"];
 
   for (const p of players) {
+    // Itens de texto livre legados (partidas anteriores à Fase 4) — histórico read-only.
     p.items = await all<{ id: number; name: string }>(
       `SELECT i.id, i.name FROM game_player_items gpi
          JOIN items i ON i.id = gpi.item_id
         WHERE gpi.game_player_id = ?
         ORDER BY i.name COLLATE NOCASE`,
+      [p.id]
+    );
+    p.owned_treasures = await all<GameTreasureRef>(
+      `SELECT t.id, t.name, si.path AS icon_sprite_path
+         FROM game_player_treasures gpt
+         JOIN treasures t ON t.id = gpt.treasure_id
+    LEFT JOIN ornaments oi ON oi.id = t.icon_ornament_id
+    LEFT JOIN sprites si ON si.id = oi.sprite_id
+        WHERE gpt.game_player_id = ?
+        ORDER BY t.name COLLATE NOCASE`,
       [p.id]
     );
   }
@@ -123,7 +132,9 @@ export async function getGame(id: number): Promise<GameFull | undefined> {
 }
 
 export async function deleteGame(id: number): Promise<boolean> {
-  // Cascata manual (FKs não forçadas via HTTP libSQL): itens → jogadores → jogo.
+  // Cascata manual (FKs não forçadas via HTTP libSQL em produção/Turso — o
+  // ON DELETE CASCADE do schema só é aplicado de fato em dev local):
+  // itens/tesouros possuídos → jogadores → jogo.
   const db = await getClient();
   const res = await db.batch(
     [
@@ -131,12 +142,16 @@ export async function deleteGame(id: number): Promise<boolean> {
         sql: "DELETE FROM game_player_items WHERE game_player_id IN (SELECT id FROM game_players WHERE game_id = ?)",
         args: [id],
       },
+      {
+        sql: "DELETE FROM game_player_treasures WHERE game_player_id IN (SELECT id FROM game_players WHERE game_id = ?)",
+        args: [id],
+      },
       { sql: "DELETE FROM game_players WHERE game_id = ?", args: [id] },
       { sql: "DELETE FROM games WHERE id = ?", args: [id] },
     ],
     "write"
   );
-  return res[2].rowsAffected > 0;
+  return res[3].rowsAffected > 0;
 }
 
 export type { GamePlayerRow };

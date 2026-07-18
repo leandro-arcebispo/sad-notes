@@ -4,7 +4,7 @@ import Frame from "@/components/Frame";
 import AvatarEditor from "@/components/AvatarEditor";
 import { getPlayer } from "@/lib/players";
 import { listOrnaments } from "@/lib/ornaments";
-import { getAvatarRecipe } from "@/lib/player-avatar";
+import { getAvatarRecipe, listTreasureAvatarOptions } from "@/lib/player-avatar";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,8 +18,11 @@ export default async function PlayerAvatarPage({
   const player = await getPlayer(id);
   if (!player) notFound();
 
-  const ornaments = await listOrnaments();
-  const recipe = await getAvatarRecipe(id);
+  const [ornaments, recipe, treasureOptions] = await Promise.all([
+    listOrnaments(),
+    getAvatarRecipe(id),
+    listTreasureAvatarOptions(id),
+  ]);
 
   return (
     <Frame
@@ -31,7 +34,7 @@ export default async function PlayerAvatarPage({
         player={player}
         initialRecipe={recipe}
         hairOptions={ornaments.filter((o) => o.category === "cabelo")}
-        diversoOptions={ornaments.filter((o) => o.category === "diverso")}
+        treasureOptions={treasureOptions}
       />
     </Frame>
   );

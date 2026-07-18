@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import PlayerAvatar from "./PlayerAvatar";
-import ItemTagInput from "./ItemTagInput";
+import TreasurePicker, { type TreasurePickerOption } from "./TreasurePicker";
 import {
   TEAM_SIZE,
   type Character,
@@ -24,7 +24,7 @@ type Part = {
   deaths: number;
   treasures: number;
   souls: number;
-  items: string[];
+  treasure_ids: number[];
   is_winner: boolean;
 };
 
@@ -38,11 +38,11 @@ const todayIso = () => {
 export default function GameWizard({
   players,
   characters,
-  itemSuggestions,
+  treasureOptions,
 }: {
   players: Player[];
   characters: Character[];
-  itemSuggestions: string[];
+  treasureOptions: TreasurePickerOption[];
 }) {
   const router = useRouter();
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -98,7 +98,7 @@ export default function GameWizard({
               deaths: 0,
               treasures: 0,
               souls: 0,
-              items: [],
+              treasure_ids: [],
               is_winner: false,
             },
           ]
@@ -181,7 +181,7 @@ export default function GameWizard({
         souls: p.souls,
         is_winner: p.is_winner,
         team: p.team,
-        items: p.items,
+        treasure_ids: p.treasure_ids,
       })),
     };
     setSubmitting(true);
@@ -359,12 +359,11 @@ export default function GameWizard({
                     <NumBox label="Mortes" value={p.deaths} onChange={(v) => patch(p.player_id, { deaths: v })} />
                   </div>
                   <div className="final-items">
-                    <label className="mini-label">Itens</label>
-                    <ItemTagInput
-                      value={p.items}
-                      onChange={(items) => patch(p.player_id, { items })}
-                      suggestions={itemSuggestions}
-                      listId={`items-${p.player_id}`}
+                    <label className="mini-label">Tesouros</label>
+                    <TreasurePicker
+                      value={p.treasure_ids}
+                      onChange={(treasure_ids) => patch(p.player_id, { treasure_ids })}
+                      options={treasureOptions}
                     />
                   </div>
                 </div>

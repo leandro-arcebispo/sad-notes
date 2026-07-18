@@ -9,6 +9,7 @@ import {
   FEEDBACK_AREAS,
   FEEDBACK_KINDS,
   FEEDBACK_PRIORITIES,
+  UNLOCK_MODES,
   type BaseFace,
   type CharacterSelection,
   type Edition,
@@ -20,6 +21,8 @@ import {
   type GamePayload,
   type GamePlayerInput,
   type PlayerInput,
+  type TreasureInput,
+  type UnlockMode,
 } from "./types";
 import { HAIR_COLORS, DEFAULT_HAIR_COLOR } from "./hair-colors";
 
@@ -152,10 +155,14 @@ export function parseGamePayload(
       souls: Math.max(0, toInt(p.souls)),
       is_winner: Boolean(p.is_winner),
       team: toIntOrNull(p.team),
-      items: Array.isArray(p.items)
-        ? (p.items as unknown[])
-            .map((x) => String(x).trim())
-            .filter((x) => x.length > 0)
+      treasure_ids: Array.isArray(p.treasure_ids)
+        ? Array.from(
+            new Set(
+              (p.treasure_ids as unknown[])
+                .map((x) => Math.trunc(Number(x)))
+                .filter((x) => Number.isFinite(x) && x > 0)
+            )
+          )
         : [],
     });
   }
@@ -177,6 +184,41 @@ export function parseGamePayload(
       notes:
         typeof b.notes === "string" && b.notes.trim() ? b.notes.trim() : null,
       players,
+    },
+  };
+}
+
+function clamp(v: unknown, lo: number, hi: number, fallback: number): number {
+  const n = Math.trunc(Number(v));
+  return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : fallback;
+}
+
+export function parseTreasureInput(
+  body: unknown
+): { value: TreasureInput } | { error: string } {
+  if (!body || typeof body !== "object") return { error: "corpo inválido" };
+  const b = body as Record<string, unknown>;
+
+  const name = typeof b.name === "string" ? b.name.trim() : "";
+  if (!name) return { error: "nome é obrigatório" };
+
+  const unlock_mode: UnlockMode = UNLOCK_MODES.includes(b.unlock_mode as UnlockMode)
+    ? (b.unlock_mode as UnlockMode)
+    : "treasure_item";
+
+  return {
+    value: {
+      name,
+      icon_sprite_id: toIntOrNull(b.icon_sprite_id),
+      icon_offset_x: clamp(b.icon_offset_x, -128, 128, 0),
+      icon_offset_y: clamp(b.icon_offset_y, -128, 128, 0),
+      icon_scale: clamp(b.icon_scale, 20, 300, 100),
+      transform_sprite_id: toIntOrNull(b.transform_sprite_id),
+      transform_offset_x: clamp(b.transform_offset_x, -128, 128, 0),
+      transform_offset_y: clamp(b.transform_offset_y, -128, 128, 0),
+      transform_scale: clamp(b.transform_scale, 20, 300, 100),
+      card_sprite_id: toIntOrNull(b.card_sprite_id),
+      unlock_mode,
     },
   };
 }

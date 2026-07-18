@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import AvatarComposer from "./AvatarComposer";
-import { BASE_FACES, type AvatarRecipe, type BaseFace, type OrnamentFull, type Player } from "@/lib/types";
+import { BASE_FACES, type AvatarRecipe, type BaseFace, type OrnamentFull, type Player, type TreasureAvatarOption } from "@/lib/types";
 import { HAIR_COLORS, hairColorCssFilter } from "@/lib/hair-colors";
 import { assetUrl } from "@/lib/asset-url";
 import { composeAvatarDataUrl } from "@/lib/avatar-canvas";
@@ -12,12 +12,12 @@ export default function AvatarEditor({
   player,
   initialRecipe,
   hairOptions,
-  diversoOptions,
+  treasureOptions,
 }: {
   player: Player;
   initialRecipe: AvatarRecipe;
   hairOptions: OrnamentFull[];
-  diversoOptions: OrnamentFull[];
+  treasureOptions: TreasureAvatarOption[];
 }) {
   const router = useRouter();
   const [recipe, setRecipe] = useState(initialRecipe);
@@ -132,6 +132,14 @@ export default function AvatarEditor({
     call(`/api/players/${player.id}/avatar/diversos/${rowId}`, "DELETE");
   const moveDiverso = (rowId: number, direction: "up" | "down") =>
     call(`/api/players/${player.id}/avatar/diversos/${rowId}`, "PATCH", { direction });
+
+  /** Alterna um cosmético de Tesouro (ícone ou transformação): remove se já
+   * aplicado (usa o row_id da receita atual), aplica senão — o servidor
+   * confere o desbloqueio antes de aceitar. */
+  function toggleTreasureSlot(ornamentId: number) {
+    const applied = recipe.diversos.find((d) => d.id === ornamentId);
+    return applied ? removeDiverso(applied.row_id) : addDiverso(ornamentId);
+  }
 
   // ordena do topo da pilha (maior sort_order = mais por cima) pro fundo, pra edição intuitiva
   const stacked = [...recipe.diversos].sort((a, b) => b.sort_order - a.sort_order);
@@ -250,24 +258,48 @@ export default function AvatarEditor({
             })()}
           </section>
 
-          {/* -------- diversos (vários, empilhados) -------- */}
+          {/* -------- tesouros (ícone + transformação, gated por desbloqueio) -------- */}
           <section className="stack" style={{ gap: 8 }}>
-            <h2 className="title" style={{ fontSize: 18 }}>Diversos</h2>
-            {diversoOptions.length === 0 ? (
-              <div className="panel"><div className="center-empty">Nenhum ornamento diverso cadastrado ainda.</div></div>
+            <h2 className="title" style={{ fontSize: 18 }}>Tesouros</h2>
+            {treasureOptions.length === 0 ? (
+              <div className="panel"><div className="center-empty">Nenhum tesouro cadastrado ainda.</div></div>
             ) : (
-              <div className="sprite-grid">
-                {diversoOptions.map((o) => (
-                  <button
-                    key={o.id}
-                    type="button"
-                    className="sprite-pick"
-                    title={`+ ${o.name}`}
-                    onClick={() => addDiverso(o.id)}
-                    disabled={busy}
-                  >
-                    <img src={assetUrl(o.sprite_path)} alt={o.name} />
-                  </button>
+              <div className="ornament-list">
+                {treasureOptions.map((t) => (
+                  <div key={t.id} className={`ornament-row${t.unlocked ? "" : " locked"}`}>
+                    <div className="ornament-meta">
+                      <div className="pixel-label">{t.name}</div>
+                      {!t.unlocked && (
+                        <div className="muted" style={{ fontSize: 11 }}>
+                          Bloqueado — termine uma partida com este item para desbloquear.
+                        </div>
+                      )}
+                    </div>
+                    <div className="row" style={{ gap: 6 }}>
+                      {t.icon && (
+                        <button
+                          type="button"
+                          className={`sprite-pick sprite-pick-sm${t.icon.applied ? " selected" : ""}`}
+                          title={t.unlocked ? `Ícone · ${t.name}` : "Bloqueado"}
+                          disabled={busy || (!t.unlocked && !t.icon.applied)}
+                          onClick={() => toggleTreasureSlot(t.icon!.ornament_id)}
+                        >
+                          <img src={assetUrl(t.icon.sprite_path)} alt="" />
+                        </button>
+                      )}
+                      {t.transform && (
+                        <button
+                          type="button"
+                          className={`sprite-pick sprite-pick-sm${t.transform.applied ? " selected" : ""}`}
+                          title={t.unlocked ? `Transformação · ${t.name}` : "Bloqueado"}
+                          disabled={busy || (!t.unlocked && !t.transform.applied)}
+                          onClick={() => toggleTreasureSlot(t.transform!.ornament_id)}
+                        >
+                          <img src={assetUrl(t.transform.sprite_path)} alt="" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 ))}
               </div>
             )}
@@ -279,7 +311,7 @@ export default function AvatarEditor({
                 </div>
                 {stacked.map((o, idx) => (
                   <div key={o.row_id} className="ornament-row">
-                    <div className="ornament-thumb"><img src={`/${o.sprite_path}`} alt={o.name} /></div>
+                    <div className="ornament-thumb"><img src={assetUrl(o.sprite_path)} alt={o.name} /></div>
                     <div className="ornament-meta pixel-label">{o.name}</div>
                     <div className="row" style={{ gap: 4 }}>
                       <button className="btn" disabled={busy || idx === 0} onClick={() => moveDiverso(o.row_id, "up")} title="Trazer pra frente">▲</button>
