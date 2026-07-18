@@ -13,9 +13,11 @@ export default async function NovaPartidaPage() {
     listCharacters(),
     listTreasures(),
   ]);
-  const treasureOptions = treasures
-    .filter((t): t is typeof t & { icon_sprite_path: string } => t.icon_sprite_path !== null)
-    .map((t) => ({ id: t.id, name: t.name, icon_sprite_path: t.icon_sprite_path }));
+  const treasureOptions = treasures.map((t) => ({
+    id: t.id,
+    name: t.name,
+    icon_sprite_path: t.icon_sprite_path,
+  }));
   return (
     <Frame variant="frame-library" title="Nova partida">
       <GameWizard

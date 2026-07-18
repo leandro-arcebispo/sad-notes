@@ -1,4 +1,5 @@
 import { all, get, getClient, nowIso } from "./db";
+import { resolveTreasureId } from "./treasures";
 import type {
   GameFull,
   GameListItem,
@@ -57,6 +58,13 @@ export async function createGame(payload: GamePayload): Promise<GameFull> {
       });
       const gpId = Number(r.lastInsertRowid);
       for (const treasureId of pl.treasure_ids) {
+        await tx.execute({
+          sql: "INSERT OR IGNORE INTO game_player_treasures (game_player_id, treasure_id) VALUES (?, ?)",
+          args: [gpId, treasureId],
+        });
+      }
+      for (const name of pl.treasure_names) {
+        const treasureId = await resolveTreasureId(tx, name);
         await tx.execute({
           sql: "INSERT OR IGNORE INTO game_player_treasures (game_player_id, treasure_id) VALUES (?, ?)",
           args: [gpId, treasureId],

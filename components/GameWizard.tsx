@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import PlayerAvatar from "./PlayerAvatar";
-import TreasurePicker, { type TreasurePickerOption } from "./TreasurePicker";
+import TreasurePicker, { type TreasurePickerOption, type TreasureSelection } from "./TreasurePicker";
 import {
   TEAM_SIZE,
   type Character,
@@ -25,6 +25,7 @@ type Part = {
   treasures: number;
   souls: number;
   treasure_ids: number[];
+  treasure_names: string[];
   is_winner: boolean;
 };
 
@@ -99,6 +100,7 @@ export default function GameWizard({
               treasures: 0,
               souls: 0,
               treasure_ids: [],
+              treasure_names: [],
               is_winner: false,
             },
           ]
@@ -182,6 +184,7 @@ export default function GameWizard({
         is_winner: p.is_winner,
         team: p.team,
         treasure_ids: p.treasure_ids,
+        treasure_names: p.treasure_names,
       })),
     };
     setSubmitting(true);
@@ -361,8 +364,10 @@ export default function GameWizard({
                   <div className="final-items">
                     <label className="mini-label">Tesouros</label>
                     <TreasurePicker
-                      value={p.treasure_ids}
-                      onChange={(treasure_ids) => patch(p.player_id, { treasure_ids })}
+                      value={{ ids: p.treasure_ids, names: p.treasure_names }}
+                      onChange={(v: TreasureSelection) =>
+                        patch(p.player_id, { treasure_ids: v.ids, treasure_names: v.names })
+                      }
                       options={treasureOptions}
                     />
                   </div>

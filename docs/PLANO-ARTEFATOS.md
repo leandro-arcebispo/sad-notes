@@ -33,11 +33,15 @@ outros modos virão depois (ver §4).
    de ornamentos "diverso" deixa de receber cadastros novos — daqui pra frente
    todo cosmético aplicável ao avatar vem de um **Tesouro**. (A tela de autoria de
    cabelo migra pra um submenu futuro de Artefatos — ver §8, fora de escopo agora.)
-2. **A partida só aceita Tesouros cadastrados.** O input de texto livre de itens
-   no wizard vira um **seletor visual** (pelos ícones) dos Tesouros, 0 ou mais por
-   jogador. O histórico antigo (itens de texto livre) continua **visível** e conta
-   pro desbloqueio via casamento por nome (ver §4), então "promover" um item
-   legado a Tesouro concede o desbloqueio retroativamente.
+2. **A partida aceita Tesouros cadastrados OU nome livre** *(revisado em
+   2026-07-18 — ver §10; a versão original desta decisão, "só Tesouros
+   cadastrados", vigorou só até a Fase 4)*. O seletor visual (pelos ícones)
+   continua existindo, mas o campo de texto livre voltou: cadastrar arte de
+   cada item é trabalho manual demais pra travar o registro de partidas atrás
+   dele. Um nome digitado que bate (case-insensitive) com um Tesouro existente
+   linka nele; senão cria um Tesouro **pendente** (sem ícone/transformação/
+   carta) — nunca volta a gravar em `items`/`game_player_items` (que
+   continuam só como histórico read-only das partidas anteriores à Fase 4).
 3. **Oficina vira só um cortador de sprites.** Perde o passo Ornamentos; fica
    `Spritesheets → Sprites`. As categorias de sprite passam a ser os três papéis
    de Tesouro: `treasure-icon`, `treasure-transform`, `treasure-card`.
@@ -237,7 +241,45 @@ Robertinho id 10, partidas e sprites reais — armadilha do HANDOFF).
   Tesouro; se o usuário quiser que cada jogador reposicione o próprio ícone,
   vira uma extensão do modelo — decidir se/quando).
 
-## 9. Status das fases
+## 9. Revisão pós-Fase-5 (2026-07-18) — campo livre voltou ao wizard
+
+A Fase 4 tinha decidido "só Tesouros cadastrados" no wizard, sem texto livre.
+Na prática isso trava o registro de partidas atrás do cadastro manual de arte
+(cortar ícone+transformação item por item é lento) — o usuário pediu de volta
+um campo livre, com uma regra pra evitar duplicidade:
+
+- **Nome digitado bate (case-insensitive) com um Tesouro já existente** (com
+  ou sem ícone) → linka nele, não cria nada novo.
+- **Não bate com nada** → cria um Tesouro **pendente**: `icon_ornament_id`,
+  `transform_ornament_id` e `card_sprite_id` todos `NULL`, `unlock_mode`
+  default `'treasure_item'`. Aparece na listagem de `/artefatos/tesouros`
+  com "—" nos três thumbnails, pronto pra ser editado (`updateTreasure` já
+  suporta ir de sprite `null` → sprite real, testado desde a Fase 1) quando
+  alguém tiver tempo de cortar a arte.
+- **`game_player_treasures` continua sendo a única fonte de verdade de posse
+  de item.** Não voltamos a escrever em `items`/`game_player_items` — aquele
+  par de tabelas permanece congelado, só histórico read-only das partidas
+  anteriores à Fase 4. Ou seja: isto não é "trazer o texto livre de volta",
+  é um segundo caminho de escrita pro **mesmo** destino (`treasures` +
+  `game_player_treasures`) que os ícones já escrevem.
+- **Consequência aceita conscientemente:** se o mesmo item for digitado com
+  grafias diferentes em partidas diferentes (typo, acento, espaço), vira dois
+  Tesouros pendentes distintos — vai exigir limpeza manual depois (renomear/
+  mesclar). Decisão explícita do usuário: "se errarmos o nome e ficar algo
+  duplicado é consequência nossa". `TreasurePicker` mitiga isso mostrando os
+  Tesouros pendentes existentes como chips clicáveis (não só os com ícone),
+  então reaproveitar um nome já digitado antes é um clique, não precisa
+  redigitar exato.
+
+**Peças que mudaram:** `lib/treasures.ts::resolveTreasureId` (equivalente ao
+antigo `resolveItemId`, mas cria Tesouro pendente em vez de item de texto,
+roda dentro da mesma transação de `createGame`); `GamePlayerInput.treasure_names:
+string[]` ao lado de `treasure_ids: number[]`; `components/TreasurePicker.tsx`
+virou híbrido (grade de ícones + chips de pendentes + campo de tag livre,
+com auto-match client-side antes de mandar pro servidor). **Nada** disso
+reviveu `lib/items.ts`/`ItemTagInput`/`/api/items` — continuam deletados.
+
+## 10. Status das fases
 
 - [x] Fase 0 — Reorganização da Oficina & navegação
 - [x] Fase 1 — Tesouros: dado + API
@@ -245,3 +287,4 @@ Robertinho id 10, partidas e sprites reais — armadilha do HANDOFF).
 - [x] Fase 3 — Desbloqueio + aplicação no avatar
 - [x] Fase 4 — Partida usa Tesouros
 - [x] Fase 5 — Limpeza, legado & docs
+- [x] Revisão 2026-07-18 — campo livre com auto-match/pendente (ver §10)

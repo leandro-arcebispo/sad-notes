@@ -1,3 +1,4 @@
+import type { Transaction } from "@libsql/client";
 import { all, get, getClient, run, nowIso } from "./db";
 import type { Treasure, TreasureFull, TreasureInput } from "./types";
 
@@ -147,4 +148,29 @@ export async function deleteTreasure(id: number): Promise<boolean> {
   }
   await db.batch(stmts, "write");
   return true;
+}
+
+/**
+ * Resolve um Tesouro por nome (case-insensitive, casa com `treasures.name`
+ * COLLATE NOCASE), criando um **pendente** — sem ícone/transformação/carta —
+ * se não existir ainda. Roda dentro da transação de criação de partida
+ * (`lib/games.ts`): é o caminho do campo livre no wizard, pro caso do
+ * cadastro visual completo não ter acompanhado o ritmo das partidas.
+ * `game_player_treasures` continua sendo a única fonte de verdade pra posse
+ * de item — um Tesouro pendente é só um registro sem arte ainda, editável
+ * depois em `/artefatos/tesouros` como qualquer outro.
+ */
+export async function resolveTreasureId(tx: Transaction, name: string): Promise<number> {
+  const trimmed = name.trim();
+  const existing = await tx.execute({
+    sql: "SELECT id FROM treasures WHERE name = ?",
+    args: [trimmed],
+  });
+  if (existing.rows.length) return Number(existing.rows[0][0]);
+  const res = await tx.execute({
+    sql: `INSERT INTO treasures (name, icon_ornament_id, transform_ornament_id, card_sprite_id, unlock_mode, created_at)
+          VALUES (?, NULL, NULL, NULL, 'treasure_item', ?)`,
+    args: [trimmed, nowIso()],
+  });
+  return Number(res.lastInsertRowid);
 }

@@ -319,11 +319,15 @@ export interface GamePlayerInput {
   souls: number;
   is_winner: boolean;
   team: number | null;
-  /** Ids de Tesouros (lib/treasures.ts) que o jogador possuía ao terminar a
-   * partida — é isso que alimenta o desbloqueio (lib/unlocks.ts). Substitui o
-   * texto livre legado (`items`/`game_player_items`, mantido só como histórico
-   * read-only das partidas antigas). */
+  /** Ids de Tesouros (lib/treasures.ts) já cadastrados que o jogador possuía
+   * ao terminar a partida — é isso que alimenta o desbloqueio (lib/unlocks.ts). */
   treasure_ids: number[];
+  /** Nomes digitados no campo livre (item ainda sem cadastro visual). Resolvidos
+   * dentro da transação de `createGame` (lib/treasures.ts::resolveTreasureId):
+   * casa por nome com um Tesouro existente, senão cria um **pendente** (sem
+   * ícone/transformação/carta) — evita travar o registro de partidas atrás do
+   * cadastro manual de arte, sem duplicar a fonte de verdade de posse de item. */
+  treasure_names: string[];
 }
 
 export interface GamePayload {

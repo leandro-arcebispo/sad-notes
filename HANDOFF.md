@@ -313,6 +313,23 @@ de cosméticos, 5 fases, plano completo em `docs/PLANO-ARTEFATOS.md`):
   usando a UI antiga (antes do toggle da Fase 3) — ver seção "Dados reais"
   abaixo, não limpar sem avisar.
 
+Sessão 2026-07-18 (revisão — campo livre de volta no wizard, sem reviver
+`items`): o cadastro completo de Tesouro (ícone+transformação+carta, corte
+manual) é lento demais pra travar o registro de partidas atrás dele. Ver
+`docs/PLANO-ARTEFATOS.md` §9 (a decisão #2 do §2 foi atualizada — release
+note completa está lá, não duplicada aqui). Resumo mecânico: `TreasurePicker`
+virou híbrido (grade de ícones + chips de Tesouros pendentes + campo de tag
+livre); `lib/treasures.ts::resolveTreasureId` (novo) roda dentro da transação
+de `createGame` e ou linka num Tesouro existente por nome (case-insensitive)
+ou cria um **pendente** (sem ícone/transformação/carta — editável depois em
+`/artefatos/tesouros` como qualquer outro). `game_player_treasures` continua
+sendo a única fonte de verdade de posse de item — **não** voltou a escrever
+em `items`/`game_player_items` (`lib/items.ts`/`ItemTagInput`/`/api/items`
+continuam deletados da Fase 5). Verificado: nome com capitalização diferente
+de um Tesouro existente ("book OF belial" → "Book of Belial") linkou sem
+duplicar; nome novo virou pendente e apareceu certo na tela de detalhe
+(ícone quando tem, chip de texto quando não tem).
+
 ### Dados reais do usuário no banco (não são teste — não apagar)
 
 - Jogadores: **Mané** (id 9, tem cabelo customizado aplicado, `hair_color`

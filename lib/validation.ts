@@ -98,6 +98,15 @@ function toInt(v: unknown, fallback = 0): number {
   const n = Math.trunc(Number(v));
   return Number.isFinite(n) ? n : fallback;
 }
+/** Remove duplicatas case-insensitive, preservando a capitalização da 1ª ocorrência. */
+function dedupeCaseInsensitive(names: string[]): string[] {
+  const seen = new Map<string, string>();
+  for (const n of names) {
+    const key = n.toLowerCase();
+    if (!seen.has(key)) seen.set(key, n);
+  }
+  return Array.from(seen.values());
+}
 function toIntOrNull(v: unknown): number | null {
   if (v === null || v === undefined || v === "") return null;
   const n = Math.trunc(Number(v));
@@ -164,6 +173,11 @@ export function parseGamePayload(
             )
           )
         : [],
+      treasure_names: dedupeCaseInsensitive(
+        Array.isArray(p.treasure_names)
+          ? (p.treasure_names as unknown[]).map((x) => String(x).trim()).filter((x) => x.length > 0)
+          : []
+      ),
     });
   }
 

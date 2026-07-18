@@ -936,6 +936,20 @@ h2.title {
   height: 44px;
   flex: none;
 }
+.treasure-pending-pick {
+  height: 44px;
+  padding: 0 10px;
+  font-size: 12px;
+  color: var(--text-dim);
+  background: var(--panel);
+  border: 1px dashed var(--panel-border);
+  cursor: pointer;
+}
+.treasure-pending-pick.selected {
+  color: var(--accent);
+  border-color: var(--accent);
+  border-style: solid;
+}
 .sprite-pick img {
   max-width: 100%;
   max-height: 100%;
