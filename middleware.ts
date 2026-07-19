@@ -6,7 +6,7 @@ import { NextResponse, type NextRequest } from "next/server";
  * isso qualquer um com a URL poderia criar/apagar jogadores, partidas e itens
  * do backlog.
  *
- * Só entra em ação quando `BASIC_AUTH_PASSWORD` está definido (ver .env.local).
+ * Só entra em ação quando `BASIC_AUTH_PASSWORD` está definido (ver .env.production.local).
  * Sem a variável — ex.: desenvolvimento local — libera tudo, pra não pedir
  * senha o tempo todo. Em produção, DEFINA a senha antes de abrir o túnel.
  * (Se você usar Cloudflare Access na frente, isto vira uma segunda camada.)

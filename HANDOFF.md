@@ -52,11 +52,25 @@ qualquer escrita — mesmo que uma sessão anterior tenha dito "a prod está
 vazia", pode ter mudado. Prefira scripts que casam por chave natural (nome)
 e pulam o que já existe, em vez de assumir uma tabela vazia.
 
-Credenciais de prod: `.env.local` (não versionado, gitignored) com
+Credenciais de prod: `.env.production.local` (não versionado, gitignored) com
 `TURSO_DATABASE_URL`/`TURSO_AUTH_TOKEN`/`BLOB_READ_WRITE_TOKEN` — o usuário
-preencheu isso em 2026-07-19. Se `.env.local` não existir numa sessão futura,
-não assuma que a prod nunca foi provisionada — pergunte, porque agora
-sabemos que ela existe independente disso.
+preencheu isso em 2026-07-19. Se `.env.production.local` não existir numa
+sessão futura, não assuma que a prod nunca foi provisionada — pergunte, porque
+agora sabemos que ela existe independente disso.
+
+⚠️ **Esse arquivo já se chamou `.env.local`** até uma sessão posterior no
+mesmo dia (2026-07-19, revisão da tela de Tesouros) — renomeado de propósito.
+`next dev` carrega `.env.local` **em qualquer ambiente**, então enquanto o
+arquivo tinha esse nome, todo `npm run dev` "local" estava na verdade batendo
+no Turso remoto pela rede a cada query (medido: ~700ms–2.4s por query remota
+vs ~1ms no arquivo local), deixando **todas** as páginas lentas — sintoma
+reportado pelo usuário como "app lento depois de subir as imagens dos
+Tesouros" (coincidência de sessão, não causa real). `.env.production.local` só
+é carregado pelo Next quando `NODE_ENV=production` (`npm run build && npm run
+start`), nunca em `npm run dev` — resolve sem tirar o arquivo do disco. Se
+esse arquivo reaparecer com o nome `.env.local` numa sessão futura (ex.:
+recriado do zero seguindo um exemplo desatualizado), **renomeie de novo**, não
+apague.
 
 ## Estado atual (2026-07-12)
 

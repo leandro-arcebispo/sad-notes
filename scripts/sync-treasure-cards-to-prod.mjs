@@ -11,7 +11,7 @@
 // transform_ornament_id IS NULL`), e pula por nome (COLLATE NOCASE) qualquer
 // um que a prod já tenha, pra poder rodar de novo com segurança.
 //
-// Uso: node --env-file=.env.local scripts/sync-treasure-cards-to-prod.mjs
+// Uso: node --env-file=.env.production.local scripts/sync-treasure-cards-to-prod.mjs
 import { createClient } from "@libsql/client";
 import { put } from "@vercel/blob";
 import fs from "node:fs";
@@ -20,7 +20,7 @@ import path from "node:path";
 function need(name) {
   const v = process.env[name];
   if (!v) {
-    console.error(`Faltando ${name} no ambiente. Rode com: node --env-file=.env.local scripts/sync-treasure-cards-to-prod.mjs`);
+    console.error(`Faltando ${name} no ambiente. Rode com: node --env-file=.env.production.local scripts/sync-treasure-cards-to-prod.mjs`);
     process.exit(1);
   }
   return v;

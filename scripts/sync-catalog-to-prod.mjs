@@ -3,7 +3,7 @@
 // de uso real (players, games, game_players, game_player_treasures, feedback)
 // — decisão consciente, ver HANDOFF.md.
 //
-// Uso: node --env-file=.env.local scripts/sync-catalog-to-prod.mjs
+// Uso: node --env-file=.env.production.local scripts/sync-catalog-to-prod.mjs
 //   (precisa de TURSO_DATABASE_URL, TURSO_AUTH_TOKEN, BLOB_READ_WRITE_TOKEN)
 //
 // Idempotência: aborta se a prod já tiver QUALQUER linha nas 4 tabelas de
@@ -18,7 +18,7 @@ import path from "node:path";
 function need(name) {
   const v = process.env[name];
   if (!v) {
-    console.error(`Faltando ${name} no ambiente. Rode com: node --env-file=.env.local scripts/sync-catalog-to-prod.mjs`);
+    console.error(`Faltando ${name} no ambiente. Rode com: node --env-file=.env.production.local scripts/sync-catalog-to-prod.mjs`);
     process.exit(1);
   }
   return v;

@@ -24,7 +24,12 @@ Para simular produção localmente: `npm run build && npm run start`.
 
 ## Variáveis de ambiente
 
-Copie [`.env.local.example`](.env.local.example) para `.env.local`. Todas são
+Copie [`.env.production.local.example`](.env.production.local.example) para
+`.env.production.local`. Esse nome é proposital: o Next só carrega
+`.env.production.local` quando `NODE_ENV=production` (ou seja, em `npm run
+build && npm run start`) — **nunca** em `npm run dev`. Um `.env.local` comum
+seria carregado em ambos e faria o dev "local" conversar com o Turso remoto
+pela rede a cada query, deixando toda página lenta sem motivo. Todas são
 **opcionais em dev** (há fallback local) e **necessárias em produção**:
 
 | Variável | Para quê |
