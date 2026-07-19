@@ -19,7 +19,7 @@ para um grupo de ~12 amigos. Estética pixel-art dark/dungeon/sad.
 - **Banco:** Turso em produção (`TURSO_DATABASE_URL`/`TURSO_AUTH_TOKEN`); em dev,
   fallback pra arquivo local `data/sad-notes.db` (mesmo formato SQLite) — não
   versionado. Toda a camada de dados é **assíncrona** (`await`).
-- **Git:** identidade local ao repo ("Leandro" / leandro.arcebispo@proton.me), 17 commits até agora
+- **Git:** identidade local ao repo ("Leandro" / leandro.arcebispo@proton.me), 31 commits até agora
 
 ## ⚠️ Não confundir com as pastas irmãs
 
@@ -34,6 +34,29 @@ que **NÃO são este projeto**:
   código parecido, mas não é reaproveitado aqui.
 
 Só o `sad-notes` é o projeto ativo.
+
+## ⚠️ A prod já existe, já está em uso, e diverge do banco local
+
+Descoberto em 2026-07-19: ao contrário do que sessões anteriores registraram
+("banco Turso sobe vazio", "falta provisionar"), **o Turso de produção já
+existe, já tem credenciais, e já tem dado real** que não veio de nenhuma
+sessão de trabalho documentada aqui — o usuário (ou o grupo) usa o app
+publicado independentemente do ambiente local. Local e prod **divergiram nos
+dois sentidos**: cada um tem trabalho real que o outro não tem. Ver a seção
+"Dados reais" (mais abaixo) pra o inventário local *e* de prod.
+
+**Regra pra qualquer trabalho futuro que toque o banco (scripts, migrações,
+sync):** nunca assuma que a prod está vazia ou é um subconjunto do local (ou
+vice-versa). Sempre faça uma leitura de reconhecimento na prod antes de
+qualquer escrita — mesmo que uma sessão anterior tenha dito "a prod está
+vazia", pode ter mudado. Prefira scripts que casam por chave natural (nome)
+e pulam o que já existe, em vez de assumir uma tabela vazia.
+
+Credenciais de prod: `.env.local` (não versionado, gitignored) com
+`TURSO_DATABASE_URL`/`TURSO_AUTH_TOKEN`/`BLOB_READ_WRITE_TOKEN` — o usuário
+preencheu isso em 2026-07-19. Se `.env.local` não existir numa sessão futura,
+não assuma que a prod nunca foi provisionada — pergunte, porque agora
+sabemos que ela existe independente disso.
 
 ## Estado atual (2026-07-12)
 
@@ -181,6 +204,9 @@ disco local (SQLite + PNGs) e usava módulos nativos, foi re-arquitetada:
   Vercel e setar as env vars (`.env.local.example` documenta todas). "Começar do
   zero" na nuvem foi a decisão — **não há script de migração de dados**; o banco
   Turso sobe vazio (schema criado no 1º acesso via `CREATE TABLE IF NOT EXISTS`).
+  ⚠️ **Desatualizado** — em 2026-07-19 descobrimos que isso já foi provisionado
+  e já está em uso real, com dado que nenhuma sessão daqui registrou. Ver o
+  aviso "A prod já existe..." no topo do arquivo.
 
 Sessão 2026-07-13 (continuação — preparação pra hospedar / publicar):
 - **Plano de hospedagem escolhido:** self-host na máquina do usuário (o app já
@@ -330,8 +356,120 @@ de um Tesouro existente ("book OF belial" → "Book of Belial") linkou sem
 duplicar; nome novo virou pendente e apareceu certo na tela de detalhe
 (ícone quando tem, chip de texto quando não tem).
 
+Sessão 2026-07-19 (Import de Tesouros — Fase A, popular a base sem cadastro
+manual): objetivo era viabilizar o cadastro dos ~278 Tesouros do jogo sem
+passar um a um pelo form. Investigação + decisão de escopo:
+- **Fonte oficial:** `foursouls.com/card-search/?card_type=treasure` lista
+  278 cartas em 6 páginas (`page/N/?card_type=treasure`), com nome (`alt=`) e
+  URL real da carta (`data-src="https://foursouls.com/wp-content/uploads/..."`)
+  — scrapeável com `curl` puro, sem precisar de JS/headless browser. O site
+  mistura vários produtos (código de origem = prefixo do arquivo); filtrado a
+  só **Base Game V2 (`b2`, 105) + Requiem (`r`, 53) = 158 Tesouros**, que é o
+  que o grupo joga (o resto — `fsp2`, `soi`, `g2`, promos etc. — foi descartado).
+- **Biblioteca local `public/sheets/items`** (238 PNGs do *Rebirth*, um por
+  item, extraídos do Spriters Resource): avaliada como fonte de **ícone**
+  automático e descartada por ora — só ~24% batem por nome exato com os 158
+  Tesouros (muito nome de carta do Four Souls não existe como item avulso no
+  Rebirth: "Belly Button", "Breakfast", "The Chest" etc.), e mesmo nos que
+  batem cada PNG é uma sheet de animação heterogênea (grades diferentes por
+  item), não um ícone único — recorte automático arriscaria pegar o frame
+  errado. **Ícone e transformação continuam sendo cadastro visual manual**
+  (tela `/artefatos/tesouros`, reaproveitando o cortador da Oficina),
+  tesouro por tesouro — não foi automatizado.
+- **O que FOI automatizado (Fase A, executada):** script descartável
+  (`_import-treasures.mjs`, raiz do projeto, removido depois de rodar — padrão
+  da armadilha #8) que baixou as 158 cartas oficiais e, pra cada uma, criou um
+  `sprites` (categoria `treasure-card`) + um `treasures` com **nome + carta
+  ilustrativa apenas** (`card_sprite_id`), deixando `icon_ornament_id`/
+  `transform_ornament_id` `NULL` — o mesmo formato "pendente" que
+  `resolveTreasureId` já criava pro campo livre do wizard. Casamento por nome
+  usa a mesma `UNIQUE COLLATE NOCASE` da coluna `treasures.name`: nenhum
+  Tesouro existente foi duplicado ou teve ícone/transformação sobrescrito
+  (checagem: só atualiza `card_sprite_id` se ele já não tinha carta).
+- **Resultado real no banco local:** 155 Tesouros novos criados + banco foi de
+  1 → 159 linhas em `treasures`. **"Book of Belial" (id 3) ficou intacto**
+  (não existe como carta de Treasure em `b2`/`r` no site, então não deu
+  match — nenhum campo dele foi tocado). 158 sprites novos em
+  `category='treasure-card'`, arquivos em `public/sprites/treasure-card/`.
+  Um teste com 3 itens rodou antes do lote completo e gerou 3 sprites órfãos
+  (baixados de novo no lote completo, mas pulados por já ter carta) — foram
+  identificados por `card_sprite_id NOT IN (...)` e apagados (arquivo + linha)
+  manualmente depois.
+- **Verificado no browser:** `/artefatos/tesouros` lista as 159 linhas, editar
+  um Tesouro importado (ex.: "Abel") mostra a carta carregada de verdade
+  (308×420, `naturalWidth`/`naturalHeight` confirmados via JS, zero erro no
+  console).
+- ⚠️ Esse import rodou só no banco **local** primeiro — a sincronização com a
+  prod aconteceu na sessão seguinte (Fase B, logo abaixo), com uma descoberta
+  importante no meio do caminho.
+
+Sessão 2026-07-19 (continuação — Fase B: ícone/transformação + sync pro
+Turso de produção):
+- **Ícone/transformação dos 158 Tesouros: decisão do usuário foi recorte
+  manual**, sem mais automação. Investiguei antes de decidir: dos 158, só 34
+  (21%) batem por nome exato com um arquivo em `public/sheets/items`; achei 2
+  sheets bem melhores como matéria-prima (`Items (Repentance)(2).png`
+  1312×896 e `Trinkets (Repentance)(1).png` 640×480, grids densos e
+  uniformes tipo tela de coleção do jogo) mas não consegui confirmar uma
+  lista de referência confiável da ordem dos itens nessa grade (fetch da
+  wiki bloqueado) — fica como pista pra investigar de novo se algum dia
+  valer a pena. **Transformação foi explicitamente deixada de fora** dessa
+  fase (fica `NULL` pra todos, o schema já suporta). O recorte visual em si
+  continua manual, tesouro por tesouro, via Oficina (`/sprites`) +
+  `/artefatos/tesouros` — ferramentas que já existiam antes desta sessão.
+- **Descoberta crítica ao tentar sincronizar pra prod:** o primeiro script
+  escrito (`scripts/sync-catalog-to-prod.mjs`, assumia prod vazia nas 4
+  tabelas de catálogo) **abortou sozinho** — a prod já tinha 11 sprites, 12
+  sheets, 10 ornaments e 1 treasure (`"Lazaru's Rags"`, com ícone+
+  transformação+carta já prontos, feito manualmente **direto em produção**),
+  além de jogadores que não existem local (**Thalinha**, ativa) e 3
+  jogadores `_TEST_*` de teste. Nada disso está documentado em nenhuma
+  sessão anterior. Ver o novo aviso no topo do arquivo ("A prod já existe,
+  já está em uso, e diverge do banco local") — mudou o entendimento de como
+  esse projeto é operado: o usuário mexe na prod publicada
+  independentemente das sessões de trabalho aqui.
+- **Resolvido com escopo bem mais estreito**, confirmado com o usuário
+  ("só adicionar os 158 novos, não tocar em nada que já existe em prod"):
+  `scripts/sync-treasure-cards-to-prod.mjs` (substitui o
+  `sync-catalog-to-prod.mjs`, que não deve ser usado sem revisar de novo —
+  ficou no repo mas parte da premissa errada de prod vazia). O script novo:
+  - Filtra os candidatos locais por **formato**, não por lista fixa:
+    `card_sprite_id IS NOT NULL AND icon_ornament_id IS NULL AND
+    transform_ornament_id IS NULL` — isola exatamente os 158 da Fase A
+    (confirmado: dá 158, e o único que sobra fora do filtro é o "Book of
+    Belial" local, que foi deixado de fora de propósito).
+  - Por Tesouro: pula se já existir em prod por nome (`COLLATE NOCASE`,
+    idempotente — dá pra rodar de novo sem duplicar), senão sobe a carta pro
+    Blob e insere `sprites` + `treasures` na prod.
+  - **Nunca toca** em `sheets`/`ornaments`/`players`/`games` — só soma
+    `sprites` (categoria `treasure-card`) e `treasures`.
+  - **Rodou de verdade** (`node --env-file=.env.local
+    scripts/sync-treasure-cards-to-prod.mjs`): 158 criados, 0 pulados, 0
+    falhas. Verificado depois: `sprites` 11→169 (+158), `treasures` 1→159
+    (+158), `sheets`/`ornaments`/`players`/`games` sem nenhuma mudança —
+    `"Lazaru's Rags"` continua exatamente igual (id 1, mesmos
+    ornament/sprite ids).
+  - Nota técnica (herdada do script anterior): não deu pra reaproveitar
+    `initSchema`/`all`/`run` de `lib/db.ts` direto num script solto — Node
+    não resolve imports TS sem extensão fora do Next (`Cannot find module
+    './seed-characters'`).
+- **Pra próxima rodada de sync** (quando o usuário tiver cortado mais
+  ícones/transformações localmente): o filtro por formato deixa de servir
+  sozinho, porque a partir de agora tesouros locais vão ter ícone/transform
+  preenchidos. Vai precisar de um critério novo (ex.: sincronizar por nome
+  específico, ou comparar `updated_at` se o schema ganhar essa coluna, ou
+  qualquer outra forma de saber "o que mudou desde o último sync") — não
+  existe hoje uma forma automática de saber isso, então trate como um
+  problema em aberto pra próxima vez que "subir a base pro PRD" for pedido
+  de novo.
+
 ### Dados reais do usuário no banco (não são teste — não apagar)
 
+Desde 2026-07-19 sabemos que **local e prod são dois bancos com dado real
+independente** (ver aviso no topo do arquivo) — os dois inventários abaixo
+não se sobrepõem exceto onde dito explicitamente.
+
+**No banco local** (`data/sad-notes.db`):
 - Jogadores: **Mané** (id 9, tem cabelo customizado aplicado, `hair_color`
   = `'natural'`) e **Robertinho** (id 10, sem customização — usa o fallback
   de rosto base).
@@ -347,12 +485,35 @@ duplicar; nome novo virou pendente e apareceu certo na tela de detalhe
   na verificação da Fase 3. Não limpar sem avisar o usuário; o novo toggle na
   tela de Avatar (Fase 3) deixa fácil ele mesmo remover as cópias extras
   clicando no ícone do Tesouro (cada clique tira uma aplicação).
+- 158 Tesouros importados do foursouls.com (Fase A/B, nome + carta, sem
+  ícone/transformação) — ver sessões 2026-07-19 acima. **Também sincronizados
+  pra prod** (não são exclusivos do local).
 
-**O usuário usa o app entre as sessões de trabalho.** Isso já causou confusão
-mais de uma vez (dados que "apareceram" no banco sem eu ter criado). **Nunca
-faça `DELETE` em massa** (`players`, `games`, `sprites`, `ornaments`, etc.) sem
-antes checar o que já existe e filtrar precisamente pelo que você mesmo criou
-(por id ou por um prefixo de nome tipo `__TESTE__`/`__T__`).
+**Na prod** (Turso, descoberto em 2026-07-19 — nada disso passou por uma
+sessão de trabalho aqui):
+- Jogadores: **Mané** (ativo) e **Thalinha** (ativa) — Thalinha não existe no
+  banco local. Mais 3 jogadores `_TEST_Robertinho`/`_TEST_cryinguy`/`_TEST_cu`
+  (inativos, claramente teste — o próprio usuário seguiu a convenção de
+  prefixo `_TEST_` sugerida abaixo).
+- Tesouro **"Lazaru's Rags"** (id 1) com ícone, transformação e carta já
+  cadastrados e posicionados manualmente — trabalho real, não mexer.
+- Catálogo de cosméticos que **não existe local**: 9 sprites de cabelo
+  (Elsa, vintage, middlecut, Leia, sidecut, curvy, spiked, short, eyehide) +
+  sheets de personagem (Eden hair variantes, Tainted Eve, Magdalene) + sheets
+  de item (Spoon Bender, Skatole, The Book of Belial, The Pentagram,
+  Lazarus' Rags — alguns com nome parecido a sheets locais mas são uploads
+  independentes, hash diferente, **não são a mesma linha**).
+- Os 158 Tesouros importados (mesmos nomes do local, sincronizados em
+  2026-07-19 via `scripts/sync-treasure-cards-to-prod.mjs`).
+- 0 partidas registradas em prod até 2026-07-19.
+
+**O usuário usa o app entre as sessões de trabalho — tanto local quanto
+publicado.** Isso já causou confusão mais de uma vez (dados que "apareceram"
+no banco sem eu ter criado), e agora vale pros dois ambientes. **Nunca faça
+`DELETE` em massa** (`players`, `games`, `sprites`, `ornaments`, etc.) em
+NENHUM dos dois bancos sem antes checar o que já existe e filtrar
+precisamente pelo que você mesmo criou (por id ou por um prefixo de nome tipo
+`__TESTE__`/`__T__`/`_TEST_`).
 
 ## Decisões de arquitetura que já foram tomadas (não re-perguntar)
 
@@ -476,6 +637,30 @@ Vários bugs foram investigados com scripts `_debug.mjs`/`_clean.mjs` na raiz
 do projeto, **sempre removidos depois** (`rm -f`). Se você ver algum desses
 arquivos sobrando no repo, pode apagar sem dó — não são parte do projeto.
 
+### 9. `image-rendering: pixelated` é global — quebra arte que não é pixel art
+
+`app/globals.css` tem um reset `img { image-rendering: pixelated; }` (mais
+várias regras específicas repetindo isso: `.sprite-pick img`, `.ornament-thumb`
+implícito, `.sprite-thumb img`, etc.) — correto pro design system pixel-art
+(avatares, ícones/ornamentos recortados da Oficina, frames), mas **qualquer
+imagem nova que não seja pixel art herda isso automaticamente e sai
+serrilhada ao redimensionar**, principalmente em miniatura (menos notável
+perto do tamanho nativo, mas nunca tão nítida quanto deveria). Mordeu nas
+cartas de Tesouro (`treasure-card`, arte ilustrada baixada de
+foursouls.com, 308×420) — o usuário reportou "resolução estranha" nos cards
+pequenos.
+
+**Regra:** toda imagem que não é pixel art (hoje só `treasure-card`; se
+aparecer outra categoria de arte "lisa" no futuro, o mesmo vale) precisa da
+classe `card-art` no `<img>` (`img.card-art { image-rendering: auto; }`, fim
+do `globals.css` — mesma especificidade das regras de sprite/ornamento
+acima, vence por vir depois no arquivo). Lugares que já aplicam:
+`TreasuresClient.tsx` (thumb da lista + picker do form) e `SpritesClient.tsx`
+(catálogo da Oficina, condicional a `s.category === "treasure-card"` porque
+esse catálogo lista todas as categorias juntas). Se adicionar um novo lugar
+que renderize `card_sprite_path`/sprite de categoria `treasure-card`, lembre
+de aplicar a classe lá também.
+
 ## Onde as coisas estão (mapa rápido)
 
 ```
@@ -485,7 +670,8 @@ app/
   jogadores/[id]/avatar/page.tsx Editor unificado: Identidade (nome/história
                                   triste/rosto) + Cabelo + Tesouros (icon/transform)
   partidas/page.tsx               Lista de partidas
-  partidas/nova/page.tsx          Wizard de cadastro (passo 3 usa TreasurePicker)
+  partidas/nova/page.tsx          Wizard de cadastro (passo 3 usa TreasurePicker,
+                                    icones+pendentes+campo livre)
   partidas/[id]/page.tsx          Detalhe da partida (coluna "Tesouros": ícones + itens legados)
   sprites/page.tsx                 Oficina (Admin): abas Spritesheets/Sprites — SÓ corta sprites
   artefatos/tesouros/page.tsx      CRUD de Tesouros + posicionamento (TreasuresClient)
@@ -503,7 +689,9 @@ lib/
   players.ts, characters.ts, games.ts   data layer core
   feedback.ts         data layer do Backlog (list/create/updateStatus/delete)
   sprites.ts, ornaments.ts, treasures.ts, player-avatar.ts   data layer do
-                        pipeline de avatar + Tesouros
+                        pipeline de avatar + Tesouros. treasures.ts também
+                        tem resolveTreasureId (transacional, casa por nome
+                        ou cria pendente — usado por games.ts::createGame)
   unlocks.ts           sistema de desbloqueio PLUGÁVEL (registro de modos) —
                         getUnlockedTreasureIds/isTreasureUnlockedForPlayer
   avatar-geometry.ts   geometria PURA compartilhada (cliente+servidor)
@@ -521,7 +709,9 @@ components/
   Frame, Sidebar, ComingSoon           shell/layout
   PlayerAvatar                        avatar (cache PNG ou fallback de rosto)
   JogadoresClient, GameWizard, DeleteGameButton
-  TreasurePicker                       seletor de ícones no wizard (0+ por jogador)
+  TreasurePicker                       seletor híbrido no wizard: ícones já
+                                        cadastrados + chips de pendentes + campo
+                                        de texto livre (0+ por jogador)
   BacklogClient                        form + lista do Backlog (Admin)
   SpritesClient                        catálogo de sprites (categorias fixas de Tesouro)
   TreasuresClient                       CRUD de Tesouros + posicionamento (icon/transform)
@@ -535,8 +725,9 @@ docs/
   BRIEF.md            visão geral, stack, decisões-chave
   ROADMAP.md          todas as features + status + ordem de implementação
   STYLE-GUIDE.md       identidade visual (paleta, tipografia, componentes)
-  PLANO-ARTEFATOS.md   plano completo da feature Artefatos/Tesouros (5 fases,
-                        arquitetura, decisões) — leia antes de mexer nesse sistema
+  PLANO-ARTEFATOS.md   plano completo da feature Artefatos/Tesouros (5 fases +
+                        revisão pós-Fase-5 do campo livre, arquitetura,
+                        decisões) — leia antes de mexer nesse sistema
 public/
   design-system/   frames (28), fonte IsaacGame, ícones, texturas (copiado dos mockups)
   fonts/            Upheaval (fonte nova do usuário, .ttf usado via @font-face)

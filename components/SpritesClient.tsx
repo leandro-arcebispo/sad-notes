@@ -288,7 +288,9 @@ export default function SpritesClient({
               <div className="sprite-grid">
                 {list.map((s) => (
                   <div key={s.id} className="sprite-card">
-                    <div className="sprite-thumb"><img src={assetUrl(s.path)} alt={s.name} /></div>
+                    <div className="sprite-thumb">
+                      <img className={s.category === "treasure-card" ? "card-art" : undefined} src={assetUrl(s.path)} alt={s.name} />
+                    </div>
                     <div className="sprite-name" title={s.name}>{s.name}</div>
                     <div className="muted" style={{ fontSize: 11 }}>{s.width}×{s.height}</div>
                     <button className="btn btn-danger sprite-del" onClick={() => del(s.id)}>×</button>

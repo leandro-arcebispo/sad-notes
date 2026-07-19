@@ -274,7 +274,7 @@ export default function TreasuresClient({
                     onClick={() => setForm((f) => ({ ...f, cardSpriteId: f.cardSpriteId === s.id ? null : s.id }))}
                     title={s.name}
                   >
-                    <img src={assetUrl(s.path)} alt={s.name} />
+                    <img className="card-art" src={assetUrl(s.path)} alt={s.name} />
                   </button>
                 ))}
               </div>
@@ -311,7 +311,7 @@ export default function TreasuresClient({
                   {t.transform_sprite_path ? <img src={assetUrl(t.transform_sprite_path)} alt="" /> : <span className="muted" style={{ fontSize: 10 }}>—</span>}
                 </div>
                 <div className="ornament-thumb" title="Carta">
-                  {t.card_sprite_path ? <img src={assetUrl(t.card_sprite_path)} alt="" /> : <span className="muted" style={{ fontSize: 10 }}>—</span>}
+                  {t.card_sprite_path ? <img className="card-art" src={assetUrl(t.card_sprite_path)} alt="" /> : <span className="muted" style={{ fontSize: 10 }}>—</span>}
                 </div>
                 <div className="ornament-meta">
                   <div className="pixel-label">{t.name}</div>

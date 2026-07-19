@@ -1253,3 +1253,12 @@ h2.title {
   image-rendering: pixelated;
   object-fit: contain;
 }
+
+/* Cartas de Tesouro (`treasure-card`): arte ilustrada baixada de foursouls.com,
+   não pixel art — o `pixelated` do reset global (e das regras de sprite/
+   ornamento acima) deixa essas cartas com serrilhado feio ao redimensionar,
+   principalmente em miniatura. Mesma especificidade das regras acima
+   (classe + tipo); vence por vir depois no arquivo. */
+img.card-art {
+  image-rendering: auto;
+}
