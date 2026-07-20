@@ -737,6 +737,70 @@ ornament/sprite).
 
 </details>
 
+### Bug encontrado e corrigido: 18 ícones de Tesouro com PNG corrompido (2026-07-20)
+
+Depois do sync acima, o usuário reportou ícones quebrados ("Image corrupt or
+truncated") em vários Tesouros. Investigação confirmou que **não era frescura
+de exibição**: o stream zlib do `IDAT` de 18 dos 139 PNGs de
+`treasure-icon` estava genuinamente inválido (`zlib.inflateSync` falhava —
+`invalid code lengths set`, `invalid distances set`, etc., alguns até com o
+chunk declarando um tamanho maior que o arquivo). Afetava só a categoria
+`treasure-icon`; as outras 168 sprites do catálogo local passaram limpo. A
+causa exata ficou sem confirmação (o script descartável das sessões
+anteriores que gerou esses 130+7 ícones já tinha sido removido, ver armadilha
+#8) — mas o padrão (~13% dos arquivos, sem relação óbvia com nome/tamanho)
+sugere um bug de escrita/encoding pontual naquele script, não algo sistêmico
+no pipeline atual.
+
+**Lista dos 18:** Birthright, Blank Card, Cambion Conception, Cheese Grater,
+Dead Bird, Dry Baby, Eternal D6, Flush!, Friendly Ball, Magic Skin, Monstro's
+Tooth, Starter Deck, Tech X, The Battery, The Clicker, The D20, Undefined,
+X-Ray Vision. Como esses 18 já tinham sido sincronizados pra prod no lote dos
+137 (upload é um `fs.readFileSync` cru, sem validar o conteúdo), a corrupção
+foi copiada byte a byte pra prod também.
+
+**Correção:** re-cortados os 32×32 originais direto dos spritesheets fonte
+(isaacguru.com `isaac_repentance.png` pros 16 do lote principal + o item
+"Undefined"; mod `repentance_plus.png` pro "Cheese Grater"), usando as mesmas
+posições `--x` já usadas da vez anterior (documentado no código descartável
+antes de apagar). **Mudança de método:** as duas primeiras tentativas de
+recortar via Browser pane + colar o PNG (dataURL base64) manualmente no disco
+falharam silenciosamente — o hash SHA-256 do arquivo escrito não batia com o
+da imagem original, mesmo com o tamanho em bytes idêntico (transcrição manual
+de base64 longo é traiçoeira: caracteres visualmente parecidos como `I`/`l`/`1`
+ou `O`/`0` se confundem fácil, e o erro saiu **idêntico** nas duas tentativas).
+**Resolvido evitando esse canal por completo:** um script Node baixou os
+spritesheets fonte direto via `fetch` nativo (sem CORS do lado servidor) e um
+decodificador/codificador de PNG em JS puro, descartável (parse de chunks
+IHDR/IDAT/IEND, inflate/deflate via `zlib` nativo, sem `sharp`/`pngjs`) fez o
+recorte — zero transcrição manual envolvida. Cada um dos 18 PNGs gerados foi
+validado (`zlib.inflateSync` limpo + tamanho raw batendo com `width×height×4`)
+antes de gravar por cima do arquivo local; depois de gravar, os 139 arquivos
+de `treasure-icon` **e** os 307 sprites do catálogo local inteiro foram
+re-escaneados — zero corrompidos.
+
+**Sync pra prod:** como path/dimensões não mudaram, só o conteúdo do PNG,
+**não precisou tocar em nenhuma linha do banco** — só reenviei os 18 arquivos
+corrigidos pro Blob usando a mesma key (`addRandomSuffix:false,
+allowOverwrite:true`), o que sobrescreve o conteúdo na mesma URL. Confirmado
+buscando de volta as 18 URLs de prod via `fetch` e validando o zlib de cada
+uma — todas OK.
+
+**Achado à parte, não corrigido:** o Tesouro chamado literalmente
+**"Undefined"** (id 153) é provavelmente um bug de nome, não um Tesouro real
+— veio do import do foursouls.com (Fase A) e algum card teve o nome mal
+capturado (`alt=` vazio ou similar, sobrando a string `"undefined"`). Por
+coincidência, o isaacguru.com **também** tem um item chamado literalmente
+"Undefined" (`itemid="c324"`, `/wiki/isaac_repentance/c324`), o que fez o
+Tesouro "casar" por nome com um ícone real durante a importação — mas
+provavelmente não é o item certo pro card do Four Souls que esse Tesouro
+deveria representar. A corrupção do ícone dele foi corrigida (mesma imagem
+`c324` de antes, só sem estar mais corrompida), mas o nome/vínculo em si
+continua suspeito. Se o usuário identificar qual card do Four Souls isso
+deveria ser, o conserto é renomear o Tesouro em `/artefatos/tesouros` (nome é
+`UNIQUE COLLATE NOCASE`, então precisa ser um nome que ainda não exista) e
+trocar o ícone manualmente se o item certo for outro.
+
 ### Dados reais do usuário no banco (não são teste — não apagar)
 
 Desde 2026-07-19 sabemos que **local e prod são dois bancos com dado real
