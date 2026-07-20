@@ -609,6 +609,36 @@ do isaacguru.com, e correção de um achado errado da sessão anterior):
   faixa de valores real — prefira sempre ler o dado já resolvido direto do
   DOM/CSS computado quando disponível.
 
+Sessão 2026-07-20 (continuação — ícones dos itens do mod "Repentance Plus"):
+- Dos 28 Tesouros ainda sem ícone (19 nunca achados em nenhuma fonte + 9 que
+  batiam noutras seções do isaacguru), o usuário indicou
+  `isaacguru.com/mod/repentance_plus`. **Achado:** apesar do nome sugerir a
+  DLC oficial "Repentance+ (Online Co-op)", essa URL é na verdade um **mod
+  de fãs** chamado "Repentance Plus" (o site lista dezenas de mods sob
+  `/mod/<slug>`, cada um com seu próprio spritesheet
+  `--ssfile-<slug>`) — mas continha **7 dos 19 nomes "não encontrados em
+  lugar nenhum"**: `Auction Gavel`, `Cheese Grater`, `Friendly Sack`,
+  `Hand-Me-Downs`, `Handicapped Placard`, `Keeper's Penny`,
+  `Ultra Flesh Kid!`. Ou seja, esses nomes de Tesouro do Four Souls parecem
+  ter sido inspirados nesse mod específico, não em itens vanilla do Rebirth.
+  Ficam pendentes: `Baby Haunt`, `Battery Bum`, `Chaos Card`, `Cursed Soul`,
+  `Daddy Haunt`, `Decoy`, `Donation Machine`, `Fetal Haunt`,
+  `Golden Razor Blade`, `Modeling Clay`, `No!`, `Portable Slot Machine`,
+  `Shadow`, `Shiny Rock`, `Steamy Sale!`, `Suicide King`, `The Chest`,
+  `The Map`, `The Shovel`, `Trick Penny`, `Two Of Clubs`.
+- **Repetiu o mesmo padrão seguro da correção anterior**: sheet do mod
+  (`/core/assets/img/spritesheets/mods/repentance_plus.png`, 6144×32px,
+  confirmado altura=32 = uma linha só antes de confiar) recortado lendo o
+  `--x` real do `style` de cada item no DOM, **sem calcular nada** por
+  itemid (aqui o `itemid` nem é numérico, é o próprio nome do item — reforça
+  que não dava pra usar fórmula de qualquer forma). Script descartável
+  (removido depois), mesmo storage/ornament (offset 0,0, escala 100%) dos
+  130 anteriores.
+- **Resultado:** 7 criados, 0 falhas, nenhum tesouro existente tocado.
+  Total de Tesouros com ícone no banco local: **138** (131 + 7). Verificado
+  no browser: `auction-gavel-5f6dfa.png` carrega 32×32 sem erro, zero
+  mensagem no console.
+
 ### Dados reais do usuário no banco (não são teste — não apagar)
 
 Desde 2026-07-19 sabemos que **local e prod são dois bancos com dado real
@@ -634,10 +664,11 @@ não se sobrepõem exceto onde dito explicitamente.
 - 158 Tesouros importados do foursouls.com (Fase A/B, nome + carta, sem
   ícone/transformação) — ver sessões 2026-07-19 acima. **Também sincronizados
   pra prod** (não são exclusivos do local).
-- 130 desses 158 ganharam `icon_ornament_id` (recorte automático do
-  spritesheet do isaacguru.com, ver sessão 2026-07-19 "cadastro automático de
-  130 ícones" acima) — **só no local, ainda não sincronizado pra prod**.
-  `transform_ornament_id` continua `NULL` em todos.
+- 137 desses 158 ganharam `icon_ornament_id` (130 do isaacguru.com versão
+  base + 7 do mod "Repentance Plus", ver sessões 2026-07-19/20 acima) — **só
+  no local, ainda não sincronizado pra prod**. `transform_ornament_id`
+  continua `NULL` em todos. (O total de 138 com ícone no banco inclui
+  também o "Book of Belial" manual.)
 
 **Na prod** (Turso, descoberto em 2026-07-19 — nada disso passou por uma
 sessão de trabalho aqui):
