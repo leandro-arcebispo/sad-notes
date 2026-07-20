@@ -21,7 +21,7 @@ para um grupo de ~12 amigos. Estética pixel-art dark/dungeon/sad.
   versionado. Toda a camada de dados é **assíncrona** (`await`).
 - **Git:** identidade local ao repo ("Leandro" / leandro.arcebispo@proton.me), 34+ commits até agora.
   Repo público no GitHub, mas `master` protegida (PR obrigatório, 0 aprovações —
-  ver decisão de arquitetura #9, "Fluxo de Git").
+  ver decisão de arquitetura #7, "Fluxo de Git").
 
 ## ⚠️ Não confundir com as pastas irmãs
 
@@ -884,6 +884,21 @@ seção `#item`) não cobria:
   - **Ainda não sei dizer quais dos 12 são cada categoria** — o usuário vai
     trazer essa triagem. Não tratar nenhum dos 12 como "confirmado sem
     correspondente" até essa resposta.
+- ⚠️ **Susto no meio do caminho, resolvido:** ao conferir a contagem depois
+  do registro, percebi que **"Book of Belial" (id 3) tinha sumido do banco
+  local** (159→158 treasures) — investiguei e confirmei que nenhum script
+  desta sessão (nem os de hoje, nem os do dia anterior) contém um `DELETE`
+  contra o banco local, então perguntei o usuário antes de prosseguir.
+  **Confirmado pelo usuário: foi ele mesmo**, apagou manualmente pela UI
+  (provável `npm run dev` rodando em paralelo enquanto eu trabalhava nos
+  scripts). Não é bug, mas fica registrado o processo: **sempre que um dado
+  protegido sumir/mudar sem eu ter escrito o comando, parar e perguntar antes
+  de continuar** — não assumir que foi um script seu só porque o timing
+  bate, e não assumir que foi engano do usuário sem confirmar.
+  `belial-tresure-icon`/`belial-tresure-transform` (sprites id 16/17) ficaram
+  órfãos no banco (a linha `treasures` que os referenciava foi apagada, mas
+  os sprites em si não são cascateados) — não limpos automaticamente, é lixo
+  inofensivo até o usuário decidir o que fazer.
 
 ### Dados reais do usuário no banco (não são teste — não apagar)
 
@@ -1011,6 +1026,21 @@ precisamente pelo que você mesmo criou (por id ou por um prefixo de nome tipo
    mais acima) — quando essa feature for implementada, os registros
    identificados como Maldição devem ser **removidos** de `treasures`
    depois (não antes) do novo artefato existir.
+9. **"Artefato" é um conceito mais amplo do que Tesouro (reformulado em
+   2026-07-20):** um Artefato é qualquer entidade cadastrável do jogo usada
+   pra **registro estruturado de partida** (seleção, não texto livre) —
+   Personagens (já existia antes deste conceito, é o precedente), Tesouros
+   (implementado), Maldições, Monstros e Salas (planejados). O desbloqueio
+   de cosmético de avatar (item 6 acima) é só um recurso que **alguns**
+   Artefatos têm (Tesouro tem; Monstro/Sala não têm) — generalizá-lo pra
+   outros Artefatos (ex.: Personagem) virou um plano próprio, separado do
+   catálogo em si. Ver `docs/PLANO-ARTEFATOS.md` (reescrito com essa visão)
+   e os três planos irmãos: `docs/PLANO-COSMETICOS-AVATAR.md` (generalizar
+   desbloqueio), `docs/PLANO-QUARTO-JOGADOR.md` (sala visual decorável) e
+   `docs/PLANO-TORNEIOS.md` (torneios, sem formato definido). Nenhum dos
+   quatro artefatos/planos novos (Maldições, Monstros, Salas, Cosméticos
+   generalizados, Quarto do Jogador, Torneios) está implementado — são
+   só planos.
 
 ## Armadilhas técnicas já descobertas (não repetir)
 
@@ -1195,9 +1225,19 @@ docs/
   BRIEF.md            visão geral, stack, decisões-chave
   ROADMAP.md          todas as features + status + ordem de implementação
   STYLE-GUIDE.md       identidade visual (paleta, tipografia, componentes)
-  PLANO-ARTEFATOS.md   plano completo da feature Artefatos/Tesouros (5 fases +
-                        revisão pós-Fase-5 do campo livre, arquitetura,
-                        decisões) — leia antes de mexer nesse sistema
+  PLANO-ARTEFATOS.md   plano do catálogo de Artefatos (Tesouros implementado;
+                        Maldições/Monstros/Salas planejados, não implementados)
+                        — reformulado em 2026-07-20 com visão mais ampla; leia
+                        antes de mexer nesse sistema
+  PLANO-COSMETICOS-AVATAR.md  plano (não implementado) de generalizar o
+                        desbloqueio de cosmético pra além de Tesouro (ex.:
+                        Personagem por vitória)
+  PLANO-QUARTO-JOGADOR.md     plano (não implementado, mais especulativo) de
+                        sala visual decorável por jogador com itens
+                        desbloqueáveis (monstro, tesouro, tema de frame)
+  PLANO-TORNEIOS.md     plano (não implementado, sem formato definido ainda)
+                        de torneios como entidade — hoje só `games.tournament_id`
+                        existe no schema, sempre `NULL`
 public/
   design-system/   frames (28), fonte IsaacGame, ícones, texturas (copiado dos mockups)
   fonts/            Upheaval (fonte nova do usuário, .ttf usado via @font-face)
