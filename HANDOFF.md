@@ -641,6 +641,34 @@ Sessão 2026-07-20 (continuação — ícones dos itens do mod "Repentance Plus"
   no browser: `auction-gavel-5f6dfa.png` carrega 32×32 sem erro, zero
   mensagem no console.
 
+### Sincronização dos 137 ícones locais pra prod — EXECUTADA em 2026-07-20
+
+O plano abaixo (mantido como registro) foi executado na mesma sessão em que
+foi escrito, depois de reler esta seção e reconferir prod por leitura (regra
+de sempre): `scripts/sync-treasure-icons-to-prod.mjs`, rodado com `node
+--env-file=.env.production.local scripts/sync-treasure-icons-to-prod.mjs`.
+
+**Resultado:** 137 criados, 1 pulado (`Book of Belial`, sem match em prod —
+esperado, é o único tesouro que existe só local), 0 falhas. Confirmado
+depois: `treasures.icon_ornament_id IS NOT NULL` em prod foi de 1→138;
+`sprites` foi de 169→306 (+137); `sheets`/`players`/`games` sem nenhuma
+mudança (12/5/0, iguais); `ornaments` categoria `diverso` foi de 3→140
+(+137, cabelo continua 7); **"Lazaru's Rags"** (id 1) continua com os
+mesmos `icon_ornament_id`/`transform_ornament_id`/`card_sprite_id` de
+antes — não foi tocado (pulado corretamente por já ter ícone).
+
+`transform_ornament_id` continua `NULL` em todos os 137 (fora de escopo
+desta rodada, igual local) — fica como próximo passo em aberto quando o
+usuário cortar as transformações.
+
+**Script ficou no repo** (`scripts/sync-treasure-icons-to-prod.mjs`), não é
+descartável — segue o mesmo padrão de `sync-treasure-cards-to-prod.mjs`
+(idempotente, casa por nome, pula o que já existe) pra poder rodar de novo
+com segurança se aparecerem ícones novos depois.
+
+<details>
+<summary>Plano original (como foi escrito antes de rodar)</summary>
+
 ### PLANO (ainda não executado): sincronizar os 137 ícones locais pra prod
 
 Decidido nesta sessão, execução ficou pra uma janela de contexto futura —
@@ -707,6 +735,8 @@ falhas. Verificar depois: `sprites` em prod sobe de N pra N+137,
 `"Lazaru's Rags"` continua exatamente igual (mesmos ids de
 ornament/sprite).
 
+</details>
+
 ### Dados reais do usuário no banco (não são teste — não apagar)
 
 Desde 2026-07-19 sabemos que **local e prod são dois bancos com dado real
@@ -754,7 +784,11 @@ sessão de trabalho aqui):
   independentes, hash diferente, **não são a mesma linha**).
 - Os 158 Tesouros importados (mesmos nomes do local, sincronizados em
   2026-07-19 via `scripts/sync-treasure-cards-to-prod.mjs`).
-- 0 partidas registradas em prod até 2026-07-19.
+- 137 desses 158 ganharam `icon_ornament_id` em 2026-07-20 via
+  `scripts/sync-treasure-icons-to-prod.mjs` (mesmo lote do local, "Book of
+  Belial" de fora por não existir em prod). `sprites` em prod: 169→306;
+  `treasures` com ícone: 1→138.
+- 0 partidas registradas em prod até 2026-07-20.
 
 **O usuário usa o app entre as sessões de trabalho — tanto local quanto
 publicado.** Isso já causou confusão mais de uma vez (dados que "apareceram"
