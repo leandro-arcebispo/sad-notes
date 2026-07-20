@@ -639,6 +639,72 @@ Sessão 2026-07-20 (continuação — ícones dos itens do mod "Repentance Plus"
   no browser: `auction-gavel-5f6dfa.png` carrega 32×32 sem erro, zero
   mensagem no console.
 
+### PLANO (ainda não executado): sincronizar os 137 ícones locais pra prod
+
+Decidido nesta sessão, execução ficou pra uma janela de contexto futura —
+**não rodar sem antes reler esta seção e confirmar que o estado da prod
+ainda bate com o que está descrito aqui** (reconhecimento por leitura antes
+de qualquer escrita, regra de sempre).
+
+**Reconhecimento feito em 2026-07-20** (só leitura, via
+`node --env-file=.env.production.local <script>` com uma query solta,
+script descartável já removido):
+- Prod tem **159 Tesouros**. Só **1 já tem ícone**: `"Lazaru's Rags"` (id 1,
+  `icon_ornament_id`/`transform_ornament_id` manuais, feito direto em
+  produção — **não tocar**).
+- **158 têm carta (`card_sprite_id`) mas nenhum ícone** — são exatamente os
+  candidatos a receber o que foi feito local nesta sessão (Fase A/B da
+  sessão de 2026-07-19 subiu só nome+carta desses 158, de propósito).
+- **`"Book of Belial"` não existe em prod** (nunca foi sincronizado —
+  excluído de propósito do filtro da Fase B por já ter ícone/transformação
+  manuais só no local). Dos 138 Tesouros locais com ícone agora, portanto,
+  só **137** têm uma linha correspondente em prod pra receber o ícone; o
+  138º (Book of Belial) fica de fora dessa rodada, é esperado.
+
+**O que fazer:** criar `scripts/sync-treasure-icons-to-prod.mjs` seguindo
+**exatamente o mesmo padrão** de `scripts/sync-treasure-cards-to-prod.mjs`
+(já existe no repo, é o script real que fez a Fase B — usar como referência
+de estrutura: dois clients libSQL — local `file:./data/sad-notes.db` e prod
+via env vars —, `allRows()` helper, upload pro Blob com `@vercel/blob`
+`put()`, cascata de log por item com `[i/total] nome ... resultado`).
+
+Lógica do script:
+1. Query local: todos os Tesouros com `icon_ornament_id IS NOT NULL`,
+   fazendo `JOIN ornaments o ON o.id = t.icon_ornament_id JOIN sprites s ON
+   s.id = o.sprite_id` pra pegar `s.path` (arquivo em `public/sprites/
+   treasure-icon/...`), `s.width`/`s.height` (32×32 em todos os 137) e
+   `o.offset_x`/`o.offset_y`/`o.scale` (deve ser sempre 0, 0, 100 — mas ler
+   do banco em vez de hardcodar, por segurança).
+2. Pra cada um, na prod: achar `SELECT id, icon_ornament_id FROM treasures
+   WHERE name = ? COLLATE NOCASE`.
+   - Não achou por nome → **pular** e logar como aviso (não devia acontecer
+     pros 137, exceto o Book of Belial que fica de fora por design — mas
+     não assumir, deixar o script constatar).
+   - Achou mas **já tem** `icon_ornament_id` → **pular** (idempotente, dá
+     pra rodar de novo sem duplicar — só o "Lazaru's Rags" deve cair aqui).
+   - Achou e **não tem** ícone → segue pro passo 3.
+3. Ler o PNG local (`fs.readFileSync` no caminho de `s.path`, igual o
+   script de referência faz pra carta), subir pro Blob da prod
+   (`put(key, buffer, { access: "public", contentType: "image/png",
+   addRandomSuffix: false, allowOverwrite: true })`), inserir uma linha
+   `sprites` em prod (categoria `treasure-icon`, mesmo nome/width/height do
+   local), inserir uma linha `ornaments` em prod (categoria `diverso`,
+   mesmos offset_x/offset_y/scale do local), e só então `UPDATE treasures
+   SET icon_ornament_id = <novo id> WHERE id = <id da prod>`.
+4. **Nunca tocar** em `transform_ornament_id`, `card_sprite_id`, `sheets`,
+   `players`, `games` — só somar `sprites`+`ornaments` novos e apontar o
+   ícone. Mesmo espírito de escopo estreito do script da Fase B.
+5. Rodar com `node --env-file=.env.production.local
+   scripts/sync-treasure-icons-to-prod.mjs`.
+
+**Resultado esperado:** 137 criados, 0 ou 1 pulado (só se rodar de novo, ou
+o próprio Lazaru's Rags se por acaso o nome baixar igual — não deve), 0
+falhas. Verificar depois: `sprites` em prod sobe de N pra N+137,
+`icon_ornament_id IS NOT NULL` em `treasures` sobe de 1 pra 138, contagem de
+`sheets`/`ornaments`-de-cabelo/`players`/`games` **sem nenhuma mudança**, e
+`"Lazaru's Rags"` continua exatamente igual (mesmos ids de
+ornament/sprite).
+
 ### Dados reais do usuário no banco (não são teste — não apagar)
 
 Desde 2026-07-19 sabemos que **local e prod são dois bancos com dado real
