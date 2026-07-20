@@ -19,7 +19,9 @@ para um grupo de ~12 amigos. Estética pixel-art dark/dungeon/sad.
 - **Banco:** Turso em produção (`TURSO_DATABASE_URL`/`TURSO_AUTH_TOKEN`); em dev,
   fallback pra arquivo local `data/sad-notes.db` (mesmo formato SQLite) — não
   versionado. Toda a camada de dados é **assíncrona** (`await`).
-- **Git:** identidade local ao repo ("Leandro" / leandro.arcebispo@proton.me), 34 commits até agora
+- **Git:** identidade local ao repo ("Leandro" / leandro.arcebispo@proton.me), 34+ commits até agora.
+  Repo público no GitHub, mas `master` protegida (PR obrigatório, 0 aprovações —
+  ver decisão de arquitetura #9, "Fluxo de Git").
 
 ## ⚠️ Não confundir com as pastas irmãs
 
@@ -788,6 +790,34 @@ precisamente pelo que você mesmo criou (por id ou por um prefixo de nome tipo
    "terminar partida com o item", mas outros modos (vitórias acumuladas,
    concessão manual, conquistas) podem ser somados sem mexer no resto.
    Detalhe completo em `docs/PLANO-ARTEFATOS.md`.
+7. **Fluxo de Git (decidido em 2026-07-20):** projeto pequeno, entre o
+   usuário e um grupo de amigos — sem ambiente de homologação/staging, sem
+   deploy de teste separado do de produção. Por isso **não existe branch
+   `dev` persistente** (adicionaria cerimônia sem benefício, já que não há
+   pra onde "promover" antes da `master`).
+   - **Modelo:** uma branch só, `master`. Todo trabalho nasce numa **branch
+     local de feature**, sobe como PR e é mergeado nela.
+   - **`master` está protegida no GitHub** (Settings → Branches → regra pra
+     `master` → "Require a pull request before merging", com **0
+     aprovações obrigatórias**) — ninguém, nem quem tem permissão de
+     escrita, consegue mais `git push` direto nela. O merge do PR pode
+     acontecer na hora, sem esperar aprovação de ninguém.
+   - **Por quê 0 aprovações e não exigir review:** o objetivo do PR aqui não
+     é criar um portão de aprovação (o grupo é pequeno, exigir revisor
+     travaria merge quando só uma pessoa está online) — é só criar uma
+     **etapa de checkpoint** (o diff inteiro fica visível num lugar antes de
+     entrar na `master`), sem impedir que qualquer colaborador suba a
+     própria mudança quando quiser.
+   - **Repo é público** (`private: false` no GitHub) mas isso é ortogonal à
+     permissão de escrita: visibilidade pública deixa qualquer um **ler**
+     o código/clonar/abrir PR de um fork próprio; só quem está em
+     **Settings → Collaborators and teams** com Write/Maintain/Admin
+     consegue de fato mergear algo na `master`. Um PR de estranho fica
+     parado até um colaborador aprovar/mergear — nunca entra sozinho.
+   - **Bypass de emergência:** a opção "Do not allow bypassing the above
+     settings" foi deixada **desmarcada** de propósito — se um dia precisar
+     empurrar algo direto na `master` numa emergência, ainda dá, sem
+     precisar desfazer a regra primeiro.
 
 ## Armadilhas técnicas já descobertas (não repetir)
 
