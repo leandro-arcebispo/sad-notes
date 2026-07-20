@@ -15,7 +15,10 @@
 
 # sprites recortados pelo usuário (gerados em runtime; catálogo vive no banco)
 # obs: mantemos a pasta versionada com .gitkeep, mas ignoramos os PNGs gerados
+# (a maioria é PNG, mas alguns sprites de máquina do Four Souls vieram como
+# WEBP direto da fonte — mesmo caráter de "gerado", ignorado do mesmo jeito)
 /public/sprites/**/*.png
+/public/sprites/**/*.webp
 
 # avatares compostos (PNG cacheado, gerado via sharp a partir da receita no banco)
 /public/avatars/*.png

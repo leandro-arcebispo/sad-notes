@@ -801,6 +801,90 @@ deveria ser, o conserto é renomear o Tesouro em `/artefatos/tesouros` (nome é
 `UNIQUE COLLATE NOCASE`, então precisa ser um nome que ainda não exista) e
 trocar o ícone manualmente se o item certo for outro.
 
+### 9 ícones a mais achados em seções fora de "Items" (2026-07-20)
+
+Depois da lista de pendentes ser mostrada pro usuário, ele fez uma busca fina
+no isaacguru.com e achou 9 dos 21 restantes em **seções diferentes de
+"ITEMS"** (cards/trinkets/machines), que o scraping anterior (escopado só à
+seção `#item`) não cobria:
+
+- **Via spritesheet principal** (`isaac_repentance.png`, mesmo método de
+  ler `--x` real do `style` no DOM, sem calcular fórmula): `Suicide King`
+  (seção `consumable`, cards, `--x:-30528px`), `Chaos Card` (`consumable`,
+  `--x:-30400px`), `Shiny Rock` (`trinket`, `--x:-24992px`), `Modeling Clay`
+  (`trinket`, `--x:-28320px`), `NO!` (`trinket` — **nome no site é
+  MAIÚSCULO**, `--x:-25824px`; nosso Tesouro chama `"No!"`, casou por
+  `COLLATE NOCASE`), `Golden Razor` (seção `item`, `--x:-17632px` —
+  **nome no site é `"Golden Razor"`, sem "Blade"**; nosso Tesouro chama
+  `"Golden Razor Blade"`, precisou de mapeamento manual nome-site→nome-Tesouro
+  em vez de casar automático).
+- **Via mod `repentance_plus.png`**: `Trick Penny` (`trinket`,
+  `--x:-416px`).
+- **Achado técnico novo:** a seção `machine` (ex.: `Battery Bum` `itemid
+  6.13`, `Donation Machine` `itemid 6.8`) **não usa spritesheet
+  compartilhado** — cada máquina tem sua própria imagem **WEBP** embutida
+  inline como `data:image/webp;base64,...` num `<span
+  class="item-background-container">` (ao contrário do
+  `item-spritesheet-container` das outras seções). Guardados **como WEBP
+  mesmo**, sem reconverter pra PNG (`lib/storage.ts::putImage` não força
+  formato, só recebe `contentType`; Next serve estático por extensão; `<img>`
+  renderiza WEBP normalmente) — evita depender de um decodificador WEBP
+  caseiro, que é bem mais complexo que PNG (múltiplos subformatos
+  VP8/VP8L/VP8X).
+- **Mudança de método relevante pra qualquer scraping futuro:** as tentativas
+  anteriores de extrair essas imagens via Browser pane (JS `canvas.toDataURL`
+  + colar o base64 manualmente num arquivo) já tinham falhado 2x nessa
+  mesma sessão pro caso do "Undefined" (ver bug acima) — **transcrição manual
+  de base64 longo é frágil** mesmo copiando com cuidado (caracteres
+  visualmente parecidos se confundem). Resolvido de vez fazendo o **Node
+  buscar o HTML/spritesheet direto por `fetch` nativo** (sem CORS do lado
+  servidor) **e extrair tudo por regex/parsing programático** — zero
+  transcrição manual em qualquer etapa. Esse é o método a preferir sempre
+  que for extrair conteúdo binário de uma página: nunca fazer a IA copiar
+  base64 longo à mão entre ferramentas.
+- **Armadilha nova (dimensões erradas):** o script de registro assumiu
+  `width=32, height=32` pra todo sprite novo (verdade pros 7 recortados do
+  spritesheet, que são sempre 32×32 por construção) mas **as 2 imagens WEBP
+  das máquinas têm tamanho próprio** (`Battery Bum` = 34×34, `Donation
+  Machine` = 64×64 — descoberto só depois, testando no browser e reparando
+  que `naturalWidth`/`naturalHeight` do `<img>` não batiam com o que tinha
+  ido pro banco). Corrigido via `UPDATE sprites SET width=.., height=..`
+  local **e** prod pros 2 ids certos. **Lição:** nunca hardcodar
+  width/height de um sprite sem checar as dimensões reais do arquivo — só é
+  seguro assumir um tamanho fixo quando o próprio código controla o recorte
+  (como no `encodePngRGBA(32,32,...)` dos outros 7).
+- **Resultado:** 9 criados (local + sincronizados pra prod reaproveitando o
+  `scripts/sync-treasure-icons-to-prod.mjs` já existente — só precisou trocar
+  o `contentType` fixo `"image/png"` por uma função que detecta `.webp` pela
+  extensão). Verificado no browser: todos os 9 carregam sem erro 404/console,
+  dimensões batendo com o arquivo real. Total de Tesouros com ícone: **147**
+  local e prod. Restam **12** sem ícone (nenhum encontrado em nenhuma fonte
+  até agora): `Baby Haunt`, `Cursed Soul`, `Daddy Haunt`, `Decoy`, `Fetal
+  Haunt`, `Portable Slot Machine`, `Shadow`, `Steamy Sale!`, `The Chest`,
+  `The Map`, `The Shovel`, `Two Of Clubs`.
+- **Explicação do usuário sobre esses 12 (2026-07-20):** não são todos do
+  mesmo tipo de pendência.
+  - **Alguns são Tesouros do board game que existem no Rebirth/Repentance
+    só com outro nome** — o usuário vai procurar o nome real e trazer o
+    equivalente numa sessão futura pra eu recortar/cadastrar o ícone (mesmo
+    processo de sempre: achar no isaacguru/mod, ler `--x` do DOM, recortar).
+    Não são "não encontrados" de verdade, só ainda não linkados ao nome
+    certo.
+  - **Outros não são Tesouros de verdade — são Maldições** (mecânica
+    diferente do board game) que vieram misturadas no import de Tesouros do
+    foursouls.com (Fase A) por engano de escopo, não por bug: o card-search
+    do site provavelmente lista os dois tipos juntos ou com filtro impreciso.
+    **Decisão do usuário:** Maldições vão virar um **artefato novo e
+    separado** (não uma correção dentro de Tesouros) — cadastro futuro,
+    fora do escopo desta sessão. Quando essa feature for pedida, os que
+    forem identificados como Maldição devem ser **removidos** da tabela
+    `treasures` (não só deixados sem ícone) depois que o novo artefato
+    existir e tiver o cadastro correspondente — não fazer isso adiantado
+    sem o schema/tela novos existirem.
+  - **Ainda não sei dizer quais dos 12 são cada categoria** — o usuário vai
+    trazer essa triagem. Não tratar nenhum dos 12 como "confirmado sem
+    correspondente" até essa resposta.
+
 ### Dados reais do usuário no banco (não são teste — não apagar)
 
 Desde 2026-07-19 sabemos que **local e prod são dois bancos com dado real
@@ -814,23 +898,23 @@ não se sobrepõem exceto onde dito explicitamente.
 - Ao menos 1 partida registrada (o usuário testou o wizard pela própria UI).
 - Sprite **"cuia-hair-1"** (categoria `hair-styles`) e ornamento
   **"hairs-cuia-01"** (categoria `cabelo`) — cadastrados pelo próprio usuário.
-- Tesouro **"Book of Belial"** (id 3, criado pelo usuário entre sessões, ao
-  testar a tela de Tesouros da Fase 2) com ícone e transformação cadastrados.
-  Robertinho (id 10) tem o ícone desse Tesouro aplicado **3 vezes duplicado**
-  no avatar (mesma posição/escala, visualmente idêntico a 1x — sobrou da UI
-  antiga de "Diversos", que não tinha toggle nem prevenção de duplicata, antes
-  da Fase 3). Inofensivo, mas não é intencional. **Não veio de mim** — descoberto
-  na verificação da Fase 3. Não limpar sem avisar o usuário; o novo toggle na
-  tela de Avatar (Fase 3) deixa fácil ele mesmo remover as cópias extras
-  clicando no ícone do Tesouro (cada clique tira uma aplicação).
+- ~~Tesouro "Book of Belial" (id 3)~~ — **apagado pelo próprio usuário em
+  2026-07-20** (pela UI, provavelmente com `npm run dev` rodando em paralelo
+  numa sessão de trabalho aqui; ver "Susto no meio do caminho" acima).
+  Deixou de existir no banco local; nunca existiu em prod. Os sprites
+  `belial-tresure-icon`/`belial-tresure-transform` (ids 16/17) ficaram
+  órfãos, sem nenhuma linha `treasures`/`ornaments` apontando pra eles —
+  inofensivo, lixo que pode ser limpo quando o usuário quiser.
 - 158 Tesouros importados do foursouls.com (Fase A/B, nome + carta, sem
   ícone/transformação) — ver sessões 2026-07-19 acima. **Também sincronizados
   pra prod** (não são exclusivos do local).
-- 137 desses 158 ganharam `icon_ornament_id` (130 do isaacguru.com versão
-  base + 7 do mod "Repentance Plus", ver sessões 2026-07-19/20 acima) — **só
-  no local, ainda não sincronizado pra prod**. `transform_ornament_id`
-  continua `NULL` em todos. (O total de 138 com ícone no banco inclui
-  também o "Book of Belial" manual.)
+- 146 desses 158 ganharam `icon_ornament_id` (130 do isaacguru.com versão
+  base + 7 do mod "Repentance Plus" + 9 achados em seções fora de "Items"
+  pelo usuário, ver sessões 2026-07-19/20 acima) — **todos sincronizados pra
+  prod também** em 2026-07-20 (ver seções acima). `transform_ornament_id`
+  continua `NULL` em todos, nos dois bancos. Restam **12** Tesouros sem
+  ícone em nenhum dos dois bancos (lista completa na seção "9 ícones a mais"
+  acima).
 
 **Na prod** (Turso, descoberto em 2026-07-19 — nada disso passou por uma
 sessão de trabalho aqui):
@@ -916,6 +1000,17 @@ precisamente pelo que você mesmo criou (por id ou por um prefixo de nome tipo
      settings" foi deixada **desmarcada** de propósito — se um dia precisar
      empurrar algo direto na `master` numa emergência, ainda dá, sem
      precisar desfazer a regra primeiro.
+8. **Maldições são um artefato separado de Tesouros (decidido em
+   2026-07-20, ainda não implementado):** ao investigar os Tesouros sem
+   ícone, descobriu-se que alguns dos 158 importados do foursouls.com (Fase
+   A) não são Tesouros de verdade — são **Maldições**, mecânica diferente
+   do board game que entrou junto por engano de escopo do scraping. Não
+   viram um novo `unlock_mode` nem um campo dentro de `treasures`: o
+   usuário quer uma **tela/tabela nova e independente** pra Maldições. Ver
+   detalhe e lista de candidatos na sessão "9 ícones a mais" (2026-07-20,
+   mais acima) — quando essa feature for implementada, os registros
+   identificados como Maldição devem ser **removidos** de `treasures`
+   depois (não antes) do novo artefato existir.
 
 ## Armadilhas técnicas já descobertas (não repetir)
 
