@@ -19,7 +19,9 @@ para um grupo de ~12 amigos. Estética pixel-art dark/dungeon/sad.
 - **Banco:** Turso em produção (`TURSO_DATABASE_URL`/`TURSO_AUTH_TOKEN`); em dev,
   fallback pra arquivo local `data/sad-notes.db` (mesmo formato SQLite) — não
   versionado. Toda a camada de dados é **assíncrona** (`await`).
-- **Git:** identidade local ao repo ("Leandro" / leandro.arcebispo@proton.me), 31 commits até agora
+- **Git:** identidade local ao repo ("Leandro" / leandro.arcebispo@proton.me), 34+ commits até agora.
+  Repo público no GitHub, mas `master` protegida (PR obrigatório, 0 aprovações —
+  ver decisão de arquitetura #9, "Fluxo de Git").
 
 ## ⚠️ Não confundir com as pastas irmãs
 
@@ -477,6 +479,234 @@ Turso de produção):
   problema em aberto pra próxima vez que "subir a base pro PRD" for pedido
   de novo.
 
+Sessão 2026-07-19 (continuação — reformula a tela de Tesouros + acha e corrige
+a causa da lentidão geral, commits `99a5e9c`/`5d3820c`, já no `origin/master`):
+- **Motivo:** depois da importação dos 158 Tesouros (Fase A/B), a lista antiga
+  de `/artefatos/tesouros` (rows horizontais sem paginação, form sempre
+  visível no topo) ficou pouco usável com quase 160 linhas.
+- **`TreasuresClient.tsx` passou a renderizar seu próprio `<Frame>`** (mesmo
+  padrão do `JogadoresClient`) em vez de receber o `Frame` de fora em
+  `app/artefatos/tesouros/page.tsx` (que agora só faz o fetch e devolve o
+  client component puro) — necessário pra o botão do header reagir a estado
+  do cliente (form aberto/fechado). **Se outra tela algum dia precisar de um
+  header com ação dependente de estado, é esse o padrão a seguir.**
+- **Form de cadastro/edição** (mesmos campos/lógica de antes, não mexido por
+  pedido explícito do usuário) agora fica atrás de um botão **"+ Cadastrar
+  Tesouro"** no header — abrir esconde a grade, "Cancelar"/"Cancelar edição"
+  fecha e volta pra grade. O botão **"Remover tesouro" saiu da linha da lista
+  e foi pro form** (só aparece editando um Tesouro existente).
+- **Grade paginada com busca**: tudo client-side (o dataset inteiro já vinha
+  do server component via `listTreasures()`, ~160 linhas é pouco pra filtrar
+  em memória) — `input` filtra por nome em tempo real, sem debounce; 24 por
+  página; busca reseta pra página 1.
+- **Card virou vertical** (`.treasure-grid`/`.treasure-card`, CSS novo, não
+  mexeu em `.ornament-list`/`.ornament-row` que o `OrnamentBuilder` ainda usa):
+  carta em cima (`.treasure-card-art`, `aspect-ratio: 308/420`), dois
+  quadrados iguais embaixo (ícone | transformação, `flex:1` cada — a soma das
+  larguras bate exatamente com a largura da carta, verificado por
+  `getBoundingClientRect` no browser). Label de desbloqueio (`"Terminar
+  partida com o item"`) **removido** dos cards a pedido do usuário (info só
+  fica visível dentro do form).
+- **Edição = clicar no card inteiro** (é um `<button>`), sem ícone/botão
+  separado — decisão tomada via pergunta direta ao usuário (opções eram
+  card clicável / ícone de lápis no canto / botão "Editar" no rodapé); ele
+  escolheu card clicável porque "Editar" ficou sendo a única ação restante no
+  card depois que "Remover" foi pro form.
+- **Contagem total**: o título do `Frame` virou `Tesouros (${treasures.length})`
+  (total real, não o filtrado) em vez de um `<h2>"Tesouros cadastrados (N)"`
+  separado — removido a pedido do usuário.
+- ⚠️ **Achado nessa sessão (não relacionado à tela de Tesouros em si, mas
+  descoberto verificando ela): o dev "local" estava lento em TODAS as
+  páginas**, não só Tesouros. Causa: `.env.local` (criado numa sessão anterior
+  no mesmo dia pra rodar o script de sync) tem credenciais reais do Turso, e
+  `next dev` carrega `.env.local` **em qualquer ambiente** — então todo
+  `npm run dev` estava na verdade batendo no banco remoto pela rede a cada
+  query. Medido direto: **~700ms–2.4s por query no Turso remoto vs ~1ms no
+  arquivo SQLite local**. Resolvido renomeando pra `.env.production.local`
+  (só carregado pelo Next quando `NODE_ENV=production`, nunca em `next dev`)
+  — ver o aviso completo na seção "A prod já existe..." no topo deste arquivo,
+  que já documenta a regra pra não recriar `.env.local` por engano numa sessão
+  futura. Scripts de sync e docs (`README.md`, os dois `scripts/sync-*.mjs`,
+  `middleware.ts`) atualizados pro novo nome. Confirmado antes/depois com
+  `curl` cronometrado em todas as páginas principais: `/` caiu de ~2.9s pra
+  ~0.1s, `/partidas/nova` de ~1.9s pra ~0.44s.
+
+Sessão 2026-07-19 (continuação — cadastro automático de 130 ícones a partir
+do isaacguru.com, e correção de um achado errado da sessão anterior):
+- **Correção:** a sessão anterior (Fase B) concluiu que "só 34/158 (21%) dos
+  Tesouros importados batem por nome com item real do Rebirth" com base
+  **só** na pasta local `public/sheets/items` (238 PNGs do Spriters
+  Resource) e depois numa categoria parcial da wiki (`Category:Costume_images`,
+  395 arquivos). As duas são bibliotecas **incompletas** — reconheci vários
+  nomes "sem match" que são itens reais do Rebirth (`Abel`, `Battery Bum`,
+  `Blank Card`, `Crystal Ball`, `Diplopia`, `Glass Cannon` etc.), então a
+  frase "não existe como item avulso no Rebirth" **estava errada**: o gap era
+  cobertura da fonte, não inexistência do item.
+- **Fonte muito mais confiável achada:** `isaacguru.com/version/isaac_repentance`
+  — base de dados estruturada com **1185 nomes** (todas as categorias:
+  items/trinkets/pickups/consumables/machines/characters/transformations/curses
+  da versão Repentance), extraída direto do DOM
+  (`a.item-icon-container[name]`, escopado a `#item` pros 720 "ITEMS"). Cruzando
+  com os 159 Tesouros: **140 batem** (130 na seção ITEMS + 10 em outras seções
+  como trinket/pickup/machine); **19 realmente não encontrados em lugar
+  nenhum do site** — esses sim são um sinal forte de "não existe como
+  collectible do Rebirth" (nomes de carta Four Souls sem equivalente
+  eletrônico: `Auction Gavel`, `Baby Haunt`, `Daddy Haunt`, `Fetal Haunt`,
+  `Cursed Soul`, `Decoy`, `Handicapped Placard`, `Trick Penny`,
+  `Ultra Flesh Kid!`, etc. — ver lista completa pedindo pro assistente
+  reconstruir a consulta se precisar).
+- **Ícones dos 130 (seção ITEMS) importados automaticamente pro banco
+  local**, sem passar pela Oficina manual. Achado técnico: a grade principal
+  do isaacguru **não usa `<img>` por item** — todos os ícones da tela de
+  "All items" são fatias de **um único spritesheet CSS**
+  (`/core/assets/img/spritesheets/mods/isaac_repentance.png`, 38656×32px,
+  grid fixo de 32×32px por item, `background-position: -(id-1)*32px 0`,
+  onde `id` é o número em `itemid="cN"` de cada item na seção `#item`). Ou
+  seja, tecnicamente **precisa de recorte** (ao contrário do que a aparência
+  visual sugeria) — mas como a grade é fixa e previsível, o corte foi
+  automatizado 100% via `canvas` no browser (sem UI manual, sem
+  `OrnamentBuilder`/Oficina): carregou o PNG mestre, recortou os 130 slots de
+  32×32 relevantes, e um script Node descartável (`_register-icons.mjs`,
+  removido depois) gravou cada um como `sprites` (categoria `treasure-icon`,
+  `public/sprites/treasure-icon/`, mesmo padrão de nome/slug de
+  `lib/sprites.ts::createSprite`) + `ornaments` (categoria `diverso`,
+  `offset_x=0, offset_y=0, scale=100` — **o mesmo default que o form da UI
+  usa quando você escolhe um sprite sem mexer nos controles de posição**,
+  então o resultado é idêntico ao que sairia de recortar/posicionar manual)
+  + `UPDATE treasures SET icon_ornament_id = ...`. Rodou limpo: 130 criados,
+  0 falhas, nenhum Tesouro que já tinha ícone foi tocado (checagem
+  `icon_ornament_id IS NOT NULL` antes de cada write). **Book of Belial (id
+  3)** — o único que já tinha ícone manual — ficou intacto.
+- **Verificado no browser:** `/artefatos/tesouros` → abrir "Abel" (um dos
+  130) mostra Escala 100%/Pos X 0/Pos Y 0 no editor de posição, `<img>` do
+  slot ícone carrega 32×32 sem erro 404, zero mensagem no console.
+- **Transformação continua pendente** (os 130 só ganharam `icon_ornament_id`,
+  `transform_ornament_id` segue `NULL`) — usuário vai atrás dessa fonte
+  depois, fora desta sessão.
+- **Só rodou no banco local.** Não sincronizado pra prod ainda — se for
+  fazer isso, o filtro por formato do
+  `scripts/sync-treasure-cards-to-prod.mjs` (`icon_ornament_id IS NULL`) **não
+  serve mais** pra esses 130 (agora têm ícone), reforça o "problema em
+  aberto" já registrado no fim da sessão de Fase B: precisa de um critério
+  novo pra saber o que sincronizar da próxima vez.
+- ⚠️ **BUG encontrado e corrigido na mesma sessão:** a primeira versão do
+  script calculava a posição de cada item no spritesheet por
+  `offset = -(itemid_numérico - 1) * 32px`, validado só nos primeiros ~20
+  itens (`c1`..`c20`, onde a fórmula batia certinho por acaso — são
+  contíguos). A numeração `itemid="cN"` do isaacguru **tem buracos** ao
+  longo dos ~1200 slots do sheet (itens fora do jogo atual, promocionais
+  etc. que ocupam um número mas não uma célula), então pra a maioria dos
+  itens com id mais alto o offset calculado ficava errado por 1-3 células
+  (64-96px), pegando o ícone de um vizinho. **Resultado:** praticamente
+  todos os 130 ícones da primeira rodada saíram trocados — usuário percebeu
+  ("pouquíssimos icones foram pro Tesouro certo"). **Correção:** os 130
+  foram revertidos (script `_revert-icons.mjs`, descartável — apagou
+  sprite+ornament+arquivo e limpou `icon_ornament_id`, verificado sobrar só
+  o Book of Belial manual) e re-cadastrados lendo o valor real de `--x` do
+  atributo `style` de cada `<span class="item-spritesheet-container">` no
+  DOM (`style.match(/--x:\s*(-?\d+)px/)`), sem nenhum cálculo/extrapolação —
+  só transcrição do valor que o próprio site já resolveu. **Lição pra
+  qualquer scraping futuro desse tipo:** nunca inferir uma fórmula de
+  posição a partir de uma amostra pequena e contígua sem testar em toda a
+  faixa de valores real — prefira sempre ler o dado já resolvido direto do
+  DOM/CSS computado quando disponível.
+
+Sessão 2026-07-20 (continuação — ícones dos itens do mod "Repentance Plus"):
+- Dos 28 Tesouros ainda sem ícone (19 nunca achados em nenhuma fonte + 9 que
+  batiam noutras seções do isaacguru), o usuário indicou
+  `isaacguru.com/mod/repentance_plus`. **Achado:** apesar do nome sugerir a
+  DLC oficial "Repentance+ (Online Co-op)", essa URL é na verdade um **mod
+  de fãs** chamado "Repentance Plus" (o site lista dezenas de mods sob
+  `/mod/<slug>`, cada um com seu próprio spritesheet
+  `--ssfile-<slug>`) — mas continha **7 dos 19 nomes "não encontrados em
+  lugar nenhum"**: `Auction Gavel`, `Cheese Grater`, `Friendly Sack`,
+  `Hand-Me-Downs`, `Handicapped Placard`, `Keeper's Penny`,
+  `Ultra Flesh Kid!`. Ou seja, esses nomes de Tesouro do Four Souls parecem
+  ter sido inspirados nesse mod específico, não em itens vanilla do Rebirth.
+  Ficam pendentes: `Baby Haunt`, `Battery Bum`, `Chaos Card`, `Cursed Soul`,
+  `Daddy Haunt`, `Decoy`, `Donation Machine`, `Fetal Haunt`,
+  `Golden Razor Blade`, `Modeling Clay`, `No!`, `Portable Slot Machine`,
+  `Shadow`, `Shiny Rock`, `Steamy Sale!`, `Suicide King`, `The Chest`,
+  `The Map`, `The Shovel`, `Trick Penny`, `Two Of Clubs`.
+- **Repetiu o mesmo padrão seguro da correção anterior**: sheet do mod
+  (`/core/assets/img/spritesheets/mods/repentance_plus.png`, 6144×32px,
+  confirmado altura=32 = uma linha só antes de confiar) recortado lendo o
+  `--x` real do `style` de cada item no DOM, **sem calcular nada** por
+  itemid (aqui o `itemid` nem é numérico, é o próprio nome do item — reforça
+  que não dava pra usar fórmula de qualquer forma). Script descartável
+  (removido depois), mesmo storage/ornament (offset 0,0, escala 100%) dos
+  130 anteriores.
+- **Resultado:** 7 criados, 0 falhas, nenhum tesouro existente tocado.
+  Total de Tesouros com ícone no banco local: **138** (131 + 7). Verificado
+  no browser: `auction-gavel-5f6dfa.png` carrega 32×32 sem erro, zero
+  mensagem no console.
+
+### PLANO (ainda não executado): sincronizar os 137 ícones locais pra prod
+
+Decidido nesta sessão, execução ficou pra uma janela de contexto futura —
+**não rodar sem antes reler esta seção e confirmar que o estado da prod
+ainda bate com o que está descrito aqui** (reconhecimento por leitura antes
+de qualquer escrita, regra de sempre).
+
+**Reconhecimento feito em 2026-07-20** (só leitura, via
+`node --env-file=.env.production.local <script>` com uma query solta,
+script descartável já removido):
+- Prod tem **159 Tesouros**. Só **1 já tem ícone**: `"Lazaru's Rags"` (id 1,
+  `icon_ornament_id`/`transform_ornament_id` manuais, feito direto em
+  produção — **não tocar**).
+- **158 têm carta (`card_sprite_id`) mas nenhum ícone** — são exatamente os
+  candidatos a receber o que foi feito local nesta sessão (Fase A/B da
+  sessão de 2026-07-19 subiu só nome+carta desses 158, de propósito).
+- **`"Book of Belial"` não existe em prod** (nunca foi sincronizado —
+  excluído de propósito do filtro da Fase B por já ter ícone/transformação
+  manuais só no local). Dos 138 Tesouros locais com ícone agora, portanto,
+  só **137** têm uma linha correspondente em prod pra receber o ícone; o
+  138º (Book of Belial) fica de fora dessa rodada, é esperado.
+
+**O que fazer:** criar `scripts/sync-treasure-icons-to-prod.mjs` seguindo
+**exatamente o mesmo padrão** de `scripts/sync-treasure-cards-to-prod.mjs`
+(já existe no repo, é o script real que fez a Fase B — usar como referência
+de estrutura: dois clients libSQL — local `file:./data/sad-notes.db` e prod
+via env vars —, `allRows()` helper, upload pro Blob com `@vercel/blob`
+`put()`, cascata de log por item com `[i/total] nome ... resultado`).
+
+Lógica do script:
+1. Query local: todos os Tesouros com `icon_ornament_id IS NOT NULL`,
+   fazendo `JOIN ornaments o ON o.id = t.icon_ornament_id JOIN sprites s ON
+   s.id = o.sprite_id` pra pegar `s.path` (arquivo em `public/sprites/
+   treasure-icon/...`), `s.width`/`s.height` (32×32 em todos os 137) e
+   `o.offset_x`/`o.offset_y`/`o.scale` (deve ser sempre 0, 0, 100 — mas ler
+   do banco em vez de hardcodar, por segurança).
+2. Pra cada um, na prod: achar `SELECT id, icon_ornament_id FROM treasures
+   WHERE name = ? COLLATE NOCASE`.
+   - Não achou por nome → **pular** e logar como aviso (não devia acontecer
+     pros 137, exceto o Book of Belial que fica de fora por design — mas
+     não assumir, deixar o script constatar).
+   - Achou mas **já tem** `icon_ornament_id` → **pular** (idempotente, dá
+     pra rodar de novo sem duplicar — só o "Lazaru's Rags" deve cair aqui).
+   - Achou e **não tem** ícone → segue pro passo 3.
+3. Ler o PNG local (`fs.readFileSync` no caminho de `s.path`, igual o
+   script de referência faz pra carta), subir pro Blob da prod
+   (`put(key, buffer, { access: "public", contentType: "image/png",
+   addRandomSuffix: false, allowOverwrite: true })`), inserir uma linha
+   `sprites` em prod (categoria `treasure-icon`, mesmo nome/width/height do
+   local), inserir uma linha `ornaments` em prod (categoria `diverso`,
+   mesmos offset_x/offset_y/scale do local), e só então `UPDATE treasures
+   SET icon_ornament_id = <novo id> WHERE id = <id da prod>`.
+4. **Nunca tocar** em `transform_ornament_id`, `card_sprite_id`, `sheets`,
+   `players`, `games` — só somar `sprites`+`ornaments` novos e apontar o
+   ícone. Mesmo espírito de escopo estreito do script da Fase B.
+5. Rodar com `node --env-file=.env.production.local
+   scripts/sync-treasure-icons-to-prod.mjs`.
+
+**Resultado esperado:** 137 criados, 0 ou 1 pulado (só se rodar de novo, ou
+o próprio Lazaru's Rags se por acaso o nome baixar igual — não deve), 0
+falhas. Verificar depois: `sprites` em prod sobe de N pra N+137,
+`icon_ornament_id IS NOT NULL` em `treasures` sobe de 1 pra 138, contagem de
+`sheets`/`ornaments`-de-cabelo/`players`/`games` **sem nenhuma mudança**, e
+`"Lazaru's Rags"` continua exatamente igual (mesmos ids de
+ornament/sprite).
+
 ### Dados reais do usuário no banco (não são teste — não apagar)
 
 Desde 2026-07-19 sabemos que **local e prod são dois bancos com dado real
@@ -502,6 +732,11 @@ não se sobrepõem exceto onde dito explicitamente.
 - 158 Tesouros importados do foursouls.com (Fase A/B, nome + carta, sem
   ícone/transformação) — ver sessões 2026-07-19 acima. **Também sincronizados
   pra prod** (não são exclusivos do local).
+- 137 desses 158 ganharam `icon_ornament_id` (130 do isaacguru.com versão
+  base + 7 do mod "Repentance Plus", ver sessões 2026-07-19/20 acima) — **só
+  no local, ainda não sincronizado pra prod**. `transform_ornament_id`
+  continua `NULL` em todos. (O total de 138 com ícone no banco inclui
+  também o "Book of Belial" manual.)
 
 **Na prod** (Turso, descoberto em 2026-07-19 — nada disso passou por uma
 sessão de trabalho aqui):
@@ -555,6 +790,34 @@ precisamente pelo que você mesmo criou (por id ou por um prefixo de nome tipo
    "terminar partida com o item", mas outros modos (vitórias acumuladas,
    concessão manual, conquistas) podem ser somados sem mexer no resto.
    Detalhe completo em `docs/PLANO-ARTEFATOS.md`.
+7. **Fluxo de Git (decidido em 2026-07-20):** projeto pequeno, entre o
+   usuário e um grupo de amigos — sem ambiente de homologação/staging, sem
+   deploy de teste separado do de produção. Por isso **não existe branch
+   `dev` persistente** (adicionaria cerimônia sem benefício, já que não há
+   pra onde "promover" antes da `master`).
+   - **Modelo:** uma branch só, `master`. Todo trabalho nasce numa **branch
+     local de feature**, sobe como PR e é mergeado nela.
+   - **`master` está protegida no GitHub** (Settings → Branches → regra pra
+     `master` → "Require a pull request before merging", com **0
+     aprovações obrigatórias**) — ninguém, nem quem tem permissão de
+     escrita, consegue mais `git push` direto nela. O merge do PR pode
+     acontecer na hora, sem esperar aprovação de ninguém.
+   - **Por quê 0 aprovações e não exigir review:** o objetivo do PR aqui não
+     é criar um portão de aprovação (o grupo é pequeno, exigir revisor
+     travaria merge quando só uma pessoa está online) — é só criar uma
+     **etapa de checkpoint** (o diff inteiro fica visível num lugar antes de
+     entrar na `master`), sem impedir que qualquer colaborador suba a
+     própria mudança quando quiser.
+   - **Repo é público** (`private: false` no GitHub) mas isso é ortogonal à
+     permissão de escrita: visibilidade pública deixa qualquer um **ler**
+     o código/clonar/abrir PR de um fork próprio; só quem está em
+     **Settings → Collaborators and teams** com Write/Maintain/Admin
+     consegue de fato mergear algo na `master`. Um PR de estranho fica
+     parado até um colaborador aprovar/mergear — nunca entra sozinho.
+   - **Bypass de emergência:** a opção "Do not allow bypassing the above
+     settings" foi deixada **desmarcada** de propósito — se um dia precisar
+     empurrar algo direto na `master` numa emergência, ainda dá, sem
+     precisar desfazer a regra primeiro.
 
 ## Armadilhas técnicas já descobertas (não repetir)
 
