@@ -10,7 +10,7 @@ const SELECT_FULL = `
 `;
 
 export async function listCurses(): Promise<CurseFull[]> {
-  return all<CurseFull>(`${SELECT_FULL} ORDER BY c.name COLLATE NOCASE`);
+  return all<CurseFull>(`${SELECT_FULL} ORDER BY c.locked ASC, c.name COLLATE NOCASE`);
 }
 
 export async function getCurse(id: number): Promise<CurseFull | undefined> {

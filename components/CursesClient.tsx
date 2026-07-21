@@ -219,9 +219,6 @@ export default function CursesClient({
                         )}
                       </div>
                       <div className="pixel-label" style={{ marginTop: 8, fontSize: 13 }}>{c.name}</div>
-                      {!!c.locked && (
-                        <div className="muted" style={{ fontSize: 10 }}>Bloqueada</div>
-                      )}
                     </button>
                   ))}
                 </div>
