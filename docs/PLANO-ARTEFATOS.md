@@ -414,28 +414,18 @@ armadilha #9 do HANDOFF também foi estendida pra essa categoria.
 
 ### Migração dos dados já importados por engano
 
-Agora que o schema/tela existem, falta só a parte que **depende de
-conhecimento humano do jogo** (não dá pra automatizar):
+O processo (identificar → criar em `curses` reaproveitando o
+`card_sprite_id` → só depois remover de `treasures` → repetir na prod lendo
+antes de escrever) está descrito no `HANDOFF.md`, seção "Migração de 4
+Maldições... — local e prod (2026-07-21)". Dos 12 candidatos (§10), o
+usuário já confirmou **4 como Maldição de verdade** — migrados em local e
+prod: **Baby Haunt, Cursed Soul, Daddy Haunt, Fetal Haunt**.
 
-1. Usuário identifica, dentre os Tesouros sem ícone (§10), quais são
-   Maldição de verdade. **Lista atual (2026-07-21, conferida direto no banco
-   local — os mesmos 12 do `HANDOFF.md` de 2026-07-20, nada mudou):** Baby
-   Haunt, Cursed Soul, Daddy Haunt, Decoy, Fetal Haunt, Portable Slot Machine,
-   Shadow, Steamy Sale!, The Chest, The Map, The Shovel, Two Of Clubs — todos
-   já têm `card_sprite_id` preenchido (carta pronta, só falta decidir
-   Tesouro-renomeado vs. Maldição de verdade).
-2. Pra cada um confirmado como Maldição: criar a linha correspondente em
-   `curses` (reaproveitando o `card_sprite_id` que já existe em `treasures` —
-   a carta já foi recortada/importada no §10, não precisa baixar de novo).
-3. **Só depois** de confirmado que a Maldição existe no novo artefato,
-   remover a linha de `treasures` (e, se houver, o sprite/ornamento
-   associado que não deveria existir).
-4. Repetir a mesma migração na prod (mesmo princípio de sempre: reconhecer
-   por leitura antes de escrever, nunca assumir que prod é subconjunto do
-   local).
-
-**Ainda não executado** — pendente da triagem do usuário (quais dos 12 são
-Maldição vs. Tesouro renomeado).
+**Restam 8 sem triagem** (continuam em `treasures` sem ícone, nos dois
+bancos): Decoy, Portable Slot Machine, Shadow, Steamy Sale!, The Chest, The
+Map, The Shovel, Two Of Clubs. Podem ser Maldição ou Tesouro só renomeado
+(§11 acima) — repetir o mesmo processo quando o usuário trouxer o
+veredito.
 
 ### Perguntas em aberto (confirmar com o usuário antes de implementar)
 
@@ -570,8 +560,8 @@ CREATE TABLE IF NOT EXISTS game_rooms (
 - [x] **Personagens** — catálogo pré-existente (`characters`), já usado no
   registro estruturado de partida antes mesmo deste plano existir.
 - [x] **Tesouros** — Fases 0–5 + revisões (§3–§10) — implementado, local e prod.
-- [ ] **Maldições** — catálogo implementado (§11, schema/API/tela); migração
-  dos 12 candidatos pendente da triagem do usuário, ainda não sincronizado
-  pra prod.
+- [ ] **Maldições** — catálogo implementado (§11, schema/API/tela); 4 dos 12
+  candidatos migrados (local + prod: Baby Haunt, Cursed Soul, Daddy Haunt,
+  Fetal Haunt); 8 restantes pendentes de triagem do usuário.
 - [ ] **Monstros** — planejado (§12), não implementado.
 - [ ] **Salas** — planejado (§13), não implementado.

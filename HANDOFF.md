@@ -840,12 +840,48 @@ nem desbloqueio, exatamente como decidido no plano.
   Baby Haunt, Cursed Soul, Daddy Haunt, Decoy, Fetal Haunt, Portable Slot
   Machine, Shadow, Steamy Sale!, The Chest, The Map, The Shovel, Two Of Clubs
   — todos com `card_sprite_id` preenchido (carta pronta pra virar Maldição
-  assim que o usuário confirmar quais são quais). **Falta a triagem do
-  usuário** (quais desses 12 são Maldição de verdade vs. Tesouro só
-  renomeado) antes de migrar qualquer linha de `treasures` pra `curses` — ver
-  `docs/PLANO-ARTEFATOS.md` §11 "Migração dos dados já importados por
-  engano". Trabalhado em branch própria (`feat/artefato-maldicoes`, a partir
-  da `master` já com o merge do PR #2), ainda sem PR aberto.
+  assim que o usuário confirmar quais são quais). Trabalhado em branch
+  própria (`feat/artefato-maldicoes`, a partir da `master` já com o merge do
+  PR #2).
+
+### Migração de 4 Maldições (Baby Haunt, Cursed Soul, Daddy Haunt, Fetal
+Haunt) de `treasures` pra `curses` — local e prod (2026-07-21)
+
+Usuário confirmou, dentre os 12 candidatos acima, que **estes 4 são
+Maldições de verdade** (os outros 8 seguem pendentes de triagem — não
+tocados). Script descartável (`_migrate-curses.mjs`, raiz do projeto,
+removido depois em ambas as rodadas, padrão da armadilha #8) rodou
+primeiro em **dry-run** (só leitura, conferindo `icon_ornament_id`/
+`transform_ornament_id` ainda `NULL` e contando `game_player_treasures`
+referenciando cada um — 0 nos dois bancos, nenhum tinha sido registrado
+numa partida real) e só depois em modo de escrita: pra cada um, insere a
+linha equivalente em `curses` (reaproveitando o mesmo `card_sprite_id` já
+existente, sem re-upload) e só então apaga a linha de `treasures` (ordem
+que respeita a armadilha #7 — repontar/criar antes de apagar o que ficaria
+órfão, embora aqui não houvesse FK entrando em conflito por não haver
+ornamento nenhum nos 4).
+
+- **Local:** `treasures` 158→154, `curses` 0→4. Verificado no browser:
+  `/artefatos/maldicoes` lista os 4 com a carta certa (mesmos arquivos
+  `treasure-card` de antes, servidos com 200), `/artefatos/tesouros` caiu
+  pra "Tesouros (154)" sem mais mostrar os 4. Zero erro no console.
+- **Prod:** primeira tentativa deu **401** na conexão Turso mesmo num
+  `SELECT 1` — o token de `.env.production.local` tinha expirado/rotacionado
+  desde a sessão anterior (nada a ver com o código; confirmado isolando a
+  conexão fora do script). Usuário gerou um token novo no painel do Turso e
+  atualizou o arquivo; com o token novo, dry-run e execução rodaram limpos.
+  **Resultado em prod:** `treasures` 159→155, `curses` 0→4 (mesmos 4 nomes,
+  ids próprios de prod — card_sprite_id resolvido a partir do **próprio**
+  `treasures` da prod, nunca cruzando id do local com o de prod).
+  `sheets`/`players`/`games` sem nenhuma mudança causada por este script
+  (12/6/0 — a diferença de contagem de `players` frente a sessões
+  anteriores é o usuário usando o app entre sessões, não algo que este
+  script tocou).
+- **Restam 8 dos 12 pendentes** (Decoy, Portable Slot Machine, Shadow,
+  Steamy Sale!, The Chest, The Map, The Shovel, Two Of Clubs) — ainda sem
+  triagem do usuário, continuam em `treasures` sem ícone nos dois bancos.
+  Repetir exatamente este processo (dry-run primeiro, sempre) quando o
+  usuário trouxer o veredito desses.
 
 ### 9 ícones a mais achados em seções fora de "Items" (2026-07-20)
 
