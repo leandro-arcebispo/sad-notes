@@ -801,6 +801,52 @@ deveria ser, o conserto é renomear o Tesouro em `/artefatos/tesouros` (nome é
 `UNIQUE COLLATE NOCASE`, então precisa ser um nome que ainda não exista) e
 trocar o ícone manualmente se o item certo for outro.
 
+### Maldições — catálogo implementado (commit pendente, 2026-07-21)
+
+Implementado o schema/API/tela planejados em `docs/PLANO-ARTEFATOS.md` §11
+(criado na sessão anterior). **Só o catálogo** — nada de `game_player_curses`
+nem desbloqueio, exatamente como decidido no plano.
+
+- **Schema:** `curses` (id, `name` COLLATE NOCASE UNIQUE, `card_sprite_id` →
+  sprites, created_at) no `initSchema` de `lib/db.ts` — sem migração
+  idempotente (tabela nova). Sem cascata manual em `deleteCurse` (não há
+  tabela filha ainda).
+- **Tipos/data layer/API:** `Curse`/`CurseFull`/`CurseInput` (`lib/types.ts`),
+  `lib/curses.ts` (list/get/create/update/delete, molde de `lib/treasures.ts`
+  mas sem a complexidade de ornamento/slot), `parseCurseInput`
+  (`lib/validation.ts`), `app/api/curses/route.ts` + `[id]/route.ts` (GET/
+  POST/PATCH/DELETE, mesmo formato de erro de duplicidade dos Tesouros).
+- **UI:** `/artefatos/maldicoes` (`components/CursesClient.tsx`) — **usuário
+  pediu explicitamente "o mesmo card de Tesouros"**: reaproveita as classes
+  `.treasure-grid`/`.treasure-card`/`.treasure-card-art` já existentes no
+  `globals.css` (nenhum CSS novo), só que o card mostra **carta + nome**, sem
+  os dois slots de ícone/transformação nem seletor de modo de desbloqueio —
+  o form é só nome + grid de sprites `curse-card`. Item novo "Maldições" na
+  Sidebar (`ARTIFACTS_NAV`, ícone `IconSkull` novo, mesmo padrão de ícone SVG
+  de traço do `IconBug`/`IconGear`).
+- **Oficina:** categoria de sprite `curse-card` adicionada ao segmentado de
+  `SpritesClient.tsx` — a constante local **foi renomeada** de
+  `TREASURE_CATEGORIES` pra `SPRITE_CATEGORIES` (deixou de ser exclusiva de
+  Tesouro). A regra da armadilha #9 (`.card-art` pra imagem não-pixel-art) foi
+  estendida pra também cobrir `curse-card`.
+- **Verificado end-to-end no browser:** criar Maldição de teste
+  (`__TESTE__ Amnésia`) via UI real (não só API — uma tentativa via `curl`
+  mostrou os acentos corrompidos, mas era só a codificação do heredoc do
+  shell Windows, não um bug do app; confirmado digitando pelo form de verdade
+  que o nome com acento salva e recarrega certinho), editar, remover — tudo
+  limpo ao final. `npx tsc --noEmit` limpo. Sem erro no console.
+- **Conferência do banco local (2026-07-21):** os mesmos **12 Tesouros sem
+  ícone** já documentados em 2026-07-20 continuam os mesmos, nenhum mudou:
+  Baby Haunt, Cursed Soul, Daddy Haunt, Decoy, Fetal Haunt, Portable Slot
+  Machine, Shadow, Steamy Sale!, The Chest, The Map, The Shovel, Two Of Clubs
+  — todos com `card_sprite_id` preenchido (carta pronta pra virar Maldição
+  assim que o usuário confirmar quais são quais). **Falta a triagem do
+  usuário** (quais desses 12 são Maldição de verdade vs. Tesouro só
+  renomeado) antes de migrar qualquer linha de `treasures` pra `curses` — ver
+  `docs/PLANO-ARTEFATOS.md` §11 "Migração dos dados já importados por
+  engano". Trabalhado em branch própria (`feat/artefato-maldicoes`, a partir
+  da `master` já com o merge do PR #2), ainda sem PR aberto.
+
 ### 9 ícones a mais achados em seções fora de "Items" (2026-07-20)
 
 Depois da lista de pendentes ser mostrada pro usuário, ele fez uma busca fina
@@ -1016,16 +1062,18 @@ precisamente pelo que você mesmo criou (por id ou por um prefixo de nome tipo
      empurrar algo direto na `master` numa emergência, ainda dá, sem
      precisar desfazer a regra primeiro.
 8. **Maldições são um artefato separado de Tesouros (decidido em
-   2026-07-20, ainda não implementado):** ao investigar os Tesouros sem
-   ícone, descobriu-se que alguns dos 158 importados do foursouls.com (Fase
-   A) não são Tesouros de verdade — são **Maldições**, mecânica diferente
-   do board game que entrou junto por engano de escopo do scraping. Não
-   viram um novo `unlock_mode` nem um campo dentro de `treasures`: o
-   usuário quer uma **tela/tabela nova e independente** pra Maldições. Ver
-   detalhe e lista de candidatos na sessão "9 ícones a mais" (2026-07-20,
-   mais acima) — quando essa feature for implementada, os registros
-   identificados como Maldição devem ser **removidos** de `treasures`
-   depois (não antes) do novo artefato existir.
+   2026-07-20; catálogo implementado em 2026-07-21, ver sessão
+   correspondente mais acima):** ao investigar os Tesouros sem ícone,
+   descobriu-se que alguns dos 158 importados do foursouls.com (Fase A) não
+   são Tesouros de verdade — são **Maldições**, mecânica diferente do board
+   game que entrou junto por engano de escopo do scraping. Não viraram um
+   novo `unlock_mode` nem um campo dentro de `treasures`: ganharam uma
+   **tabela/tela nova e independente** (`curses` + `/artefatos/maldicoes`).
+   Ver detalhe e lista de candidatos na sessão "9 ícones a mais" (2026-07-20)
+   e o resultado em "Maldições — catálogo implementado" (2026-07-21, mais
+   acima) — os registros identificados como Maldição ainda precisam ser
+   **removidos** de `treasures` depois de migrados pra `curses` (migração em
+   si ainda pendente da triagem do usuário).
 9. **"Artefato" é um conceito mais amplo do que Tesouro (reformulado em
    2026-07-20):** um Artefato é qualquer entidade cadastrável do jogo usada
    pra **registro estruturado de partida** (seleção, não texto livre) —
@@ -1175,23 +1223,27 @@ app/
   partidas/[id]/page.tsx          Detalhe da partida (coluna "Tesouros": ícones + itens legados)
   sprites/page.tsx                 Oficina (Admin): abas Spritesheets/Sprites — SÓ corta sprites
   artefatos/tesouros/page.tsx      CRUD de Tesouros + posicionamento (TreasuresClient)
+  artefatos/maldicoes/page.tsx     CRUD de Maldições, só carta+nome (CursesClient)
   spritesheets/ e ornamentos/       REMOVIDAS — redirect → /sprites (next.config.ts)
   backlog/page.tsx                 Backlog: form de bug/melhoria/feature + lista (Admin)
   api/**                           Rotas REST (players, games, characters,
-                                    sprites, sheets, ornaments, treasures,
+                                    sprites, sheets, ornaments, treasures, curses,
                                     feedback, players/[id]/avatar/*)
                                     — api/items FOI REMOVIDA (sem consumidor)
 lib/
   db.ts               conexão libSQL (async) + helpers all/get/run + schema + settings
   types.ts            todos os tipos (Player, Game, Sprite, Ornament, Treasure,
-                        UnlockMode, AvatarRecipe...)
-  validation.ts        parsePlayerInput / parseGamePayload / parseTreasureInput
+                        Curse, UnlockMode, AvatarRecipe...)
+  validation.ts        parsePlayerInput / parseGamePayload / parseTreasureInput /
+                        parseCurseInput
   players.ts, characters.ts, games.ts   data layer core
   feedback.ts         data layer do Backlog (list/create/updateStatus/delete)
   sprites.ts, ornaments.ts, treasures.ts, player-avatar.ts   data layer do
                         pipeline de avatar + Tesouros. treasures.ts também
                         tem resolveTreasureId (transacional, casa por nome
                         ou cria pendente — usado por games.ts::createGame)
+  curses.ts            data layer de Maldições (list/get/create/update/delete —
+                        catálogo puro, sem ornamento/desbloqueio/cascata)
   unlocks.ts           sistema de desbloqueio PLUGÁVEL (registro de modos) —
                         getUnlockedTreasureIds/isTreasureUnlockedForPlayer
   avatar-geometry.ts   geometria PURA compartilhada (cliente+servidor)
@@ -1213,8 +1265,12 @@ components/
                                         cadastrados + chips de pendentes + campo
                                         de texto livre (0+ por jogador)
   BacklogClient                        form + lista do Backlog (Admin)
-  SpritesClient                        catálogo de sprites (categorias fixas de Tesouro)
+  SpritesClient                        catálogo de sprites (categorias fixas por
+                                        papel de Artefato — `SPRITE_CATEGORIES`)
   TreasuresClient                       CRUD de Tesouros + posicionamento (icon/transform)
+  CursesClient                          CRUD de Maldições — mesmo card visual de
+                                        Tesouro (reaproveita `.treasure-*` do CSS),
+                                        só carta+nome, sem posicionamento
   OrnamentBuilder                       NÃO usado em nenhuma página — reservado
                                         pra futura tela de autoria de cabelo,
                                         não é dead code a apagar
@@ -1226,7 +1282,8 @@ docs/
   ROADMAP.md          todas as features + status + ordem de implementação
   STYLE-GUIDE.md       identidade visual (paleta, tipografia, componentes)
   PLANO-ARTEFATOS.md   plano do catálogo de Artefatos (Tesouros implementado;
-                        Maldições/Monstros/Salas planejados, não implementados)
+                        Maldições com catálogo implementado, migração dos 158
+                        pendente; Monstros/Salas planejados, não implementados)
                         — reformulado em 2026-07-20 com visão mais ampla; leia
                         antes de mexer nesse sistema
   PLANO-COSMETICOS-AVATAR.md  plano (não implementado) de generalizar o

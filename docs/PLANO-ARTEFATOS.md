@@ -396,16 +396,37 @@ CREATE TABLE IF NOT EXISTS curses (
   paginada + busca + form atrás de botão) só que sem a tela de posicionamento
   de ornamentos (não existe ícone/transform pra posicionar).
 
+### Status: catálogo implementado (2026-07-21)
+
+Schema + API + tela existem agora, exatamente como proposto acima: tabela
+`curses` (`lib/db.ts`), tipos `Curse`/`CurseFull`/`CurseInput` (`lib/types.ts`),
+data layer `lib/curses.ts` (list/get/create/update/delete — sem cascata manual,
+não há tabela filha ainda), `parseCurseInput` (`lib/validation.ts`),
+`app/api/curses/route.ts` + `[id]/route.ts`, tela `/artefatos/maldicoes`
+(`components/CursesClient.tsx` — mesmo card visual de Tesouro via as classes
+`.treasure-grid`/`.treasure-card`/`.treasure-card-art` já existentes, só carta
++ nome, sem slots de ícone/transformação nem seletor de desbloqueio) + item
+"Maldições" na Sidebar (`ARTIFACTS_NAV`, ícone `IconSkull` novo). Categoria de
+sprite nova `curse-card` adicionada ao segmentado da Oficina (renomeado de
+`TREASURE_CATEGORIES` pra `SPRITE_CATEGORIES` em `SpritesClient.tsx`, já que
+deixou de ser exclusivo de Tesouro) — a classe `.card-art` (não-pixelada) do
+armadilha #9 do HANDOFF também foi estendida pra essa categoria.
+
 ### Migração dos dados já importados por engano
 
-Depois que o schema/tela de Maldições existir:
+Agora que o schema/tela existem, falta só a parte que **depende de
+conhecimento humano do jogo** (não dá pra automatizar):
 
 1. Usuário identifica, dentre os Tesouros sem ícone (§10), quais são
-   Maldição de verdade (nenhuma automação segura pra essa triagem — é
-   conhecimento de regras do jogo, não um padrão de dado).
-2. Pra cada um: criar a linha correspondente em `curses` (reaproveitando o
-   `card_sprite_id` que já existe em `treasures` — a carta já foi
-   recortada/importada no §10, não precisa baixar de novo).
+   Maldição de verdade. **Lista atual (2026-07-21, conferida direto no banco
+   local — os mesmos 12 do `HANDOFF.md` de 2026-07-20, nada mudou):** Baby
+   Haunt, Cursed Soul, Daddy Haunt, Decoy, Fetal Haunt, Portable Slot Machine,
+   Shadow, Steamy Sale!, The Chest, The Map, The Shovel, Two Of Clubs — todos
+   já têm `card_sprite_id` preenchido (carta pronta, só falta decidir
+   Tesouro-renomeado vs. Maldição de verdade).
+2. Pra cada um confirmado como Maldição: criar a linha correspondente em
+   `curses` (reaproveitando o `card_sprite_id` que já existe em `treasures` —
+   a carta já foi recortada/importada no §10, não precisa baixar de novo).
 3. **Só depois** de confirmado que a Maldição existe no novo artefato,
    remover a linha de `treasures` (e, se houver, o sprite/ornamento
    associado que não deveria existir).
@@ -413,9 +434,8 @@ Depois que o schema/tela de Maldições existir:
    por leitura antes de escrever, nunca assumir que prod é subconjunto do
    local).
 
-**Não fazer nenhuma parte disso adiantado** — schema/tela de Maldições
-precisam existir primeiro (regra já registrada no `HANDOFF.md`, decisão de
-arquitetura #7).
+**Ainda não executado** — pendente da triagem do usuário (quais dos 12 são
+Maldição vs. Tesouro renomeado).
 
 ### Perguntas em aberto (confirmar com o usuário antes de implementar)
 
@@ -550,6 +570,8 @@ CREATE TABLE IF NOT EXISTS game_rooms (
 - [x] **Personagens** — catálogo pré-existente (`characters`), já usado no
   registro estruturado de partida antes mesmo deste plano existir.
 - [x] **Tesouros** — Fases 0–5 + revisões (§3–§10) — implementado, local e prod.
-- [ ] **Maldições** — planejado (§11), não implementado.
+- [ ] **Maldições** — catálogo implementado (§11, schema/API/tela); migração
+  dos 12 candidatos pendente da triagem do usuário, ainda não sincronizado
+  pra prod.
 - [ ] **Monstros** — planejado (§12), não implementado.
 - [ ] **Salas** — planejado (§13), não implementado.
