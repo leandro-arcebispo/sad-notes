@@ -883,6 +883,71 @@ ornamento nenhum nos 4).
   Repetir exatamente este processo (dry-run primeiro, sempre) quando o
   usuário trouxer o veredito desses.
 
+### Import de 15 Maldições oficiais + campo `locked` (2026-07-21)
+
+O usuário apontou que a carta de Maldição existe de verdade no jogo
+eletrônico/físico dentro do **baralho de Monstro** (Monstros é um Artefato
+futuro, ainda não implementado) e passou a URL
+`foursouls.com/card-search/?...&card_type=monster`. **Achado:** essa busca,
+apesar do parâmetro `card_type=monster`, devolve as cartas reais de
+**Maldição** (`alt="Curse Of ..."`) — o site categoriza Curse como um
+subtipo de "monster" internamente. Isso é a fonte oficial e completa das
+Maldições do jogo (**15 cartas**, sem paginação, `curl` puro basta — mesmo
+método de sempre), nada a ver com o scraping incompleto/impreciso da Fase A
+que gerou a confusão original com Tesouro.
+
+- **Divisão por produto:** 5 do Base Game V2 (`b2`) + 4 do Requiem (`r`) = 9
+  dos produtos que o grupo joga (mesmo critério já usado no import dos 158
+  Tesouros) + 6 de expansões que o grupo não joga hoje (`g2` ×2, `fsp2` ×2,
+  `soi` ×1, `rwz` ×1). **Decisão do usuário: importar as 15, mas marcar as 6
+  extras como "bloqueadas"** — não ficam de fora do catálogo (o grupo pode
+  querer essas cartas no futuro), só aparecem visualmente indisponíveis.
+- **Schema novo:** coluna `curses.locked` (INTEGER, default 0). Como
+  `curses` já tinha linhas reais (as 4 migradas na sessão anterior), não dá
+  pra usar só `CREATE TABLE IF NOT EXISTS` — precisou de um **helper de
+  migração idempotente** novo em `lib/db.ts` (`ensureColumn()`, checa
+  `PRAGMA table_info` antes do `ALTER TABLE ADD COLUMN`, primeiro desde a
+  reescrita pro libSQL/Vercel — o `migrateSchema()` antigo do
+  better-sqlite3 tinha sido descartado na migração). Chamado no fim do
+  `initSchema()`.
+- **UI:** checkbox "Bloqueada" no form (`CursesClient.tsx`), classe
+  `.treasure-card.locked` no `globals.css` (opacidade 0.55 + grayscale na
+  carta) + label "Bloqueada" no card — mesma linguagem visual já usada em
+  `.ornament-row.locked` (Tesouro bloqueado no `AvatarEditor`), só que
+  aplicada ao componente de carta em vez de linha de lista. Confirmado
+  visualmente com `computer{screenshot}` (funcionou nesta sessão, ao
+  contrário do timeout recorrente registrado na armadilha #5 — pode já ter
+  sido corrigido no ambiente, mas manter `read_page`/`javascript_tool` como
+  plano B se voltar a travar).
+- **Import (script descartável `_import-curses.mjs`, removido depois em
+  ambas as rodadas):** baixa a carta oficial (`data-src` do card-search,
+  mesmo padrão da Fase A), grava sprite categoria `curse-card` (Blob em
+  prod / disco em dev, mesmo `putImage` conceitual mas escrito solto porque
+  scripts fora do Next não resolvem os imports TS — armadilha já conhecida)
+  + linha `curses` com `locked` conforme o produto. Idempotente por nome
+  (`COLLATE NOCASE`, pula se já existir).
+- **Local:** dry-run limpo (zero colisão de nome) → execução: 15
+  sprites + 15 curses criados. Verificado no browser: `/artefatos/maldicoes`
+  lista as 19 (4 antigas + 15 novas), as 6 bloqueadas aparecem esmaecidas em
+  grayscale com o rótulo "Bloqueada", zero erro no console.
+- ⚠️ **Armadilha nova (script solto x schema do app):** a primeira tentativa
+  em prod falhou no meio (`SQLITE_UNKNOWN: table curses has no column named
+  locked`) porque o script de import, escrito solto (fora de `lib/db.ts`),
+  não roda `ensureColumn()` — só o app de verdade (via `getClient()`) migra
+  o schema. Isso já tinha acontecido antes com a tabela em si (script de
+  migração anterior precisou recriar o `CREATE TABLE IF NOT EXISTS` local).
+  **Efeito colateral:** a primeira carta do lote (`Curse Of Amnesia`) já
+  tinha subido sprite+Blob antes de falhar no insert de `curses`, deixando
+  um **sprite órfão em prod** (id 338) — identificado por leitura
+  (`category='curse-card'` sem `curses` correspondente) e limpo (Blob
+  `del()` + `DELETE FROM sprites`) antes de rodar a coluna `ALTER TABLE` e
+  reexecutar o import do zero. **Lição:** scripts soltos que tocam schema
+  precisam repetir manualmente qualquer migração de coluna nova que o app
+  faria sozinho — não assumir que rodar contra prod uma vez "adianta" pra
+  próxima tabela/coluna nova.
+- **Resultado final em prod:** `curses` 4→19 (6 `locked=1`), `treasures`
+  inalterado (155), `sheets`/`players`/`games` inalterados (12/6/0).
+
 ### 9 ícones a mais achados em seções fora de "Items" (2026-07-20)
 
 Depois da lista de pendentes ser mostrada pro usuário, ele fez uma busca fina
@@ -1234,16 +1299,40 @@ cartas de Tesouro (`treasure-card`, arte ilustrada baixada de
 foursouls.com, 308×420) — o usuário reportou "resolução estranha" nos cards
 pequenos.
 
-**Regra:** toda imagem que não é pixel art (hoje só `treasure-card`; se
-aparecer outra categoria de arte "lisa" no futuro, o mesmo vale) precisa da
-classe `card-art` no `<img>` (`img.card-art { image-rendering: auto; }`, fim
-do `globals.css` — mesma especificidade das regras de sprite/ornamento
-acima, vence por vir depois no arquivo). Lugares que já aplicam:
-`TreasuresClient.tsx` (thumb da lista + picker do form) e `SpritesClient.tsx`
-(catálogo da Oficina, condicional a `s.category === "treasure-card"` porque
-esse catálogo lista todas as categorias juntas). Se adicionar um novo lugar
-que renderize `card_sprite_path`/sprite de categoria `treasure-card`, lembre
-de aplicar a classe lá também.
+**Regra:** toda imagem que não é pixel art (`treasure-card` e, desde
+2026-07-21, também `curse-card`; se aparecer outra categoria de arte "lisa"
+no futuro, o mesmo vale) precisa da classe `card-art` no `<img>`
+(`img.card-art { image-rendering: auto; }`, fim do `globals.css` — mesma
+especificidade das regras de sprite/ornamento acima, vence por vir depois
+no arquivo). Lugares que já aplicam: `TreasuresClient.tsx`/`CursesClient.tsx`
+(thumb da lista + picker do form) e `SpritesClient.tsx` (catálogo da
+Oficina, condicional a `s.category === "treasure-card" || "curse-card"`
+porque esse catálogo lista todas as categorias juntas). Se adicionar um
+novo lugar que renderize `card_sprite_path`/sprite de categoria de carta,
+lembre de aplicar a classe lá também.
+
+### 10. Scripts soltos (fora do Next) não migram schema sozinhos
+
+`lib/db.ts::initSchema()` (incluindo o helper `ensureColumn()` que faz
+`ALTER TABLE ADD COLUMN` idempotente) só roda dentro de `getClient()` —
+ou seja, só quando o **app de verdade** conecta (via `npm run dev`/`start`
+ou uma rota chamando `lib/db.ts`). Um script solto na raiz do projeto que
+cria seu próprio `createClient()` direto (padrão de todos os
+`scripts/sync-*.mjs` e dos `_*.mjs` descartáveis) **não** passa por isso —
+se o schema mudou desde a última vez que o app rodou contra aquele banco
+(nova tabela ou nova coluna), o script quebra no meio com erro de SQLite
+(`no such table`/`has no column named ...`), podendo deixar dado parcial
+gravado nas tabelas que já tinham sido escritas antes da que falhou.
+
+**Regra:** todo script solto que grava em tabela nova/coluna nova precisa
+repetir manualmente o DDL relevante (`CREATE TABLE IF NOT EXISTS`/
+`ALTER TABLE ADD COLUMN` guardado por `PRAGMA table_info`) logo no início,
+mesmo que o app já tenha rodado contra aquele banco antes — nunca assumir
+que "já rodei um script aqui uma vez" cobre a próxima mudança de schema.
+Se o script falhar no meio de um loop, **sempre conferir por leitura** se
+alguma escrita parcial (ex.: um sprite sem a linha que deveria referenciá-lo)
+ficou órfã antes de tentar de novo — mordeu num sprite+Blob órfão em prod
+nesta sessão (Curse Of Amnesia, id 338), limpo antes do reprocessamento.
 
 ## Onde as coisas estão (mapa rápido)
 

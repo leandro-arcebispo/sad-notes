@@ -251,6 +251,7 @@ export function parseCurseInput(
     value: {
       name,
       card_sprite_id: toIntOrNull(b.card_sprite_id),
+      locked: Boolean(b.locked),
     },
   };
 }

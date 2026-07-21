@@ -427,6 +427,30 @@ Map, The Shovel, Two Of Clubs. Podem ser Maldição ou Tesouro só renomeado
 (§11 acima) — repetir o mesmo processo quando o usuário trouxer o
 veredito.
 
+### Import das 15 Maldições oficiais + campo `locked` (2026-07-21)
+
+Além da migração acima (Maldições que vieram misturadas nos Tesouros), o
+usuário trouxe a fonte **oficial e completa** de Maldição do jogo: o
+card-search do `foursouls.com` filtrado por `card_type=monster` devolve as
+15 cartas reais de Curse (o site as categoriza como um subtipo de
+"monster" — condiz com o board game, onde Maldição fica dentro do baralho
+de Monstro). Importadas todas as 15 (nome + carta oficial, mesmo padrão de
+sprite `curse-card` da Fase A de Tesouros), local e prod.
+
+**Campo novo `curses.locked`** (0/1): 9 das 15 são dos produtos que o grupo
+joga (Base Game V2 + Requiem, mesmo critério do import de Tesouros) e
+ficam desbloqueadas; as outras 6 (de expansões que o grupo não joga hoje)
+foram cadastradas mesmo assim, mas com `locked=1` — aparecem esmaecidas/
+grayscale no catálogo (`.treasure-card.locked` no `globals.css`), decisão
+explícita do usuário ("importe todas, mas com layer de bloqueado") em vez
+de simplesmente excluir as 6 do escopo como foi feito nos Tesouros.
+Detalhe completo (incluindo a armadilha de script solto que não migra
+schema sozinho) no `HANDOFF.md`, seção "Import de 15 Maldições oficiais +
+campo `locked`".
+
+**Total de Maldições agora: 19** (4 migradas de Tesouro + 15 oficiais, 6
+delas bloqueadas) — nos dois bancos.
+
 ### Perguntas em aberto (confirmar com o usuário antes de implementar)
 
 - Maldição tem **ícone** próprio (tipo o que aparece na carta, recortado à
@@ -560,8 +584,8 @@ CREATE TABLE IF NOT EXISTS game_rooms (
 - [x] **Personagens** — catálogo pré-existente (`characters`), já usado no
   registro estruturado de partida antes mesmo deste plano existir.
 - [x] **Tesouros** — Fases 0–5 + revisões (§3–§10) — implementado, local e prod.
-- [ ] **Maldições** — catálogo implementado (§11, schema/API/tela); 4 dos 12
-  candidatos migrados (local + prod: Baby Haunt, Cursed Soul, Daddy Haunt,
-  Fetal Haunt); 8 restantes pendentes de triagem do usuário.
+- [x] **Maldições** — catálogo implementado (§11, schema/API/tela, campo
+  `locked`); 19 cadastradas local+prod (4 migradas de Tesouro + 15 oficiais,
+  6 delas `locked`); 8 Tesouros ainda pendentes de triagem (§10).
 - [ ] **Monstros** — planejado (§12), não implementado.
 - [ ] **Salas** — planejado (§13), não implementado.

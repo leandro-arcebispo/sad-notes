@@ -19,8 +19,8 @@ export async function getCurse(id: number): Promise<CurseFull | undefined> {
 
 export async function createCurse(input: CurseInput): Promise<CurseFull> {
   const { lastId } = await run(
-    "INSERT INTO curses (name, card_sprite_id, created_at) VALUES (?, ?, ?)",
-    [input.name, input.card_sprite_id, nowIso()]
+    "INSERT INTO curses (name, card_sprite_id, locked, created_at) VALUES (?, ?, ?, ?)",
+    [input.name, input.card_sprite_id, input.locked ? 1 : 0, nowIso()]
   );
   return (await getCurse(lastId))!;
 }
@@ -31,9 +31,10 @@ export async function updateCurse(
 ): Promise<CurseFull | undefined> {
   const existing = await get<Curse>("SELECT * FROM curses WHERE id = ?", [id]);
   if (!existing) return undefined;
-  await run("UPDATE curses SET name = ?, card_sprite_id = ? WHERE id = ?", [
+  await run("UPDATE curses SET name = ?, card_sprite_id = ?, locked = ? WHERE id = ?", [
     input.name,
     input.card_sprite_id,
+    input.locked ? 1 : 0,
     id,
   ]);
   return getCurse(id);

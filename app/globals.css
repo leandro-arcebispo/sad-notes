@@ -1037,6 +1037,12 @@ h2.title {
 .treasure-card:hover {
   border-color: var(--accent);
 }
+.treasure-card.locked {
+  opacity: 0.55;
+}
+.treasure-card.locked .treasure-card-art img {
+  filter: grayscale(1);
+}
 .treasure-card-art {
   width: 100%;
   aspect-ratio: 308 / 420;

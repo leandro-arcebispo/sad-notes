@@ -9,7 +9,7 @@ import { assetUrl } from "@/lib/asset-url";
 const PAGE_SIZE = 24;
 
 function emptyForm() {
-  return { name: "", cardSpriteId: null as number | null };
+  return { name: "", cardSpriteId: null as number | null, locked: false };
 }
 
 export default function CursesClient({
@@ -56,7 +56,7 @@ export default function CursesClient({
 
   function startEdit(c: CurseFull) {
     setEditingId(c.id);
-    setForm({ name: c.name, cardSpriteId: c.card_sprite_id });
+    setForm({ name: c.name, cardSpriteId: c.card_sprite_id, locked: !!c.locked });
     setMsg(null);
     setFormOpen(true);
   }
@@ -74,6 +74,7 @@ export default function CursesClient({
     const payload = {
       name: form.name.trim(),
       card_sprite_id: form.cardSpriteId,
+      locked: form.locked,
     };
     const url = editingId ? `/api/curses/${editingId}` : "/api/curses";
     const res = await fetch(url, {
@@ -124,6 +125,15 @@ export default function CursesClient({
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
               />
             </div>
+
+            <label className="row" style={{ gap: 8, alignItems: "center" }}>
+              <input
+                type="checkbox"
+                checked={form.locked}
+                onChange={(e) => setForm((f) => ({ ...f, locked: e.target.checked }))}
+              />
+              Bloqueada (expansão que o grupo não joga hoje)
+            </label>
 
             <div className="field">
               <label>Carta do jogo</label>
@@ -195,7 +205,12 @@ export default function CursesClient({
               <>
                 <div className="treasure-grid">
                   {pageItems.map((c) => (
-                    <button key={c.id} type="button" className="treasure-card" onClick={() => startEdit(c)}>
+                    <button
+                      key={c.id}
+                      type="button"
+                      className={`treasure-card${c.locked ? " locked" : ""}`}
+                      onClick={() => startEdit(c)}
+                    >
                       <div className="treasure-card-art">
                         {c.card_sprite_path ? (
                           <img className="card-art" src={assetUrl(c.card_sprite_path)} alt="" />
@@ -204,6 +219,9 @@ export default function CursesClient({
                         )}
                       </div>
                       <div className="pixel-label" style={{ marginTop: 8, fontSize: 13 }}>{c.name}</div>
+                      {!!c.locked && (
+                        <div className="muted" style={{ fontSize: 10 }}>Bloqueada</div>
+                      )}
                     </button>
                   ))}
                 </div>

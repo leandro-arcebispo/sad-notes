@@ -223,6 +223,9 @@ export interface Curse {
   id: number;
   name: string;
   card_sprite_id: number | null;
+  /** 1 = carta de uma expansão que o grupo não joga hoje — aparece esmaecida
+   * no catálogo, mas continua cadastrada (histórico/referência). */
+  locked: number;
   created_at: string;
 }
 
@@ -235,6 +238,7 @@ export interface CurseFull extends Curse {
 export interface CurseInput {
   name: string;
   card_sprite_id: number | null;
+  locked: boolean;
 }
 
 /* ===================== Backlog / Feedback (Admin) ======================= */
