@@ -9,7 +9,10 @@ type FrameVariant =
   | "frame-utero"
   | "frame-utero-purple"
   | "frame-scarred-womb"
-  | "frame-brick";
+  | "frame-brick"
+  | "frame-dank-depths-skulls"
+  | "frame-shop-stocked"
+  | "frame-cathedral-skulls";
 
 /**
  * Container padrão de página: a "sala" do jogo (border-image pixel-art) que

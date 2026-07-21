@@ -101,7 +101,7 @@ export default function MonstersClient({
 
   return (
     <Frame
-      variant="frame-chest"
+      variant="frame-dank-depths-skulls"
       title={`Monstros (${monsters.length})`}
       actions={
         !formOpen && (

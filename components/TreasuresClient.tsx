@@ -169,7 +169,7 @@ export default function TreasuresClient({
 
   return (
     <Frame
-      variant="frame-chest"
+      variant="frame-shop-stocked"
       title={`Tesouros (${treasures.length})`}
       actions={
         !formOpen && (
