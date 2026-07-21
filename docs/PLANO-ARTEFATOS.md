@@ -497,6 +497,23 @@ CREATE TABLE IF NOT EXISTS game_player_monsters (
   travar registro de partida atrás do cadastro manual de sprite de cada
   monstro do jogo.
 
+### Status: catálogo implementado + 124 importados (2026-07-21)
+
+Implementado no mesmo molde simples de Maldição, não no proposto acima —
+`monsters` ficou `card_sprite_id` (carta ilustrativa inteira, categoria de
+sprite `monster-card`) em vez de `sprite_id`/`monster-icon`, já que a fonte
+é o card-search oficial (carta completa), igual Tesouro/Maldição. **Sem**
+`game_player_monsters` nesta primeira versão (catálogo puro, sem
+integração com o registro de partida ainda — as perguntas abaixo sobre
+repetição/chefão continuam em aberto pra quando isso for implementado).
+
+Importados os **124 monstros reais** do jogo base + Requiem, direto do
+card-search oficial (`card_type=monster`). Descoberta importante: essa
+busca mistura monstro de verdade com as próprias cartas de Maldição (9,
+não duplicadas) e cartas de Evento (23, fora de escopo) — a triagem exata
+por tipo real (lendo a página de cada carta) está detalhada no
+`HANDOFF.md`, seção "Novo Artefato 'Monstros'". Local e prod idênticos.
+
 ### Perguntas em aberto (confirmar com o usuário antes de implementar)
 
 - **Repetição:** um jogador pode matar o **mesmo** monstro mais de uma vez
@@ -587,5 +604,6 @@ CREATE TABLE IF NOT EXISTS game_rooms (
 - [x] **Maldições** — catálogo implementado (§11, schema/API/tela, campo
   `locked`); 19 cadastradas local+prod (4 migradas de Tesouro + 15 oficiais,
   6 delas `locked`); 8 Tesouros ainda pendentes de triagem (§10).
-- [ ] **Monstros** — planejado (§12), não implementado.
+- [x] **Monstros** — catálogo implementado (§12); 124 importados (local+prod)
+  do jogo base+Requiem.
 - [ ] **Salas** — planejado (§13), não implementado.

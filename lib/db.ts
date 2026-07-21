@@ -202,6 +202,13 @@ async function initSchema(db: Client): Promise<void> {
       created_at     TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS monsters (
+      id             INTEGER PRIMARY KEY AUTOINCREMENT,
+      name           TEXT NOT NULL COLLATE NOCASE UNIQUE,
+      card_sprite_id INTEGER REFERENCES sprites(id),
+      created_at     TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS feedback (
       id          INTEGER PRIMARY KEY AUTOINCREMENT,
       kind        TEXT NOT NULL DEFAULT 'bug',

@@ -1334,6 +1334,69 @@ alguma escrita parcial (ex.: um sprite sem a linha que deveria referenciá-lo)
 ficou órfã antes de tentar de novo — mordeu num sprite+Blob órfão em prod
 nesta sessão (Curse Of Amnesia, id 338), limpo antes do reprocessamento.
 
+### Novo Artefato "Monstros" — catálogo implementado + 124 importados (2026-07-21)
+
+Usuário pediu o próximo Artefato do `PLANO-ARTEFATOS.md` §12: **Monstros**
+(*"Jogador Mané matou monstro X"*). Passou a URL
+`foursouls.com/card-search/?...&card_type=monster` (a busca **real** de
+monstro, diferente da usada nas Maldições — aquela tinha
+`card_footnotes=c`, essa não) e pediu **só os do jogo base + Requiem**.
+
+- **Schema/API/tela:** mesmo molde simples de Maldição (não o de Tesouro) —
+  tabela `monsters` (`name` COLLATE NOCASE UNIQUE, `card_sprite_id`, sem
+  campo `locked`), `lib/monsters.ts`, `parseMonsterInput`,
+  `app/api/monsters/**`, tela `/artefatos/monstros`
+  (`components/MonstersClient.tsx`, cópia do `CursesClient` sem o
+  checkbox/classe de bloqueado). Categoria de sprite `monster-card` na
+  Oficina + extensão do `.card-art`. Nav "Monstros" com ícone novo
+  `IconClaw` (mesmo padrão SVG de traço do `IconSkull`).
+- **Achado importante ao raspar a fonte:** a busca por produto (`b2`+`r`)
+  devolveu **160 linhas brutas**, com **4 nomes duplicados** (reimpressão/
+  variante de arte: `Chest`/`Dark Chest`/`Gold Chest` com um slug `_2`, e
+  `Troll Bombs` reimpresso em `r`) — dedup manteve o slug sem sufixo `_2`
+  (ou o primeiro visto em empate), resultando em **156 candidatos únicos**.
+- ⚠️ **Descoberta igual à das Maldições, mais grave aqui:** o `card_type=monster`
+  do site mistura **três coisas diferentes** no "baralho de monstro" do
+  jogo físico — monstros de verdade, as próprias cartas de Maldição (as
+  mesmas 9 já importadas), e **cartas de Evento** (Good/Bad Event, ex.:
+  `Ambush!`, `Chest`, `Devil Deal`, `Secret Room!`) que ficam no baralho
+  mas não são criaturas pra "matar". Palpite inicial por padrão de nome
+  (`!` no final = evento) **provou-se errado** — bosses de verdade também
+  têm `!` no nome (`Mom!`, `Satan!`, `MOTHER!`, `Ultra Greed!`). **Método
+  confiável:** buscar a página individual de cada carta
+  (`foursouls.com/cards/<produto>-<slug>/`) e extrair o rótulo de tipo real
+  que o próprio site imprime ali (ex.: "Base Game V2 Basic Monster Card",
+  "Requiem Boss Card", "... Holy/Charmed Monster Card", "... Bad Event
+  Card") — 156 fetches individuais, script descartável, resultado
+  conferido com o usuário antes de importar.
+- **Classificação real dos 156:** Basic Monster (46) + Boss (43) +
+  Holy/Charmed Monster (17) + Cursed Monster (10) + Epic Boss (8) = **124
+  monstros de verdade** (importados) · Curse (9, já são Maldição — não
+  duplicados) · Good Event (15) + Bad Event (8) = 23 cartas de Evento (fora
+  de escopo do Artefato Monstro). Usuário confirmou excluir os 32 que não
+  são monstro antes de eu rodar a importação.
+- **Detalhe técnico:** nomes com apóstrofo vêm como entidade HTML
+  (`&#8217;`, ex. `Mom&#8217;s Hand`) na extração via regex sobre o HTML
+  cru (ao contrário de ler `alt=` pelo DOM do browser, que já decodifica) —
+  decodificados manualmente (`&#8217;` → `'`) antes de gravar; confirmado
+  no browser que "Mom's Hand"/"Holy Mom's Eye"/etc. aparecem certos.
+- **Import (script descartável, removido depois em ambas as rodadas):**
+  mesmo padrão do import de Maldição — baixa a carta oficial, grava sprite
+  categoria `monster-card` (Blob em prod / disco em dev) + linha
+  `monsters`, idempotente por nome.
+- **Armadilha repetida (já catalogada como #10):** a primeira tentativa em
+  prod falhou com `no such table: monsters` — o script solto não passa
+  pelo `initSchema()` do app. Resolvido rodando o `CREATE TABLE IF NOT
+  EXISTS monsters` manualmente em prod antes do import (mesma lição da
+  sessão anterior com `curses.locked`, reforça a regra: sempre repetir o
+  DDL relevante ao escrever via script solto).
+- **Resultado:** local e prod idênticos — `monsters` 0→124,
+  `curses`/`treasures`/`sheets`/`players`/`games` sem nenhuma mudança
+  colateral (19/155/12/6/0 nos dois bancos). Verificado no browser (tela
+  lista 124, paginação, cartas carregam, zero erro no console).
+- **Próximo Artefato planejado seria "Salas"** (§13, ainda não pedido nesta
+  sessão) — ver `docs/PLANO-ARTEFATOS.md` quando for a vez.
+
 ## Onde as coisas estão (mapa rápido)
 
 ```
@@ -1349,18 +1412,20 @@ app/
   sprites/page.tsx                 Oficina (Admin): abas Spritesheets/Sprites — SÓ corta sprites
   artefatos/tesouros/page.tsx      CRUD de Tesouros + posicionamento (TreasuresClient)
   artefatos/maldicoes/page.tsx     CRUD de Maldições, só carta+nome (CursesClient)
+  artefatos/monstros/page.tsx      CRUD de Monstros, só carta+nome (MonstersClient)
   spritesheets/ e ornamentos/       REMOVIDAS — redirect → /sprites (next.config.ts)
   backlog/page.tsx                 Backlog: form de bug/melhoria/feature + lista (Admin)
   api/**                           Rotas REST (players, games, characters,
                                     sprites, sheets, ornaments, treasures, curses,
-                                    feedback, players/[id]/avatar/*)
+                                    monsters, feedback, players/[id]/avatar/*)
                                     — api/items FOI REMOVIDA (sem consumidor)
 lib/
   db.ts               conexão libSQL (async) + helpers all/get/run + schema + settings
+                        + ensureColumn() (migração idempotente de coluna nova)
   types.ts            todos os tipos (Player, Game, Sprite, Ornament, Treasure,
-                        Curse, UnlockMode, AvatarRecipe...)
+                        Curse, Monster, UnlockMode, AvatarRecipe...)
   validation.ts        parsePlayerInput / parseGamePayload / parseTreasureInput /
-                        parseCurseInput
+                        parseCurseInput / parseMonsterInput
   players.ts, characters.ts, games.ts   data layer core
   feedback.ts         data layer do Backlog (list/create/updateStatus/delete)
   sprites.ts, ornaments.ts, treasures.ts, player-avatar.ts   data layer do
@@ -1369,6 +1434,7 @@ lib/
                         ou cria pendente — usado por games.ts::createGame)
   curses.ts            data layer de Maldições (list/get/create/update/delete —
                         catálogo puro, sem ornamento/desbloqueio/cascata)
+  monsters.ts          data layer de Monstros — mesmo molde de curses.ts
   unlocks.ts           sistema de desbloqueio PLUGÁVEL (registro de modos) —
                         getUnlockedTreasureIds/isTreasureUnlockedForPlayer
   avatar-geometry.ts   geometria PURA compartilhada (cliente+servidor)
@@ -1396,6 +1462,8 @@ components/
   CursesClient                          CRUD de Maldições — mesmo card visual de
                                         Tesouro (reaproveita `.treasure-*` do CSS),
                                         só carta+nome, sem posicionamento
+  MonstersClient                        CRUD de Monstros — cópia do CursesClient
+                                        sem o campo `locked`
   OrnamentBuilder                       NÃO usado em nenhuma página — reservado
                                         pra futura tela de autoria de cabelo,
                                         não é dead code a apagar
@@ -1407,10 +1475,11 @@ docs/
   ROADMAP.md          todas as features + status + ordem de implementação
   STYLE-GUIDE.md       identidade visual (paleta, tipografia, componentes)
   PLANO-ARTEFATOS.md   plano do catálogo de Artefatos (Tesouros implementado;
-                        Maldições com catálogo implementado, migração dos 158
-                        pendente; Monstros/Salas planejados, não implementados)
-                        — reformulado em 2026-07-20 com visão mais ampla; leia
-                        antes de mexer nesse sistema
+                        Maldições implementado — 8 dos 158 ainda em triagem;
+                        Monstros implementado — 124 importados; Salas
+                        planejada, não implementada) — reformulado em
+                        2026-07-20 com visão mais ampla; leia antes de mexer
+                        nesse sistema
   PLANO-COSMETICOS-AVATAR.md  plano (não implementado) de generalizar o
                         desbloqueio de cosmético pra além de Tesouro (ex.:
                         Personagem por vitória)

@@ -241,6 +241,27 @@ export interface CurseInput {
   locked: boolean;
 }
 
+/* ============================ Monstros (Artefatos) ========================= */
+
+/** Um Monstro = carta + nome, mesmo molde de Maldição (catálogo puro, sem
+ * cosmético de avatar). Ver docs/PLANO-ARTEFATOS.md §12. */
+export interface Monster {
+  id: number;
+  name: string;
+  card_sprite_id: number | null;
+  created_at: string;
+}
+
+export interface MonsterFull extends Monster {
+  card_sprite_path: string | null;
+  card_sprite_name: string | null;
+}
+
+export interface MonsterInput {
+  name: string;
+  card_sprite_id: number | null;
+}
+
 /* ===================== Backlog / Feedback (Admin) ======================= */
 
 export const FEEDBACK_KINDS = ["bug", "melhoria", "feature"] as const;

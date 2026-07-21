@@ -18,6 +18,7 @@ const SPRITE_CATEGORIES = [
   { key: "treasure-transform", label: "Transformação (Tesouro)" },
   { key: "treasure-card", label: "Carta (Tesouro)" },
   { key: "curse-card", label: "Carta (Maldição)" },
+  { key: "monster-card", label: "Carta (Monstro)" },
 ] as const;
 
 export default function SpritesClient({
@@ -290,7 +291,7 @@ export default function SpritesClient({
                 {list.map((s) => (
                   <div key={s.id} className="sprite-card">
                     <div className="sprite-thumb">
-                      <img className={s.category === "treasure-card" || s.category === "curse-card" ? "card-art" : undefined} src={assetUrl(s.path)} alt={s.name} />
+                      <img className={["treasure-card", "curse-card", "monster-card"].includes(s.category) ? "card-art" : undefined} src={assetUrl(s.path)} alt={s.name} />
                     </div>
                     <div className="sprite-name" title={s.name}>{s.name}</div>
                     <div className="muted" style={{ fontSize: 11 }}>{s.width}×{s.height}</div>
