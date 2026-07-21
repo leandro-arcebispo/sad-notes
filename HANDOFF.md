@@ -801,6 +801,153 @@ deveria ser, o conserto é renomear o Tesouro em `/artefatos/tesouros` (nome é
 `UNIQUE COLLATE NOCASE`, então precisa ser um nome que ainda não exista) e
 trocar o ícone manualmente se o item certo for outro.
 
+### Maldições — catálogo implementado (commit pendente, 2026-07-21)
+
+Implementado o schema/API/tela planejados em `docs/PLANO-ARTEFATOS.md` §11
+(criado na sessão anterior). **Só o catálogo** — nada de `game_player_curses`
+nem desbloqueio, exatamente como decidido no plano.
+
+- **Schema:** `curses` (id, `name` COLLATE NOCASE UNIQUE, `card_sprite_id` →
+  sprites, created_at) no `initSchema` de `lib/db.ts` — sem migração
+  idempotente (tabela nova). Sem cascata manual em `deleteCurse` (não há
+  tabela filha ainda).
+- **Tipos/data layer/API:** `Curse`/`CurseFull`/`CurseInput` (`lib/types.ts`),
+  `lib/curses.ts` (list/get/create/update/delete, molde de `lib/treasures.ts`
+  mas sem a complexidade de ornamento/slot), `parseCurseInput`
+  (`lib/validation.ts`), `app/api/curses/route.ts` + `[id]/route.ts` (GET/
+  POST/PATCH/DELETE, mesmo formato de erro de duplicidade dos Tesouros).
+- **UI:** `/artefatos/maldicoes` (`components/CursesClient.tsx`) — **usuário
+  pediu explicitamente "o mesmo card de Tesouros"**: reaproveita as classes
+  `.treasure-grid`/`.treasure-card`/`.treasure-card-art` já existentes no
+  `globals.css` (nenhum CSS novo), só que o card mostra **carta + nome**, sem
+  os dois slots de ícone/transformação nem seletor de modo de desbloqueio —
+  o form é só nome + grid de sprites `curse-card`. Item novo "Maldições" na
+  Sidebar (`ARTIFACTS_NAV`, ícone `IconSkull` novo, mesmo padrão de ícone SVG
+  de traço do `IconBug`/`IconGear`).
+- **Oficina:** categoria de sprite `curse-card` adicionada ao segmentado de
+  `SpritesClient.tsx` — a constante local **foi renomeada** de
+  `TREASURE_CATEGORIES` pra `SPRITE_CATEGORIES` (deixou de ser exclusiva de
+  Tesouro). A regra da armadilha #9 (`.card-art` pra imagem não-pixel-art) foi
+  estendida pra também cobrir `curse-card`.
+- **Verificado end-to-end no browser:** criar Maldição de teste
+  (`__TESTE__ Amnésia`) via UI real (não só API — uma tentativa via `curl`
+  mostrou os acentos corrompidos, mas era só a codificação do heredoc do
+  shell Windows, não um bug do app; confirmado digitando pelo form de verdade
+  que o nome com acento salva e recarrega certinho), editar, remover — tudo
+  limpo ao final. `npx tsc --noEmit` limpo. Sem erro no console.
+- **Conferência do banco local (2026-07-21):** os mesmos **12 Tesouros sem
+  ícone** já documentados em 2026-07-20 continuam os mesmos, nenhum mudou:
+  Baby Haunt, Cursed Soul, Daddy Haunt, Decoy, Fetal Haunt, Portable Slot
+  Machine, Shadow, Steamy Sale!, The Chest, The Map, The Shovel, Two Of Clubs
+  — todos com `card_sprite_id` preenchido (carta pronta pra virar Maldição
+  assim que o usuário confirmar quais são quais). Trabalhado em branch
+  própria (`feat/artefato-maldicoes`, a partir da `master` já com o merge do
+  PR #2).
+
+### Migração de 4 Maldições (Baby Haunt, Cursed Soul, Daddy Haunt, Fetal
+Haunt) de `treasures` pra `curses` — local e prod (2026-07-21)
+
+Usuário confirmou, dentre os 12 candidatos acima, que **estes 4 são
+Maldições de verdade** (os outros 8 seguem pendentes de triagem — não
+tocados). Script descartável (`_migrate-curses.mjs`, raiz do projeto,
+removido depois em ambas as rodadas, padrão da armadilha #8) rodou
+primeiro em **dry-run** (só leitura, conferindo `icon_ornament_id`/
+`transform_ornament_id` ainda `NULL` e contando `game_player_treasures`
+referenciando cada um — 0 nos dois bancos, nenhum tinha sido registrado
+numa partida real) e só depois em modo de escrita: pra cada um, insere a
+linha equivalente em `curses` (reaproveitando o mesmo `card_sprite_id` já
+existente, sem re-upload) e só então apaga a linha de `treasures` (ordem
+que respeita a armadilha #7 — repontar/criar antes de apagar o que ficaria
+órfão, embora aqui não houvesse FK entrando em conflito por não haver
+ornamento nenhum nos 4).
+
+- **Local:** `treasures` 158→154, `curses` 0→4. Verificado no browser:
+  `/artefatos/maldicoes` lista os 4 com a carta certa (mesmos arquivos
+  `treasure-card` de antes, servidos com 200), `/artefatos/tesouros` caiu
+  pra "Tesouros (154)" sem mais mostrar os 4. Zero erro no console.
+- **Prod:** primeira tentativa deu **401** na conexão Turso mesmo num
+  `SELECT 1` — o token de `.env.production.local` tinha expirado/rotacionado
+  desde a sessão anterior (nada a ver com o código; confirmado isolando a
+  conexão fora do script). Usuário gerou um token novo no painel do Turso e
+  atualizou o arquivo; com o token novo, dry-run e execução rodaram limpos.
+  **Resultado em prod:** `treasures` 159→155, `curses` 0→4 (mesmos 4 nomes,
+  ids próprios de prod — card_sprite_id resolvido a partir do **próprio**
+  `treasures` da prod, nunca cruzando id do local com o de prod).
+  `sheets`/`players`/`games` sem nenhuma mudança causada por este script
+  (12/6/0 — a diferença de contagem de `players` frente a sessões
+  anteriores é o usuário usando o app entre sessões, não algo que este
+  script tocou).
+- **Restam 8 dos 12 pendentes** (Decoy, Portable Slot Machine, Shadow,
+  Steamy Sale!, The Chest, The Map, The Shovel, Two Of Clubs) — ainda sem
+  triagem do usuário, continuam em `treasures` sem ícone nos dois bancos.
+  Repetir exatamente este processo (dry-run primeiro, sempre) quando o
+  usuário trouxer o veredito desses.
+
+### Import de 15 Maldições oficiais + campo `locked` (2026-07-21)
+
+O usuário apontou que a carta de Maldição existe de verdade no jogo
+eletrônico/físico dentro do **baralho de Monstro** (Monstros é um Artefato
+futuro, ainda não implementado) e passou a URL
+`foursouls.com/card-search/?...&card_type=monster`. **Achado:** essa busca,
+apesar do parâmetro `card_type=monster`, devolve as cartas reais de
+**Maldição** (`alt="Curse Of ..."`) — o site categoriza Curse como um
+subtipo de "monster" internamente. Isso é a fonte oficial e completa das
+Maldições do jogo (**15 cartas**, sem paginação, `curl` puro basta — mesmo
+método de sempre), nada a ver com o scraping incompleto/impreciso da Fase A
+que gerou a confusão original com Tesouro.
+
+- **Divisão por produto:** 5 do Base Game V2 (`b2`) + 4 do Requiem (`r`) = 9
+  dos produtos que o grupo joga (mesmo critério já usado no import dos 158
+  Tesouros) + 6 de expansões que o grupo não joga hoje (`g2` ×2, `fsp2` ×2,
+  `soi` ×1, `rwz` ×1). **Decisão do usuário: importar as 15, mas marcar as 6
+  extras como "bloqueadas"** — não ficam de fora do catálogo (o grupo pode
+  querer essas cartas no futuro), só aparecem visualmente indisponíveis.
+- **Schema novo:** coluna `curses.locked` (INTEGER, default 0). Como
+  `curses` já tinha linhas reais (as 4 migradas na sessão anterior), não dá
+  pra usar só `CREATE TABLE IF NOT EXISTS` — precisou de um **helper de
+  migração idempotente** novo em `lib/db.ts` (`ensureColumn()`, checa
+  `PRAGMA table_info` antes do `ALTER TABLE ADD COLUMN`, primeiro desde a
+  reescrita pro libSQL/Vercel — o `migrateSchema()` antigo do
+  better-sqlite3 tinha sido descartado na migração). Chamado no fim do
+  `initSchema()`.
+- **UI:** checkbox "Bloqueada" no form (`CursesClient.tsx`), classe
+  `.treasure-card.locked` no `globals.css` (opacidade 0.55 + grayscale na
+  carta) + label "Bloqueada" no card — mesma linguagem visual já usada em
+  `.ornament-row.locked` (Tesouro bloqueado no `AvatarEditor`), só que
+  aplicada ao componente de carta em vez de linha de lista. Confirmado
+  visualmente com `computer{screenshot}` (funcionou nesta sessão, ao
+  contrário do timeout recorrente registrado na armadilha #5 — pode já ter
+  sido corrigido no ambiente, mas manter `read_page`/`javascript_tool` como
+  plano B se voltar a travar).
+- **Import (script descartável `_import-curses.mjs`, removido depois em
+  ambas as rodadas):** baixa a carta oficial (`data-src` do card-search,
+  mesmo padrão da Fase A), grava sprite categoria `curse-card` (Blob em
+  prod / disco em dev, mesmo `putImage` conceitual mas escrito solto porque
+  scripts fora do Next não resolvem os imports TS — armadilha já conhecida)
+  + linha `curses` com `locked` conforme o produto. Idempotente por nome
+  (`COLLATE NOCASE`, pula se já existir).
+- **Local:** dry-run limpo (zero colisão de nome) → execução: 15
+  sprites + 15 curses criados. Verificado no browser: `/artefatos/maldicoes`
+  lista as 19 (4 antigas + 15 novas), as 6 bloqueadas aparecem esmaecidas em
+  grayscale com o rótulo "Bloqueada", zero erro no console.
+- ⚠️ **Armadilha nova (script solto x schema do app):** a primeira tentativa
+  em prod falhou no meio (`SQLITE_UNKNOWN: table curses has no column named
+  locked`) porque o script de import, escrito solto (fora de `lib/db.ts`),
+  não roda `ensureColumn()` — só o app de verdade (via `getClient()`) migra
+  o schema. Isso já tinha acontecido antes com a tabela em si (script de
+  migração anterior precisou recriar o `CREATE TABLE IF NOT EXISTS` local).
+  **Efeito colateral:** a primeira carta do lote (`Curse Of Amnesia`) já
+  tinha subido sprite+Blob antes de falhar no insert de `curses`, deixando
+  um **sprite órfão em prod** (id 338) — identificado por leitura
+  (`category='curse-card'` sem `curses` correspondente) e limpo (Blob
+  `del()` + `DELETE FROM sprites`) antes de rodar a coluna `ALTER TABLE` e
+  reexecutar o import do zero. **Lição:** scripts soltos que tocam schema
+  precisam repetir manualmente qualquer migração de coluna nova que o app
+  faria sozinho — não assumir que rodar contra prod uma vez "adianta" pra
+  próxima tabela/coluna nova.
+- **Resultado final em prod:** `curses` 4→19 (6 `locked=1`), `treasures`
+  inalterado (155), `sheets`/`players`/`games` inalterados (12/6/0).
+
 ### 9 ícones a mais achados em seções fora de "Items" (2026-07-20)
 
 Depois da lista de pendentes ser mostrada pro usuário, ele fez uma busca fina
@@ -1016,16 +1163,18 @@ precisamente pelo que você mesmo criou (por id ou por um prefixo de nome tipo
      empurrar algo direto na `master` numa emergência, ainda dá, sem
      precisar desfazer a regra primeiro.
 8. **Maldições são um artefato separado de Tesouros (decidido em
-   2026-07-20, ainda não implementado):** ao investigar os Tesouros sem
-   ícone, descobriu-se que alguns dos 158 importados do foursouls.com (Fase
-   A) não são Tesouros de verdade — são **Maldições**, mecânica diferente
-   do board game que entrou junto por engano de escopo do scraping. Não
-   viram um novo `unlock_mode` nem um campo dentro de `treasures`: o
-   usuário quer uma **tela/tabela nova e independente** pra Maldições. Ver
-   detalhe e lista de candidatos na sessão "9 ícones a mais" (2026-07-20,
-   mais acima) — quando essa feature for implementada, os registros
-   identificados como Maldição devem ser **removidos** de `treasures`
-   depois (não antes) do novo artefato existir.
+   2026-07-20; catálogo implementado em 2026-07-21, ver sessão
+   correspondente mais acima):** ao investigar os Tesouros sem ícone,
+   descobriu-se que alguns dos 158 importados do foursouls.com (Fase A) não
+   são Tesouros de verdade — são **Maldições**, mecânica diferente do board
+   game que entrou junto por engano de escopo do scraping. Não viraram um
+   novo `unlock_mode` nem um campo dentro de `treasures`: ganharam uma
+   **tabela/tela nova e independente** (`curses` + `/artefatos/maldicoes`).
+   Ver detalhe e lista de candidatos na sessão "9 ícones a mais" (2026-07-20)
+   e o resultado em "Maldições — catálogo implementado" (2026-07-21, mais
+   acima) — os registros identificados como Maldição ainda precisam ser
+   **removidos** de `treasures` depois de migrados pra `curses` (migração em
+   si ainda pendente da triagem do usuário).
 9. **"Artefato" é um conceito mais amplo do que Tesouro (reformulado em
    2026-07-20):** um Artefato é qualquer entidade cadastrável do jogo usada
    pra **registro estruturado de partida** (seleção, não texto livre) —
@@ -1150,16 +1299,103 @@ cartas de Tesouro (`treasure-card`, arte ilustrada baixada de
 foursouls.com, 308×420) — o usuário reportou "resolução estranha" nos cards
 pequenos.
 
-**Regra:** toda imagem que não é pixel art (hoje só `treasure-card`; se
-aparecer outra categoria de arte "lisa" no futuro, o mesmo vale) precisa da
-classe `card-art` no `<img>` (`img.card-art { image-rendering: auto; }`, fim
-do `globals.css` — mesma especificidade das regras de sprite/ornamento
-acima, vence por vir depois no arquivo). Lugares que já aplicam:
-`TreasuresClient.tsx` (thumb da lista + picker do form) e `SpritesClient.tsx`
-(catálogo da Oficina, condicional a `s.category === "treasure-card"` porque
-esse catálogo lista todas as categorias juntas). Se adicionar um novo lugar
-que renderize `card_sprite_path`/sprite de categoria `treasure-card`, lembre
-de aplicar a classe lá também.
+**Regra:** toda imagem que não é pixel art (`treasure-card` e, desde
+2026-07-21, também `curse-card`; se aparecer outra categoria de arte "lisa"
+no futuro, o mesmo vale) precisa da classe `card-art` no `<img>`
+(`img.card-art { image-rendering: auto; }`, fim do `globals.css` — mesma
+especificidade das regras de sprite/ornamento acima, vence por vir depois
+no arquivo). Lugares que já aplicam: `TreasuresClient.tsx`/`CursesClient.tsx`
+(thumb da lista + picker do form) e `SpritesClient.tsx` (catálogo da
+Oficina, condicional a `s.category === "treasure-card" || "curse-card"`
+porque esse catálogo lista todas as categorias juntas). Se adicionar um
+novo lugar que renderize `card_sprite_path`/sprite de categoria de carta,
+lembre de aplicar a classe lá também.
+
+### 10. Scripts soltos (fora do Next) não migram schema sozinhos
+
+`lib/db.ts::initSchema()` (incluindo o helper `ensureColumn()` que faz
+`ALTER TABLE ADD COLUMN` idempotente) só roda dentro de `getClient()` —
+ou seja, só quando o **app de verdade** conecta (via `npm run dev`/`start`
+ou uma rota chamando `lib/db.ts`). Um script solto na raiz do projeto que
+cria seu próprio `createClient()` direto (padrão de todos os
+`scripts/sync-*.mjs` e dos `_*.mjs` descartáveis) **não** passa por isso —
+se o schema mudou desde a última vez que o app rodou contra aquele banco
+(nova tabela ou nova coluna), o script quebra no meio com erro de SQLite
+(`no such table`/`has no column named ...`), podendo deixar dado parcial
+gravado nas tabelas que já tinham sido escritas antes da que falhou.
+
+**Regra:** todo script solto que grava em tabela nova/coluna nova precisa
+repetir manualmente o DDL relevante (`CREATE TABLE IF NOT EXISTS`/
+`ALTER TABLE ADD COLUMN` guardado por `PRAGMA table_info`) logo no início,
+mesmo que o app já tenha rodado contra aquele banco antes — nunca assumir
+que "já rodei um script aqui uma vez" cobre a próxima mudança de schema.
+Se o script falhar no meio de um loop, **sempre conferir por leitura** se
+alguma escrita parcial (ex.: um sprite sem a linha que deveria referenciá-lo)
+ficou órfã antes de tentar de novo — mordeu num sprite+Blob órfão em prod
+nesta sessão (Curse Of Amnesia, id 338), limpo antes do reprocessamento.
+
+### Novo Artefato "Monstros" — catálogo implementado + 124 importados (2026-07-21)
+
+Usuário pediu o próximo Artefato do `PLANO-ARTEFATOS.md` §12: **Monstros**
+(*"Jogador Mané matou monstro X"*). Passou a URL
+`foursouls.com/card-search/?...&card_type=monster` (a busca **real** de
+monstro, diferente da usada nas Maldições — aquela tinha
+`card_footnotes=c`, essa não) e pediu **só os do jogo base + Requiem**.
+
+- **Schema/API/tela:** mesmo molde simples de Maldição (não o de Tesouro) —
+  tabela `monsters` (`name` COLLATE NOCASE UNIQUE, `card_sprite_id`, sem
+  campo `locked`), `lib/monsters.ts`, `parseMonsterInput`,
+  `app/api/monsters/**`, tela `/artefatos/monstros`
+  (`components/MonstersClient.tsx`, cópia do `CursesClient` sem o
+  checkbox/classe de bloqueado). Categoria de sprite `monster-card` na
+  Oficina + extensão do `.card-art`. Nav "Monstros" com ícone novo
+  `IconClaw` (mesmo padrão SVG de traço do `IconSkull`).
+- **Achado importante ao raspar a fonte:** a busca por produto (`b2`+`r`)
+  devolveu **160 linhas brutas**, com **4 nomes duplicados** (reimpressão/
+  variante de arte: `Chest`/`Dark Chest`/`Gold Chest` com um slug `_2`, e
+  `Troll Bombs` reimpresso em `r`) — dedup manteve o slug sem sufixo `_2`
+  (ou o primeiro visto em empate), resultando em **156 candidatos únicos**.
+- ⚠️ **Descoberta igual à das Maldições, mais grave aqui:** o `card_type=monster`
+  do site mistura **três coisas diferentes** no "baralho de monstro" do
+  jogo físico — monstros de verdade, as próprias cartas de Maldição (as
+  mesmas 9 já importadas), e **cartas de Evento** (Good/Bad Event, ex.:
+  `Ambush!`, `Chest`, `Devil Deal`, `Secret Room!`) que ficam no baralho
+  mas não são criaturas pra "matar". Palpite inicial por padrão de nome
+  (`!` no final = evento) **provou-se errado** — bosses de verdade também
+  têm `!` no nome (`Mom!`, `Satan!`, `MOTHER!`, `Ultra Greed!`). **Método
+  confiável:** buscar a página individual de cada carta
+  (`foursouls.com/cards/<produto>-<slug>/`) e extrair o rótulo de tipo real
+  que o próprio site imprime ali (ex.: "Base Game V2 Basic Monster Card",
+  "Requiem Boss Card", "... Holy/Charmed Monster Card", "... Bad Event
+  Card") — 156 fetches individuais, script descartável, resultado
+  conferido com o usuário antes de importar.
+- **Classificação real dos 156:** Basic Monster (46) + Boss (43) +
+  Holy/Charmed Monster (17) + Cursed Monster (10) + Epic Boss (8) = **124
+  monstros de verdade** (importados) · Curse (9, já são Maldição — não
+  duplicados) · Good Event (15) + Bad Event (8) = 23 cartas de Evento (fora
+  de escopo do Artefato Monstro). Usuário confirmou excluir os 32 que não
+  são monstro antes de eu rodar a importação.
+- **Detalhe técnico:** nomes com apóstrofo vêm como entidade HTML
+  (`&#8217;`, ex. `Mom&#8217;s Hand`) na extração via regex sobre o HTML
+  cru (ao contrário de ler `alt=` pelo DOM do browser, que já decodifica) —
+  decodificados manualmente (`&#8217;` → `'`) antes de gravar; confirmado
+  no browser que "Mom's Hand"/"Holy Mom's Eye"/etc. aparecem certos.
+- **Import (script descartável, removido depois em ambas as rodadas):**
+  mesmo padrão do import de Maldição — baixa a carta oficial, grava sprite
+  categoria `monster-card` (Blob em prod / disco em dev) + linha
+  `monsters`, idempotente por nome.
+- **Armadilha repetida (já catalogada como #10):** a primeira tentativa em
+  prod falhou com `no such table: monsters` — o script solto não passa
+  pelo `initSchema()` do app. Resolvido rodando o `CREATE TABLE IF NOT
+  EXISTS monsters` manualmente em prod antes do import (mesma lição da
+  sessão anterior com `curses.locked`, reforça a regra: sempre repetir o
+  DDL relevante ao escrever via script solto).
+- **Resultado:** local e prod idênticos — `monsters` 0→124,
+  `curses`/`treasures`/`sheets`/`players`/`games` sem nenhuma mudança
+  colateral (19/155/12/6/0 nos dois bancos). Verificado no browser (tela
+  lista 124, paginação, cartas carregam, zero erro no console).
+- **Próximo Artefato planejado seria "Salas"** (§13, ainda não pedido nesta
+  sessão) — ver `docs/PLANO-ARTEFATOS.md` quando for a vez.
 
 ## Onde as coisas estão (mapa rápido)
 
@@ -1175,23 +1411,30 @@ app/
   partidas/[id]/page.tsx          Detalhe da partida (coluna "Tesouros": ícones + itens legados)
   sprites/page.tsx                 Oficina (Admin): abas Spritesheets/Sprites — SÓ corta sprites
   artefatos/tesouros/page.tsx      CRUD de Tesouros + posicionamento (TreasuresClient)
+  artefatos/maldicoes/page.tsx     CRUD de Maldições, só carta+nome (CursesClient)
+  artefatos/monstros/page.tsx      CRUD de Monstros, só carta+nome (MonstersClient)
   spritesheets/ e ornamentos/       REMOVIDAS — redirect → /sprites (next.config.ts)
   backlog/page.tsx                 Backlog: form de bug/melhoria/feature + lista (Admin)
   api/**                           Rotas REST (players, games, characters,
-                                    sprites, sheets, ornaments, treasures,
-                                    feedback, players/[id]/avatar/*)
+                                    sprites, sheets, ornaments, treasures, curses,
+                                    monsters, feedback, players/[id]/avatar/*)
                                     — api/items FOI REMOVIDA (sem consumidor)
 lib/
   db.ts               conexão libSQL (async) + helpers all/get/run + schema + settings
+                        + ensureColumn() (migração idempotente de coluna nova)
   types.ts            todos os tipos (Player, Game, Sprite, Ornament, Treasure,
-                        UnlockMode, AvatarRecipe...)
-  validation.ts        parsePlayerInput / parseGamePayload / parseTreasureInput
+                        Curse, Monster, UnlockMode, AvatarRecipe...)
+  validation.ts        parsePlayerInput / parseGamePayload / parseTreasureInput /
+                        parseCurseInput / parseMonsterInput
   players.ts, characters.ts, games.ts   data layer core
   feedback.ts         data layer do Backlog (list/create/updateStatus/delete)
   sprites.ts, ornaments.ts, treasures.ts, player-avatar.ts   data layer do
                         pipeline de avatar + Tesouros. treasures.ts também
                         tem resolveTreasureId (transacional, casa por nome
                         ou cria pendente — usado por games.ts::createGame)
+  curses.ts            data layer de Maldições (list/get/create/update/delete —
+                        catálogo puro, sem ornamento/desbloqueio/cascata)
+  monsters.ts          data layer de Monstros — mesmo molde de curses.ts
   unlocks.ts           sistema de desbloqueio PLUGÁVEL (registro de modos) —
                         getUnlockedTreasureIds/isTreasureUnlockedForPlayer
   avatar-geometry.ts   geometria PURA compartilhada (cliente+servidor)
@@ -1213,8 +1456,14 @@ components/
                                         cadastrados + chips de pendentes + campo
                                         de texto livre (0+ por jogador)
   BacklogClient                        form + lista do Backlog (Admin)
-  SpritesClient                        catálogo de sprites (categorias fixas de Tesouro)
+  SpritesClient                        catálogo de sprites (categorias fixas por
+                                        papel de Artefato — `SPRITE_CATEGORIES`)
   TreasuresClient                       CRUD de Tesouros + posicionamento (icon/transform)
+  CursesClient                          CRUD de Maldições — mesmo card visual de
+                                        Tesouro (reaproveita `.treasure-*` do CSS),
+                                        só carta+nome, sem posicionamento
+  MonstersClient                        CRUD de Monstros — cópia do CursesClient
+                                        sem o campo `locked`
   OrnamentBuilder                       NÃO usado em nenhuma página — reservado
                                         pra futura tela de autoria de cabelo,
                                         não é dead code a apagar
@@ -1226,9 +1475,11 @@ docs/
   ROADMAP.md          todas as features + status + ordem de implementação
   STYLE-GUIDE.md       identidade visual (paleta, tipografia, componentes)
   PLANO-ARTEFATOS.md   plano do catálogo de Artefatos (Tesouros implementado;
-                        Maldições/Monstros/Salas planejados, não implementados)
-                        — reformulado em 2026-07-20 com visão mais ampla; leia
-                        antes de mexer nesse sistema
+                        Maldições implementado — 8 dos 158 ainda em triagem;
+                        Monstros implementado — 124 importados; Salas
+                        planejada, não implementada) — reformulado em
+                        2026-07-20 com visão mais ampla; leia antes de mexer
+                        nesse sistema
   PLANO-COSMETICOS-AVATAR.md  plano (não implementado) de generalizar o
                         desbloqueio de cosmético pra além de Tesouro (ex.:
                         Personagem por vitória)

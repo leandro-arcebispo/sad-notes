@@ -396,26 +396,60 @@ CREATE TABLE IF NOT EXISTS curses (
   paginada + busca + form atrás de botão) só que sem a tela de posicionamento
   de ornamentos (não existe ícone/transform pra posicionar).
 
+### Status: catálogo implementado (2026-07-21)
+
+Schema + API + tela existem agora, exatamente como proposto acima: tabela
+`curses` (`lib/db.ts`), tipos `Curse`/`CurseFull`/`CurseInput` (`lib/types.ts`),
+data layer `lib/curses.ts` (list/get/create/update/delete — sem cascata manual,
+não há tabela filha ainda), `parseCurseInput` (`lib/validation.ts`),
+`app/api/curses/route.ts` + `[id]/route.ts`, tela `/artefatos/maldicoes`
+(`components/CursesClient.tsx` — mesmo card visual de Tesouro via as classes
+`.treasure-grid`/`.treasure-card`/`.treasure-card-art` já existentes, só carta
++ nome, sem slots de ícone/transformação nem seletor de desbloqueio) + item
+"Maldições" na Sidebar (`ARTIFACTS_NAV`, ícone `IconSkull` novo). Categoria de
+sprite nova `curse-card` adicionada ao segmentado da Oficina (renomeado de
+`TREASURE_CATEGORIES` pra `SPRITE_CATEGORIES` em `SpritesClient.tsx`, já que
+deixou de ser exclusivo de Tesouro) — a classe `.card-art` (não-pixelada) do
+armadilha #9 do HANDOFF também foi estendida pra essa categoria.
+
 ### Migração dos dados já importados por engano
 
-Depois que o schema/tela de Maldições existir:
+O processo (identificar → criar em `curses` reaproveitando o
+`card_sprite_id` → só depois remover de `treasures` → repetir na prod lendo
+antes de escrever) está descrito no `HANDOFF.md`, seção "Migração de 4
+Maldições... — local e prod (2026-07-21)". Dos 12 candidatos (§10), o
+usuário já confirmou **4 como Maldição de verdade** — migrados em local e
+prod: **Baby Haunt, Cursed Soul, Daddy Haunt, Fetal Haunt**.
 
-1. Usuário identifica, dentre os Tesouros sem ícone (§10), quais são
-   Maldição de verdade (nenhuma automação segura pra essa triagem — é
-   conhecimento de regras do jogo, não um padrão de dado).
-2. Pra cada um: criar a linha correspondente em `curses` (reaproveitando o
-   `card_sprite_id` que já existe em `treasures` — a carta já foi
-   recortada/importada no §10, não precisa baixar de novo).
-3. **Só depois** de confirmado que a Maldição existe no novo artefato,
-   remover a linha de `treasures` (e, se houver, o sprite/ornamento
-   associado que não deveria existir).
-4. Repetir a mesma migração na prod (mesmo princípio de sempre: reconhecer
-   por leitura antes de escrever, nunca assumir que prod é subconjunto do
-   local).
+**Restam 8 sem triagem** (continuam em `treasures` sem ícone, nos dois
+bancos): Decoy, Portable Slot Machine, Shadow, Steamy Sale!, The Chest, The
+Map, The Shovel, Two Of Clubs. Podem ser Maldição ou Tesouro só renomeado
+(§11 acima) — repetir o mesmo processo quando o usuário trouxer o
+veredito.
 
-**Não fazer nenhuma parte disso adiantado** — schema/tela de Maldições
-precisam existir primeiro (regra já registrada no `HANDOFF.md`, decisão de
-arquitetura #7).
+### Import das 15 Maldições oficiais + campo `locked` (2026-07-21)
+
+Além da migração acima (Maldições que vieram misturadas nos Tesouros), o
+usuário trouxe a fonte **oficial e completa** de Maldição do jogo: o
+card-search do `foursouls.com` filtrado por `card_type=monster` devolve as
+15 cartas reais de Curse (o site as categoriza como um subtipo de
+"monster" — condiz com o board game, onde Maldição fica dentro do baralho
+de Monstro). Importadas todas as 15 (nome + carta oficial, mesmo padrão de
+sprite `curse-card` da Fase A de Tesouros), local e prod.
+
+**Campo novo `curses.locked`** (0/1): 9 das 15 são dos produtos que o grupo
+joga (Base Game V2 + Requiem, mesmo critério do import de Tesouros) e
+ficam desbloqueadas; as outras 6 (de expansões que o grupo não joga hoje)
+foram cadastradas mesmo assim, mas com `locked=1` — aparecem esmaecidas/
+grayscale no catálogo (`.treasure-card.locked` no `globals.css`), decisão
+explícita do usuário ("importe todas, mas com layer de bloqueado") em vez
+de simplesmente excluir as 6 do escopo como foi feito nos Tesouros.
+Detalhe completo (incluindo a armadilha de script solto que não migra
+schema sozinho) no `HANDOFF.md`, seção "Import de 15 Maldições oficiais +
+campo `locked`".
+
+**Total de Maldições agora: 19** (4 migradas de Tesouro + 15 oficiais, 6
+delas bloqueadas) — nos dois bancos.
 
 ### Perguntas em aberto (confirmar com o usuário antes de implementar)
 
@@ -462,6 +496,23 @@ CREATE TABLE IF NOT EXISTS game_player_monsters (
   `TreasurePicker` (ícones cadastrados + pendente por nome livre), pra não
   travar registro de partida atrás do cadastro manual de sprite de cada
   monstro do jogo.
+
+### Status: catálogo implementado + 124 importados (2026-07-21)
+
+Implementado no mesmo molde simples de Maldição, não no proposto acima —
+`monsters` ficou `card_sprite_id` (carta ilustrativa inteira, categoria de
+sprite `monster-card`) em vez de `sprite_id`/`monster-icon`, já que a fonte
+é o card-search oficial (carta completa), igual Tesouro/Maldição. **Sem**
+`game_player_monsters` nesta primeira versão (catálogo puro, sem
+integração com o registro de partida ainda — as perguntas abaixo sobre
+repetição/chefão continuam em aberto pra quando isso for implementado).
+
+Importados os **124 monstros reais** do jogo base + Requiem, direto do
+card-search oficial (`card_type=monster`). Descoberta importante: essa
+busca mistura monstro de verdade com as próprias cartas de Maldição (9,
+não duplicadas) e cartas de Evento (23, fora de escopo) — a triagem exata
+por tipo real (lendo a página de cada carta) está detalhada no
+`HANDOFF.md`, seção "Novo Artefato 'Monstros'". Local e prod idênticos.
 
 ### Perguntas em aberto (confirmar com o usuário antes de implementar)
 
@@ -550,6 +601,9 @@ CREATE TABLE IF NOT EXISTS game_rooms (
 - [x] **Personagens** — catálogo pré-existente (`characters`), já usado no
   registro estruturado de partida antes mesmo deste plano existir.
 - [x] **Tesouros** — Fases 0–5 + revisões (§3–§10) — implementado, local e prod.
-- [ ] **Maldições** — planejado (§11), não implementado.
-- [ ] **Monstros** — planejado (§12), não implementado.
+- [x] **Maldições** — catálogo implementado (§11, schema/API/tela, campo
+  `locked`); 19 cadastradas local+prod (4 migradas de Tesouro + 15 oficiais,
+  6 delas `locked`); 8 Tesouros ainda pendentes de triagem (§10).
+- [x] **Monstros** — catálogo implementado (§12); 124 importados (local+prod)
+  do jogo base+Requiem.
 - [ ] **Salas** — planejado (§13), não implementado.

@@ -214,6 +214,54 @@ export interface TreasureInput {
   unlock_mode: UnlockMode;
 }
 
+/* ============================ Maldições (Artefatos) ========================= */
+
+/** Uma Maldição = carta + nome, sem cosmético de avatar (diferente de Tesouro:
+ * não existe "ícone posicionado" nem "transformação" pra Maldição). Catálogo
+ * de referência puro — ver docs/PLANO-ARTEFATOS.md §11. */
+export interface Curse {
+  id: number;
+  name: string;
+  card_sprite_id: number | null;
+  /** 1 = carta de uma expansão que o grupo não joga hoje — aparece esmaecida
+   * no catálogo, mas continua cadastrada (histórico/referência). */
+  locked: number;
+  created_at: string;
+}
+
+/** Maldição com o sprite da carta já resolvido, para exibição/CRUD. */
+export interface CurseFull extends Curse {
+  card_sprite_path: string | null;
+  card_sprite_name: string | null;
+}
+
+export interface CurseInput {
+  name: string;
+  card_sprite_id: number | null;
+  locked: boolean;
+}
+
+/* ============================ Monstros (Artefatos) ========================= */
+
+/** Um Monstro = carta + nome, mesmo molde de Maldição (catálogo puro, sem
+ * cosmético de avatar). Ver docs/PLANO-ARTEFATOS.md §12. */
+export interface Monster {
+  id: number;
+  name: string;
+  card_sprite_id: number | null;
+  created_at: string;
+}
+
+export interface MonsterFull extends Monster {
+  card_sprite_path: string | null;
+  card_sprite_name: string | null;
+}
+
+export interface MonsterInput {
+  name: string;
+  card_sprite_id: number | null;
+}
+
 /* ===================== Backlog / Feedback (Admin) ======================= */
 
 export const FEEDBACK_KINDS = ["bug", "melhoria", "feature"] as const;

@@ -10,13 +10,15 @@ type Rect = { x: number; y: number; w: number; h: number };
 
 const ZOOMS = [2, 4, 6, 8, 12];
 
-/** Papéis de sprite pro pipeline de Tesouros — únicas categorias cadastráveis
+/** Papéis de sprite pro pipeline de Artefatos — únicas categorias cadastráveis
  * daqui pra frente (a Oficina virou um cortador puro; a categoria "cabelo"
  * legada segue existindo no catálogo, só não é mais oferecida aqui). */
-const TREASURE_CATEGORIES = [
-  { key: "treasure-icon", label: "Ícone" },
-  { key: "treasure-transform", label: "Transformação" },
-  { key: "treasure-card", label: "Carta" },
+const SPRITE_CATEGORIES = [
+  { key: "treasure-icon", label: "Ícone (Tesouro)" },
+  { key: "treasure-transform", label: "Transformação (Tesouro)" },
+  { key: "treasure-card", label: "Carta (Tesouro)" },
+  { key: "curse-card", label: "Carta (Maldição)" },
+  { key: "monster-card", label: "Carta (Monstro)" },
 ] as const;
 
 export default function SpritesClient({
@@ -34,7 +36,7 @@ export default function SpritesClient({
   const [sel, setSel] = useState<Rect | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [name, setName] = useState("");
-  const [category, setCategory] = useState<string>(TREASURE_CATEGORIES[0].key);
+  const [category, setCategory] = useState<string>(SPRITE_CATEGORIES[0].key);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -253,7 +255,7 @@ export default function SpritesClient({
               <div className="field">
                 <label>Categoria</label>
                 <div className="seg">
-                  {TREASURE_CATEGORIES.map((c) => (
+                  {SPRITE_CATEGORIES.map((c) => (
                     <button
                       key={c.key}
                       type="button"
@@ -289,7 +291,7 @@ export default function SpritesClient({
                 {list.map((s) => (
                   <div key={s.id} className="sprite-card">
                     <div className="sprite-thumb">
-                      <img className={s.category === "treasure-card" ? "card-art" : undefined} src={assetUrl(s.path)} alt={s.name} />
+                      <img className={["treasure-card", "curse-card", "monster-card"].includes(s.category) ? "card-art" : undefined} src={assetUrl(s.path)} alt={s.name} />
                     </div>
                     <div className="sprite-name" title={s.name}>{s.name}</div>
                     <div className="muted" style={{ fontSize: 11 }}>{s.width}×{s.height}</div>

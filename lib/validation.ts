@@ -12,6 +12,7 @@ import {
   UNLOCK_MODES,
   type BaseFace,
   type CharacterSelection,
+  type CurseInput,
   type Edition,
   type FeedbackArea,
   type FeedbackInput,
@@ -20,6 +21,7 @@ import {
   type GameFormat,
   type GamePayload,
   type GamePlayerInput,
+  type MonsterInput,
   type PlayerInput,
   type TreasureInput,
   type UnlockMode,
@@ -233,6 +235,41 @@ export function parseTreasureInput(
       transform_scale: clamp(b.transform_scale, 20, 300, 100),
       card_sprite_id: toIntOrNull(b.card_sprite_id),
       unlock_mode,
+    },
+  };
+}
+
+export function parseCurseInput(
+  body: unknown
+): { value: CurseInput } | { error: string } {
+  if (!body || typeof body !== "object") return { error: "corpo inválido" };
+  const b = body as Record<string, unknown>;
+
+  const name = typeof b.name === "string" ? b.name.trim() : "";
+  if (!name) return { error: "nome é obrigatório" };
+
+  return {
+    value: {
+      name,
+      card_sprite_id: toIntOrNull(b.card_sprite_id),
+      locked: Boolean(b.locked),
+    },
+  };
+}
+
+export function parseMonsterInput(
+  body: unknown
+): { value: MonsterInput } | { error: string } {
+  if (!body || typeof body !== "object") return { error: "corpo inválido" };
+  const b = body as Record<string, unknown>;
+
+  const name = typeof b.name === "string" ? b.name.trim() : "";
+  if (!name) return { error: "nome é obrigatório" };
+
+  return {
+    value: {
+      name,
+      card_sprite_id: toIntOrNull(b.card_sprite_id),
     },
   };
 }

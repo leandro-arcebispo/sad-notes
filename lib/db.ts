@@ -195,6 +195,20 @@ async function initSchema(db: Client): Promise<void> {
       PRIMARY KEY (game_player_id, treasure_id)
     );
 
+    CREATE TABLE IF NOT EXISTS curses (
+      id             INTEGER PRIMARY KEY AUTOINCREMENT,
+      name           TEXT NOT NULL COLLATE NOCASE UNIQUE,
+      card_sprite_id INTEGER REFERENCES sprites(id),
+      created_at     TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS monsters (
+      id             INTEGER PRIMARY KEY AUTOINCREMENT,
+      name           TEXT NOT NULL COLLATE NOCASE UNIQUE,
+      card_sprite_id INTEGER REFERENCES sprites(id),
+      created_at     TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS feedback (
       id          INTEGER PRIMARY KEY AUTOINCREMENT,
       kind        TEXT NOT NULL DEFAULT 'bug',
@@ -220,8 +234,25 @@ async function initSchema(db: Client): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_sheets_created ON sheets(created_at);
     CREATE INDEX IF NOT EXISTS idx_gpt_treasure ON game_player_treasures(treasure_id);
   `);
+  await ensureColumn(db, "curses", "locked", "INTEGER NOT NULL DEFAULT 0");
   await seedDefaultSettings(db);
   await seedCharactersIfEmpty(db);
+}
+
+/** Adiciona uma coluna a uma tabela já existente, se ela ainda não existir —
+ * `CREATE TABLE IF NOT EXISTS` não cobre colunas novas em tabelas que já têm
+ * dado real, e rodar `ALTER TABLE ADD COLUMN` duas vezes falha. */
+async function ensureColumn(
+  db: Client,
+  table: string,
+  column: string,
+  ddl: string
+): Promise<void> {
+  const info = await db.execute(`PRAGMA table_info(${table})`);
+  const exists = info.rows.some((r) => String(r[1]) === column);
+  if (!exists) {
+    await db.execute(`ALTER TABLE ${table} ADD COLUMN ${column} ${ddl}`);
+  }
 }
 
 async function seedCharactersIfEmpty(db: Client): Promise<void> {
