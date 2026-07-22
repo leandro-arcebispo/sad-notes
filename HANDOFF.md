@@ -1115,6 +1115,75 @@ Sessão 2026-07-22 (Backlog vira Kanban colaborativo):
   reescrita) — `.bl-tag` e `.backlog-desc` foram mantidos, ainda usados no
   modal.
 
+Sessão 2026-07-22 (continuação — sincroniza com o remoto, troca o visual do
+card, move o form pra modal, e migra os 5 itens reais de Backlog da prod):
+- **Achado:** o checkout local estava 9 commits atrás de `origin/master` —
+  Maldições (catálogo + tela `/artefatos/maldicoes`) e Monstros (124
+  importados + tela `/artefatos/monstros`) **já tinham sido implementados e
+  mergeados** em sessões anteriores, só não tinham chegado nesta janela de
+  contexto. Resolvido criando a branch `feat/backlog-kanban` (a antiga
+  `fix/icones-tesouro-50px` já estava mergeada) e dando `git rebase
+  origin/master` nela. Dois conflitos reais, ambos porque as duas features
+  tocaram os mesmos arquivos: `lib/db.ts` (a branch remota já tinha criado um
+  `ensureColumn(db, table, column, ddl)` genérico pro mesmo problema que
+  este Kanban resolveu com um `migrateSchema()` ad-hoc — unificado pra usar
+  só o `ensureColumn`, ver armadilha #12 abaixo) e `HANDOFF.md` (só texto
+  descritivo, mesclado à mão). **Verificado depois do rebase:** Monstros
+  (124), Maldições (19) e o Kanban funcionando juntos, `tsc` limpo.
+- **Post-it trocado por card "desenhado":** o usuário achou o visual do
+  `note-postit..png` ruim na prática. Substituído por um card normal na
+  mesma linguagem do resto do app — painel (`var(--panel)`) com borda
+  esquerda de 4px colorida por tipo (`kind-bug`/`kind-melhoria`/
+  `kind-feature`, mesma paleta das tags `.bl-tag`), título + etiqueta
+  dourada do responsável quando houver (`.kanban-card`/`.kanban-card-title`/
+  `.kanban-card-assignee` no CSS). O PNG do post-it e o filtro de tintura por
+  CSS (`hue-rotate`) foram removidos do componente; o arquivo
+  `public/sheets/note-postit..png` **não foi apagado** (pode servir pra
+  outra coisa no futuro).
+- **Form de criação virou modal:** antes ficava sempre visível no topo da
+  página; agora só abre clicando em **"+ Novo card"** no cabeçalho do board
+  (mesmo padrão `.modal-backdrop`/`.modal-panel` do modal de detalhe). Fecha
+  sozinho ao salvar com sucesso.
+- **Nova capacidade: editar um card já criado.** Faltava desde o início — só
+  dava pra criar e mover de coluna/responsável, nunca corrigir
+  título/descrição/tipo/área/prioridade depois. `FeedbackPatch` (tipo) e
+  `parseFeedbackPatch` (validação) ganharam esses 5 campos opcionais, todos
+  seguindo o mesmo formato de validação do `parseFeedbackInput`.
+  `updateFeedback` (`lib/feedback.ts`) passou a fazer merge de **todo** o
+  patch contra a linha atual (`patch.campo ?? current.campo`) antes de
+  gravar — implementação de PATCH genuinamente parcial, o oposto do que
+  `PATCH /api/players/[id]` faz (armadilha #6: aquele sempre reescreve todos
+  os campos com default se ausente). No modal de detalhe, botão **"Editar"**
+  alterna pra um formulário inline (mesmos campos do modal de criação) com
+  "Salvar alterações"/"Cancelar".
+- **Motivo de ter descoberto a lacuna:** o usuário perguntou como migrar a
+  prod, que **já tinha 5 itens reais de Backlog** desde julho (relatos do
+  grupo, com descrições em markdown). Depois do `ALTER TABLE ADD COLUMN
+  title ... DEFAULT ''`, esses 5 ficariam com card em branco no kanban — e
+  sem a edição acima, não teria como corrigir pela UI. Título de cada um
+  extraído do cabeçalho markdown da própria descrição (3 dos 5 já tinham um
+  `# Título` no início) ou composto a partir do texto livre (os outros 2),
+  confirmado com o usuário antes de escrever.
+- **Migração da prod, executada nesta sessão** (`node
+  --env-file=.env.production.local <script>`, script descartável removido
+  depois — mesmo padrão de sempre): 1) `ensureColumn` criou
+  `feedback.title`/`feedback.assignee_player_id` na prod (idempotente, é a
+  mesma função que o app já roda sozinho no próximo boot — rodar antes só
+  adiantou o passo); 2) `UPDATE feedback SET title = ? WHERE id = ? AND
+  title = ''` pros 5 ids, então é seguro rodar de novo sem duplicar. Conferido
+  depois: os 5 títulos certos, e contagem de `players`/`games`/`sprites`/
+  `ornaments`/`treasures`/`curses`/`monsters` sem mudança inesperada (só
+  `players` variou, de fonte alheia a esta sessão — o usuário mexe na prod
+  entre sessões, ver aviso no topo do arquivo).
+- ⚠️ **Achado ao investigar:** o `.env.production.local` tinha um token do
+  Turso expirado/revogado (401 ao tentar ler) — o usuário renovou no
+  dashboard do Turso antes de eu conseguir ler/escrever. Se um 401 aparecer
+  de novo tentando acessar a prod, é isso, não um bug no client.
+- **Ainda não commitado nem enviado ao remoto** — branch `feat/backlog-kanban`
+  segue local, várias mudanças acumuladas sem commit (kanban + card
+  redesenhado + modal de criação + edição de card). O `push`/PR fica pra
+  quando o usuário pedir.
+
 ### Dados reais do usuário no banco (não são teste — não apagar)
 
 Desde 2026-07-19 sabemos que **local e prod são dois bancos com dado real
@@ -1167,6 +1236,16 @@ sessão de trabalho aqui):
   Belial" de fora por não existir em prod). `sprites` em prod: 169→306;
   `treasures` com ícone: 1→138.
 - 0 partidas registradas em prod até 2026-07-20.
+- **Backlog (`feedback`):** 5 itens reais desde julho (reportados pelo
+  grupo). Colunas `title`/`assignee_player_id` foram criadas na prod em
+  2026-07-22 (sessão do Kanban, `ensureColumn` rodado manualmente antes do
+  deploy do código novo) e os 5 títulos preenchidos — ver sessão acima pro
+  detalhe. **Atenção:** isso deixou o **banco** da prod na frente do
+  **código** que está de fato rodando lá (o processo de produção atual ainda
+  não conhece essas colunas/UI) — não é um problema (colunas extras não
+  quebram o app antigo), só um lembrete de que, quando o código novo for
+  publicado (`git pull` + `npm run build` + restart), os 5 títulos já vão
+  aparecer certos de primeira, sem precisar rodar nada de novo.
 
 **O usuário usa o app entre as sessões de trabalho — tanto local quanto
 publicado.** Isso já causou confusão mais de uma vez (dados que "apareceram"
@@ -1563,28 +1642,50 @@ trade-off de perspectiva aceito estão documentados na armadilha **#10** acima
   Antes do primeiro commit de uma tarefa nova, checar `git status`/`git
   branch` e abrir uma branch nova se a atual já carrega outro assunto.
 
-### 10. `migrateSchema()` não existe mais em `lib/db.ts` desde a migração pro Turso — mas volta a ser necessária pra colunas novas em tabela com dado real
+### 12. Coluna nova numa tabela que já existe precisa de migração idempotente — use `ensureColumn()`, não crie outra função
 
 A migração pro Turso (sessão 2026-07-14, ver acima) **removeu** a função
 `migrateSchema()` que existia antes (adicionava `hair_color`/`treasures` via
 `PRAGMA table_info` + `ALTER TABLE ADD COLUMN`) — na época fazia sentido
-porque não havia nenhuma coluna pendente. Ao adicionar `title`/
-`assignee_player_id` em `feedback` (sessão 2026-07-22, Kanban do Backlog), a
-tentação seria só editar o `CREATE TABLE IF NOT EXISTS` — **mas isso não
-afeta uma tabela que já existe** (SQLite/libSQL não retroage `CREATE TABLE
-IF NOT EXISTS` num schema que já tem a tabela), só bancos novos do zero.
+porque não havia nenhuma coluna pendente. Só editar o `CREATE TABLE IF NOT
+EXISTS` **não basta** pra bancos que já têm a tabela (SQLite/libSQL não
+retroage `CREATE TABLE IF NOT EXISTS` num schema já existente, só bancos
+novos do zero).
+
+Isso mordeu **duas vezes na mesma sessão** (2026-07-22): eu reintroduzi uma
+`migrateSchema()` ad-hoc em `lib/db.ts` pra `feedback.title`/
+`assignee_player_id` (Kanban do Backlog) sem saber que a branch
+`feat/artefato-maldicoes`, já mergeada em `origin/master`, tinha acabado de
+criar `ensureColumn(db, table, column, ddl)` genérico pro mesmo problema
+(`curses.locked`). No rebase pra sincronizar as duas branches, isso virou
+conflito em `lib/db.ts` — resolvido **unificando pro `ensureColumn`** (mais
+reutilizável, um único ponto de manutenção) e descartando a
+`migrateSchema()` duplicada.
 
 **Regra:** toda vez que um campo novo for adicionado numa tabela que **já
 existe** em algum banco real (local e/ou prod — os dois têm dado real, ver
-aviso no topo do arquivo), tem que **reintroduzir** (ou estender, se já
-existir) uma função de migração idempotente (`PRAGMA table_info(<tabela>)` +
-`ALTER TABLE ... ADD COLUMN` só se a coluna não existir) chamada dentro de
-`initSchema()`, **além** de atualizar o `CREATE TABLE IF NOT EXISTS` pra
-instalações novas — as duas coisas juntas, não uma ou outra. Diferente do
-padrão antigo dos scripts de sync/import (armadilha #8, "rodar uma vez e
-apagar"), essa migração fica **permanente** no `lib/db.ts` (é barata, roda a
-cada cold start, e não tem como saber se todo ambiente — inclusive prod, que
-não é tocado toda sessão — já rodou ela).
+aviso no topo do arquivo), chame `ensureColumn(db, "<tabela>", "<coluna>",
+"<ddl>")` dentro de `initSchema()` (`lib/db.ts`) — **não** crie uma função
+de migração nova. `ensureColumn` já existe, é idempotente, e cada
+`initSchema()` fica sendo só uma lista dessas chamadas + o `CREATE TABLE IF
+NOT EXISTS` (que continua precisando ser atualizado também, pra bancos novos
+do zero — as duas coisas juntas, não uma ou outra). Antes de escrever
+qualquer coisa parecida com `migrateSchema`/`ensureColumn`/`PRAGMA
+table_info`, **procure primeiro se já existe** — `grep -n "ensureColumn"
+lib/db.ts`. Diferente do padrão antigo dos scripts de sync/import (armadilha
+#8, "rodar uma vez e apagar"), essa migração fica **permanente** no
+`lib/db.ts` (é barata, roda a cada cold start, e não tem como saber se todo
+ambiente — inclusive prod, que não é tocado toda sessão — já rodou ela).
+
+**Migrar prod antes do deploy, se quiser (opcional mas seguro):** como
+`ensureColumn` é só SQL idempotente, dá pra rodar ela manualmente contra a
+prod (`node --env-file=.env.production.local <script>`, mesma lógica
+copiada num script descartável) **antes** de publicar o código novo lá —
+adianta o schema sem esperar o próximo restart do processo de produção.
+Feito assim pra `feedback.title`/`assignee_player_id` nesta sessão, ver
+"Sessão 2026-07-22 (continuação...)" acima. Não quebra nada: colunas extras
+não afetam o código antigo que ainda está rodando, que simplesmente não as
+usa até o deploy novo chegar.
 
 ## Onde as coisas estão (mapa rápido)
 

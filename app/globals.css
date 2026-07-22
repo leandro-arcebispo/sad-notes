@@ -1177,61 +1177,54 @@ h2.title {
   padding: 10px 2px;
 }
 
-/* card em forma de post-it (public/sheets/note-postit..png) */
-.postit-card {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 108 / 93;
-  padding: 0;
-  border: none;
-  background: none;
-  cursor: pointer;
-  filter: drop-shadow(3px 4px 0 rgba(0, 0, 0, 0.45));
-  transition: transform 0.08s ease;
-}
-.postit-card:hover,
-.postit-card:focus-visible {
-  transform: translateY(-3px);
-  outline: none;
-}
-.postit-bg {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  user-select: none;
-}
-.postit-body {
-  position: absolute;
-  inset: 26% 14% 20% 16%;
+/* card do kanban — mesma linguagem visual do resto do app (painel + faixa
+ * lateral colorida por tipo, igual o antigo .backlog-row usava por status) */
+.kanban-card {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  overflow: hidden;
-  pointer-events: none;
-}
-.postit-title {
+  align-items: flex-start;
+  gap: 6px;
+  width: 100%;
+  text-align: left;
   font-family: var(--font-body);
-  font-weight: 700;
-  font-size: 12px;
-  line-height: 1.2;
-  color: #2b1c10;
-  text-align: center;
+  color: var(--text);
+  background-color: var(--panel);
+  border: 2px solid var(--panel-border);
+  border-left-width: 4px;
+  border-radius: var(--radius);
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.5);
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: transform 0.08s ease, border-color 0.12s ease;
+}
+.kanban-card:hover,
+.kanban-card:focus-visible {
+  transform: translateY(-2px);
+  border-color: var(--accent-dim);
+  outline: none;
+}
+.kanban-card.kind-bug { border-left-color: var(--blood); }
+.kanban-card.kind-melhoria { border-left-color: var(--accent); }
+.kanban-card.kind-feature { border-left-color: var(--soul); }
+
+.kanban-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.postit-assignee {
-  font-family: var(--font-body);
+.kanban-card-assignee {
+  font-family: var(--font-display);
   font-size: 10px;
-  font-weight: 600;
-  color: #5a3c1e;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  color: #1a1208;
+  background: var(--accent);
+  border-radius: var(--radius);
+  padding: 2px 7px;
 }
 
 /* ---------- Modal de detalhe do card ---------- */

@@ -106,8 +106,8 @@ export function parseFeedbackInput(
   };
 }
 
-/** Patch de mover coluna / trocar responsável — os dois campos são opcionais,
- * mas ao menos um precisa estar presente (senão não há o que fazer). */
+/** Patch de mover coluna / trocar responsável / editar conteúdo — todos os
+ * campos são opcionais, mas ao menos um precisa estar presente. */
 export function parseFeedbackPatch(
   body: unknown
 ): { value: FeedbackPatch } | { error: string } {
@@ -133,7 +133,37 @@ export function parseFeedbackPatch(
     }
   }
 
-  if (patch.status === undefined && patch.assignee_player_id === undefined) {
+  if (b.kind !== undefined) {
+    if (!FEEDBACK_KINDS.includes(b.kind as FeedbackKind)) return { error: "tipo inválido" };
+    patch.kind = b.kind as FeedbackKind;
+  }
+
+  if (b.title !== undefined) {
+    const title = typeof b.title === "string" ? b.title.trim() : "";
+    if (!title) return { error: "título é obrigatório" };
+    if (title.length > 80) return { error: "título deve ter no máximo 80 caracteres" };
+    patch.title = title;
+  }
+
+  if (b.description !== undefined) {
+    const description = typeof b.description === "string" ? b.description.trim() : "";
+    if (!description) return { error: "descreva o bug/melhoria/feature" };
+    patch.description = description.slice(0, 2000);
+  }
+
+  if (b.area !== undefined) {
+    if (!FEEDBACK_AREAS.some((a) => a.key === b.area)) return { error: "área inválida" };
+    patch.area = b.area as FeedbackArea;
+  }
+
+  if (b.priority !== undefined) {
+    if (!FEEDBACK_PRIORITIES.includes(b.priority as FeedbackPriority)) {
+      return { error: "prioridade inválida" };
+    }
+    patch.priority = b.priority as FeedbackPriority;
+  }
+
+  if (Object.keys(patch).length === 0) {
     return { error: "nada para atualizar" };
   }
 

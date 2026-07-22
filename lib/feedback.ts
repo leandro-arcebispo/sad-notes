@@ -53,11 +53,19 @@ export async function updateFeedback(
     assignee_player_id = null;
   }
 
-  await run("UPDATE feedback SET status = ?, assignee_player_id = ? WHERE id = ?", [
-    status,
-    assignee_player_id,
-    id,
-  ]);
+  const kind = patch.kind ?? current.kind;
+  const title = patch.title ?? current.title;
+  const description = patch.description ?? current.description;
+  const area = patch.area ?? current.area;
+  const priority = patch.priority ?? current.priority;
+
+  await run(
+    `UPDATE feedback
+        SET status = ?, assignee_player_id = ?, kind = ?, title = ?,
+            description = ?, area = ?, priority = ?
+      WHERE id = ?`,
+    [status, assignee_player_id, kind, title, description, area, priority, id]
+  );
   return (await get<FeedbackFull>(`${FULL_SELECT} WHERE f.id = ?`, [id]))!;
 }
 

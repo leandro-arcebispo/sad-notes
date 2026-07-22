@@ -321,10 +321,18 @@ export interface FeedbackInput {
   player_id: number | null;
 }
 
-/** Patch parcial aceito por PATCH /api/feedback/[id] — mover de coluna e/ou trocar responsável. */
+/** Patch parcial aceito por PATCH /api/feedback/[id] — mover de coluna, trocar
+ * responsável e/ou editar o conteúdo do card. Campos ausentes preservam o
+ * valor atual (merge em lib/feedback.ts::updateFeedback, nunca reseta pra
+ * default — ver armadilha técnica #6 no HANDOFF sobre PATCH que não é parcial de verdade). */
 export interface FeedbackPatch {
   status?: FeedbackStatus;
   assignee_player_id?: number | null;
+  kind?: FeedbackKind;
+  title?: string;
+  description?: string;
+  area?: FeedbackArea;
+  priority?: FeedbackPriority;
 }
 
 /* ============================ Partidas (Fase 2) ============================ */
