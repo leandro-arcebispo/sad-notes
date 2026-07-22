@@ -29,7 +29,7 @@
   border-width: 48px;
   border-image-source: url("img/frame-library.png");
   border-image-slice: 48;
-  border-image-repeat: stretch;
+  border-image-repeat: round;
   background-image: url("img/frame-library-floor.png");
   background-repeat: repeat;
   background-size: 120px 80px;
@@ -39,7 +39,7 @@
   border-width: 50px;
   border-image-source: url("img/frame-chest.png");
   border-image-slice: 50;
-  border-image-repeat: stretch;
+  border-image-repeat: round;
   background-image: url("img/frame-chest-floor.png");
   background-repeat: repeat;
   background-size: 120px 80px;
@@ -49,7 +49,7 @@
   border-width: 50px;
   border-image-source: url("img/frame-chest-torch.png");
   border-image-slice: 50;
-  border-image-repeat: stretch;
+  border-image-repeat: round;
   background-image: url("img/frame-chest-torch-floor.png");
   background-repeat: repeat;
   background-size: 120px 80px;
@@ -59,7 +59,7 @@
   border-width: 50px;
   border-image-source: url("img/frame-chest-chains.png");
   border-image-slice: 50;
-  border-image-repeat: stretch;
+  border-image-repeat: round;
   background-image: url("img/frame-chest-chains-floor.png");
   background-repeat: repeat;
   background-size: 120px 80px;
@@ -69,7 +69,7 @@
   border-width: 45px;
   border-image-source: url("img/frame-arcade.png");
   border-image-slice: 45;
-  border-image-repeat: stretch;
+  border-image-repeat: round;
   background-image: url("img/frame-arcade-floor.png");
   background-repeat: repeat;
   background-size: 120px 80px;
@@ -79,7 +79,7 @@
   border-width: 48px;
   border-image-source: url("img/frame-dank-depths.png");
   border-image-slice: 48;
-  border-image-repeat: stretch;
+  border-image-repeat: round;
   background-image: url("img/frame-dank-depths-floor.png");
   background-repeat: repeat;
   background-size: 120px 80px;
@@ -89,7 +89,7 @@
   border-width: 48px;
   border-image-source: url("img/frame-dank-depths-b.png");
   border-image-slice: 48;
-  border-image-repeat: stretch;
+  border-image-repeat: round;
   background-image: url("img/frame-dank-depths-b-floor.png");
   background-repeat: repeat;
   background-size: 120px 80px;
@@ -99,7 +99,7 @@
   border-width: 48px;
   border-image-source: url("img/frame-isaacs-room.png");
   border-image-slice: 48;
-  border-image-repeat: stretch;
+  border-image-repeat: round;
   background-image: url("img/frame-isaacs-room-floor.png");
   background-repeat: repeat;
   background-size: 120px 80px;
@@ -109,7 +109,7 @@
   border-width: 48px;
   border-image-source: url("img/frame-isaacs-room-b.png");
   border-image-slice: 48;
-  border-image-repeat: stretch;
+  border-image-repeat: round;
   background-image: url("img/frame-isaacs-room-b-floor.png");
   background-repeat: repeat;
   background-size: 120px 80px;
@@ -119,7 +119,7 @@
   border-width: 50px;
   border-image-source: url("img/frame-scarred-womb.png");
   border-image-slice: 50;
-  border-image-repeat: stretch;
+  border-image-repeat: round;
   background-image: url("img/frame-scarred-womb-floor.png");
   background-repeat: repeat;
   background-size: 120px 80px;
@@ -129,7 +129,7 @@
   border-width: 48px;
   border-image-source: url("img/frame-shop.png");
   border-image-slice: 48;
-  border-image-repeat: stretch;
+  border-image-repeat: round;
   background-image: url("img/frame-shop-floor.png");
   background-repeat: repeat;
   background-size: 120px 80px;
@@ -139,7 +139,7 @@
   border-width: 48px;
   border-image-source: url("img/frame-shop-light.png");
   border-image-slice: 48;
-  border-image-repeat: stretch;
+  border-image-repeat: round;
   background-image: url("img/frame-shop-light-floor.png");
   background-repeat: repeat;
   background-size: 120px 80px;
@@ -149,7 +149,7 @@
   border-width: 48px;
   border-image-source: url("img/frame-shop-stocked.png");
   border-image-slice: 48;
-  border-image-repeat: stretch;
+  border-image-repeat: round;
   background-image: url("img/frame-shop-stocked-floor.png");
   background-repeat: repeat;
   background-size: 120px 80px;
@@ -159,7 +159,7 @@
   border-width: 48px;
   border-image-source: url("img/frame-utero.png");
   border-image-slice: 48;
-  border-image-repeat: stretch;
+  border-image-repeat: round;
   background-image: url("img/frame-utero-floor.png");
   background-repeat: repeat;
   background-size: 120px 80px;
@@ -169,7 +169,7 @@
   border-width: 48px;
   border-image-source: url("img/frame-cathedral.png");
   border-image-slice: 48;
-  border-image-repeat: stretch;
+  border-image-repeat: round;
   background-image: url("img/frame-cathedral-floor.png");
   background-repeat: repeat;
   background-size: 120px 80px;
@@ -179,7 +179,7 @@
   border-width: 48px;
   border-image-source: url("img/frame-cathedral-candles.png");
   border-image-slice: 48;
-  border-image-repeat: stretch;
+  border-image-repeat: round;
   background-image: url("img/frame-cathedral-candles-floor.png");
   background-repeat: repeat;
   background-size: 120px 80px;
@@ -189,7 +189,7 @@
   border-width: 48px;
   border-image-source: url("img/frame-cathedral-skulls.png");
   border-image-slice: 48;
-  border-image-repeat: stretch;
+  border-image-repeat: round;
   background-image: url("img/frame-cathedral-skulls-floor.png");
   background-repeat: repeat;
   background-size: 120px 80px;
@@ -199,7 +199,7 @@
   border-width: 48px;
   border-image-source: url("img/frame-dank-depths-skulls.png");
   border-image-slice: 48;
-  border-image-repeat: stretch;
+  border-image-repeat: round;
   background-image: url("img/frame-dank-depths-skulls-floor.png");
   background-repeat: repeat;
   background-size: 120px 80px;
@@ -209,7 +209,7 @@
   border-width: 48px;
   border-image-source: url("img/frame-dank-depths-cracks.png");
   border-image-slice: 48;
-  border-image-repeat: stretch;
+  border-image-repeat: round;
   background-image: url("img/frame-dank-depths-cracks-floor.png");
   background-repeat: repeat;
   background-size: 120px 80px;
@@ -219,7 +219,7 @@
   border-width: 48px;
   border-image-source: url("img/frame-dank-depths-cracks-b.png");
   border-image-slice: 48;
-  border-image-repeat: stretch;
+  border-image-repeat: round;
   background-image: url("img/frame-dank-depths-cracks-b-floor.png");
   background-repeat: repeat;
   background-size: 120px 80px;
@@ -229,7 +229,7 @@
   border-width: 48px;
   border-image-source: url("img/frame-isaacs-room-cobweb.png");
   border-image-slice: 48;
-  border-image-repeat: stretch;
+  border-image-repeat: round;
   background-image: url("img/frame-isaacs-room-cobweb-floor.png");
   background-repeat: repeat;
   background-size: 120px 80px;
@@ -239,7 +239,7 @@
   border-width: 48px;
   border-image-source: url("img/frame-isaacs-room-cobweb-b.png");
   border-image-slice: 48;
-  border-image-repeat: stretch;
+  border-image-repeat: round;
   background-image: url("img/frame-isaacs-room-cobweb-b-floor.png");
   background-repeat: repeat;
   background-size: 120px 80px;
@@ -249,7 +249,7 @@
   border-width: 50px;
   border-image-source: url("img/frame-scarred-womb-cracks.png");
   border-image-slice: 50;
-  border-image-repeat: stretch;
+  border-image-repeat: round;
   background-image: url("img/frame-scarred-womb-cracks-floor.png");
   background-repeat: repeat;
   background-size: 120px 80px;
@@ -259,7 +259,7 @@
   border-width: 50px;
   border-image-source: url("img/frame-scarred-womb-veiny.png");
   border-image-slice: 50;
-  border-image-repeat: stretch;
+  border-image-repeat: round;
   background-image: url("img/frame-scarred-womb-veiny-floor.png");
   background-repeat: repeat;
   background-size: 120px 80px;
@@ -269,7 +269,7 @@
   border-width: 48px;
   border-image-source: url("img/frame-utero-purple.png");
   border-image-slice: 48;
-  border-image-repeat: stretch;
+  border-image-repeat: round;
   background-image: url("img/frame-utero-purple-floor.png");
   background-repeat: repeat;
   background-size: 120px 80px;
@@ -279,7 +279,7 @@
   border-width: 48px;
   border-image-source: url("img/frame-utero-dark.png");
   border-image-slice: 48;
-  border-image-repeat: stretch;
+  border-image-repeat: round;
   background-image: url("img/frame-utero-dark-floor.png");
   background-repeat: repeat;
   background-size: 120px 80px;

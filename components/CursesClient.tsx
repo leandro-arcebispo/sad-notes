@@ -102,7 +102,7 @@ export default function CursesClient({
 
   return (
     <Frame
-      variant="frame-chest"
+      variant="frame-cathedral-skulls"
       title={`Maldições (${curses.length})`}
       actions={
         !formOpen && (

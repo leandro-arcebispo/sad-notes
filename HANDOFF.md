@@ -1311,7 +1311,57 @@ porque esse catálogo lista todas as categorias juntas). Se adicionar um
 novo lugar que renderize `card_sprite_path`/sprite de categoria de carta,
 lembre de aplicar a classe lá também.
 
-### 10. Scripts soltos (fora do Next) não migram schema sozinhos
+### 10. `border-image-repeat: stretch` distorce frames em página alta
+
+Quase todas as variantes de `public/design-system/frames.css` (28 no
+catálogo, `.frame-brick` era a única exceção) usavam
+`border-image-repeat: stretch` nas 4 tiras de borda do 9-slice. Isso é
+inofensivo em página curta, mas em qualquer tela com muito conteúdo (ex.:
+`/artefatos/tesouros` com 154 cartas) a tira lateral estica verticalmente pra
+preencher a altura toda — o padrão de rebites/pranchas/livros vira um borrão
+irreconhecível. Usuário reportou comparando com `foursouls.com/cards`, que
+resolve replicando (tile) a borda em vez de esticar.
+
+**Regra:** usar `border-image-repeat: round` (não `stretch`) em qualquer
+frame nova. `round` reescala cada tile pra sempre fechar num número inteiro —
+nunca corta ornamento no meio, ao contrário de `repeat` puro, cujo ponto de
+corte depende da altura da página (imprevisível, já que a altura varia com a
+quantidade de conteúdo). A reamostragem do `round` é imperceptível nesses
+assets (~1–3% de ajuste por tile). Todas as 28 variantes de `frames.css`
+foram trocadas pra `round` em 2026-07-21 (commit `a5db2f1`) — se adicionar
+variante nova, já nasça com `round`.
+
+**Limite conhecido, aceito como trade-off (não é bug a corrigir):** as artes
+de frame foram desenhadas pra uma "sala" de tamanho fixo do jogo eletrônico,
+não pra repetir infinitamente — elementos com inclinação/perspectiva na
+parede (vigas, arcos, prateleiras) geram uma leve distorção de perspectiva
+quando repetidos lado a lado, mais perceptível em frames "arquitetônicos"
+(`frame-chest-torch`, `frame-library`, `frame-cathedral`) e quase invisível em
+frames orgânicos sem direção definida (`frame-utero`, `frame-utero-purple`).
+Usuário viu ao vivo no app e decidiu aceitar — não tentar mascarar com mais
+engenharia (recorte manual de sprite pra tile "seamless" ficou descartado por
+enquanto; se algum dia for necessário, o usuário tem os PSDs/fonte originais
+dos frames, avisar antes de supor que os PNGs atuais bastam).
+
+**Método de verificação que funcionou:** antes de tocar no CSS real, simulei
+`stretch`/`repeat`/`round` fora do navegador com um script Node descartável
+usando o `sharp` embutido no Next (`node_modules/next/node_modules/sharp` —
+não é dependência direta do projeto, resolver por caminho completo ou
+`createRequire`), recortando as tiras reais do PNG e compondo os 3 modos
+lado a lado numa caixa de 900px. Serviu pra decidir a direção antes de
+validar no app de verdade — mas a simulação (nearest-neighbor via sharp) não
+é pixel-idêntica ao `border-image` real do Chrome, então a palavra final
+sempre foi o app rodando (`preview_start` + `computer{screenshot}` no Browser
+pane, que funcionou normalmente nesta sessão — os timeouts de `screenshot`/
+`zoom` documentados no item #5 acima parecem ter sido pontuais de uma sessão
+anterior, não uma limitação permanente deste ambiente; `zoom` com recorte de
+região, porém, ainda não funciona — "region crop not yet supported", cai pra
+screenshot cheio). Truque útil pra forçar
+página alta e testar o pior caso: `resize_window` bem estreito (ex. 460px) —
+reduz colunas por linha e multiplica a altura da página sem precisar de dado
+de teste extra.
+
+### 11. Scripts soltos (fora do Next) não migram schema sozinhos
 
 `lib/db.ts::initSchema()` (incluindo o helper `ensureColumn()` que faz
 `ALTER TABLE ADD COLUMN` idempotente) só roda dentro de `getClient()` —
@@ -1384,7 +1434,7 @@ monstro, diferente da usada nas Maldições — aquela tinha
   mesmo padrão do import de Maldição — baixa a carta oficial, grava sprite
   categoria `monster-card` (Blob em prod / disco em dev) + linha
   `monsters`, idempotente por nome.
-- **Armadilha repetida (já catalogada como #10):** a primeira tentativa em
+- **Armadilha repetida (já catalogada como #11):** a primeira tentativa em
   prod falhou com `no such table: monsters` — o script solto não passa
   pelo `initSchema()` do app. Resolvido rodando o `CREATE TABLE IF NOT
   EXISTS monsters` manualmente em prod antes do import (mesma lição da
@@ -1396,6 +1446,54 @@ monstro, diferente da usada nas Maldições — aquela tinha
   lista 124, paginação, cartas carregam, zero erro no console).
 - **Próximo Artefato planejado seria "Salas"** (§13, ainda não pedido nesta
   sessão) — ver `docs/PLANO-ARTEFATOS.md` quando for a vez.
+
+### Fix de frames esticando + troca de frame de 3 telas (2026-07-21, commit `a5db2f1`)
+
+Usuário reportou frames distorcendo em página com muito conteúdo. Diagnóstico,
+correção (`border-image-repeat: stretch` → `round` em toda `frames.css`) e o
+trade-off de perspectiva aceito estão documentados na armadilha **#10** acima
+— não duplicar aqui, só o que não cabia lá:
+
+- **Troca de frame de 3 telas de Artefato** (pedido explícito do usuário,
+  visual puro): `MonstersClient.tsx` `frame-chest` → **`frame-dank-depths-skulls`**,
+  `TreasuresClient.tsx` `frame-chest` → **`frame-shop-stocked`**,
+  `CursesClient.tsx` `frame-chest` → **`frame-cathedral-skulls`**. Eram as
+  únicas 3 telas usando `frame-chest`, então nenhuma ficou nela — a variante
+  continua existindo no catálogo (`frames.css`/`frames.md`) se algum dia
+  precisar de novo.
+- `frame-cathedral-skulls` tem um detalhe visual "torto" (as tochas do topo
+  ficam parcialmente pra fora da caixa da borda, poking acima do limite
+  superior) — **é assim no PNG original**, não foi introduzido pelo fix de
+  `round`. Usuário viu ao vivo e achou até melhor que outras frames — não
+  mexer nisso sem pedido explícito.
+- **`components/Frame.tsx` (`FrameVariant`) estava incompleto:** só listava
+  9 das 28 variantes catalogadas em `frames.md`. Ampliado com as 3 novas
+  (`frame-dank-depths-skulls`, `frame-shop-stocked`, `frame-cathedral-skulls`)
+  — ainda não é a lista completa das 28, só cresce sob demanda conforme uma
+  tela passa a usar a variante. Se pegar erro de TS `Type '"frame-X"' is not
+  assignable to type 'FrameVariant'` ao trocar uma variante, é só isso —
+  adicionar a nova opção no union type.
+- **Processo de verificação vale a pena registrar:** antes de aplicar no
+  CSS de verdade, simulei os 3 modos (`stretch`/`repeat`/`round`) fora do
+  navegador com um script `sharp` descartável pra comparar visualmente sem
+  gastar ciclo de browser — mas quando o usuário viu o resultado ao vivo no
+  app (não a simulação), notou que o "corte estranho" que a simulação
+  mostrava não existia de verdade (era artefato do nearest-neighbor do
+  `sharp`, não do `border-image` real do Chrome). **Lição:** simulação fora
+  do navegador é boa pra decidir *direção* rápido, mas a palavra final tem
+  que ser sempre o app rodando de verdade antes de reportar como pronto —
+  já era a regra documentada (ver "Verificação neste ambiente" mais abaixo),
+  só reforçando que ela valeu a pena de novo aqui.
+- **Nota de processo (não sobre o produto):** esse fix inteiro foi commitado
+  em cima da `feat/artefato-maldicoes` (branch que já tinha commits de outro
+  assunto — o catálogo de Maldições/Monstros). Usuário apontou que isso
+  mistura histórico de assuntos diferentes numa branch só e pediu **branch
+  nova por tarefa/sessão** daqui pra frente — reforça o modelo já decidido
+  no item 7 de "Decisões de arquitetura" (branch de feature → PR → master),
+  só que aplicado de forma mais granular (uma branch por *assunto*, não uma
+  branch guarda-chuva reaproveitada pra qualquer coisa que aparecer depois).
+  Antes do primeiro commit de uma tarefa nova, checar `git status`/`git
+  branch` e abrir uma branch nova se a atual já carrega outro assunto.
 
 ## Onde as coisas estão (mapa rápido)
 
