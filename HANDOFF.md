@@ -1047,6 +1047,74 @@ seção `#item`) não cobria:
   os sprites em si não são cascateados) — não limpos automaticamente, é lixo
   inofensivo até o usuário decidir o que fazer.
 
+Sessão 2026-07-22 (Backlog vira Kanban colaborativo):
+- **Motivo:** o Backlog era uma lista plana. O usuário quer melhorar o fator
+  colaborativo do grupo — um jeito de ver "quem já está mexendo em quê" pra
+  ninguém pegar a mesma tarefa sem saber (alguém pode escolher programar sem
+  IA e demorar; não faz sentido outra pessoa passar por cima nesse meio
+  tempo).
+- **Post-it como card, avaliado antes de implementar:** `public/sheets/note-postit..png`
+  (108×93px, pino no topo + dobra sombreada no canto inferior-esquerdo) foi
+  amostrado por pixel (grid de luminância 10×10 via `canvas`, feito no Browser
+  pane) pra achar a zona seguro de texto — pino concentrado em y≈10-20%,
+  sombra da dobra concentrada em y≈80-100%. O texto do título fica num
+  `<div>` **por cima** da imagem (`.postit-body`, inset `26% 14% 20% 16%`),
+  nunca dentro do bitmap — a imagem é só fundo, com `image-rendering:
+  pixelated`, escalada via `aspect-ratio: 108/93`.
+- **Tintura por tipo sem desenhar 3 post-its:** reaproveitado o mesmo truque
+  de `lib/hair-colors.ts` (filtro CSS `hue-rotate/saturate/brightness` sobre
+  a arte original) — `bug` sai avermelhado, `melhoria` fica na cor natural do
+  papel, `feature` sai arroxeado (mesma paleta semântica que já existia nas
+  tags `.bl-tag`). Verificado por amostragem de cor via `canvas` com
+  `ctx.filter` (não dá pra usar `screenshot`/`zoom` neste ambiente — ver
+  armadilha #5): bug→`(213,154,141)`, melhoria→`(199,178,154)`,
+  feature→`(191,181,255)`, claramente distintos.
+- **Schema (`feedback`):** dois campos novos — `title` (curto, obrigatório,
+  até 80 chars, é o que aparece no post-it) e `assignee_player_id`
+  (nullable, FK `players`, é quem "pegou" a tarefa). Migração idempotente
+  (`PRAGMA table_info` + `ALTER TABLE ADD COLUMN`) dentro de `migrateSchema()`
+  em `lib/db.ts`, chamada a cada `initSchema()` — o `CREATE TABLE IF NOT
+  EXISTS` também foi atualizado pra bancos novos já nascerem com as colunas.
+  Não havia `migrateSchema()` no arquivo desde a migração pro Turso (tinha
+  sido removida por já não ter pendência); reintroduzida seguindo o mesmo
+  formato de antes (ver armadilha técnica nova #10, abaixo).
+- **Regra de reserva (o que resolve o pedido original):** um card só pode
+  ficar na coluna "Em andamento" com `assignee_player_id` preenchido —
+  bloqueado nos dois lados (client, desabilitando visualmente o fluxo antes
+  de mandar; servidor, `lib/feedback.ts::updateFeedback` rejeita com 400 se
+  faltar). Voltar pra "Aberto" **libera automaticamente** o responsável
+  (`assignee_player_id` forçado a `NULL` nesse caminho), pra ficar realmente
+  disponível de novo — testado ponta a ponta no browser (mover sem
+  responsável → bloqueia com mensagem; escolher Mané → move e o card mostra
+  "MANÉ" na coluna; voltar pra Aberto → responsável some do select).
+- **Board:** `BacklogClient.tsx` reescrito — 4 colunas fixas (mesmos 4
+  status de sempre: Aberto/Em andamento/Concluído/Descartado, sem
+  drag-and-drop, por decisão do usuário: mover é por botão dentro do
+  modal). Card fechado mostra só título + tag de tipo tingida + nome do
+  responsável (quando houver); clicar abre um modal (`.modal-backdrop`/
+  `.modal-panel`, novo padrão de CSS, não existia nenhum modal no projeto
+  antes) com descrição completa, área, prioridade, autor+data, select de
+  responsável (editável a qualquer momento, botão "Salvar" próprio) e os
+  botões de mover coluna. Form de criação ganhou o campo **Título** antes da
+  Descrição (a descrição continua livre/longa, some do card, só aparece no
+  modal).
+- **API:** `PATCH /api/feedback/[id]` deixou de aceitar só `{status}` — agora
+  aceita `{status?, assignee_player_id?}` parcial via nova
+  `parseFeedbackPatch` (`lib/validation.ts`); `updateFeedbackStatus` foi
+  substituída por `updateFeedback` (única função que já aplica a regra de
+  reserva). `listFeedback` ganhou um segundo `LEFT JOIN players` (autor +
+  responsável, cada um com alias próprio).
+- **Verificado:** `npx tsc --noEmit` limpo, fluxo completo testado no
+  Browser pane (criar card com título → aparece em Aberto → tentar mover sem
+  responsável bloqueia → escolher Mané e mover → aparece em Em andamento com
+  a tag → voltar pra Aberto libera → remover via `curl -X DELETE`, já que
+  `confirm()` trava o Browser pane, ver armadilha #5). Backlog estava vazio
+  antes da sessão e voltou vazio depois — nenhum dado real tocado.
+- **Removido do CSS:** `.backlog-list`/`.backlog-row`/`.backlog-head`/
+  `.backlog-meta`/`.backlog-actions` (lista antiga, sem consumidor depois da
+  reescrita) — `.bl-tag` e `.backlog-desc` foram mantidos, ainda usados no
+  modal.
+
 ### Dados reais do usuário no banco (não são teste — não apagar)
 
 Desde 2026-07-19 sabemos que **local e prod são dois bancos com dado real
@@ -1495,6 +1563,29 @@ trade-off de perspectiva aceito estão documentados na armadilha **#10** acima
   Antes do primeiro commit de uma tarefa nova, checar `git status`/`git
   branch` e abrir uma branch nova se a atual já carrega outro assunto.
 
+### 10. `migrateSchema()` não existe mais em `lib/db.ts` desde a migração pro Turso — mas volta a ser necessária pra colunas novas em tabela com dado real
+
+A migração pro Turso (sessão 2026-07-14, ver acima) **removeu** a função
+`migrateSchema()` que existia antes (adicionava `hair_color`/`treasures` via
+`PRAGMA table_info` + `ALTER TABLE ADD COLUMN`) — na época fazia sentido
+porque não havia nenhuma coluna pendente. Ao adicionar `title`/
+`assignee_player_id` em `feedback` (sessão 2026-07-22, Kanban do Backlog), a
+tentação seria só editar o `CREATE TABLE IF NOT EXISTS` — **mas isso não
+afeta uma tabela que já existe** (SQLite/libSQL não retroage `CREATE TABLE
+IF NOT EXISTS` num schema que já tem a tabela), só bancos novos do zero.
+
+**Regra:** toda vez que um campo novo for adicionado numa tabela que **já
+existe** em algum banco real (local e/ou prod — os dois têm dado real, ver
+aviso no topo do arquivo), tem que **reintroduzir** (ou estender, se já
+existir) uma função de migração idempotente (`PRAGMA table_info(<tabela>)` +
+`ALTER TABLE ... ADD COLUMN` só se a coluna não existir) chamada dentro de
+`initSchema()`, **além** de atualizar o `CREATE TABLE IF NOT EXISTS` pra
+instalações novas — as duas coisas juntas, não uma ou outra. Diferente do
+padrão antigo dos scripts de sync/import (armadilha #8, "rodar uma vez e
+apagar"), essa migração fica **permanente** no `lib/db.ts` (é barata, roda a
+cada cold start, e não tem como saber se todo ambiente — inclusive prod, que
+não é tocado toda sessão — já rodou ela).
+
 ## Onde as coisas estão (mapa rápido)
 
 ```
@@ -1512,7 +1603,8 @@ app/
   artefatos/maldicoes/page.tsx     CRUD de Maldições, só carta+nome (CursesClient)
   artefatos/monstros/page.tsx      CRUD de Monstros, só carta+nome (MonstersClient)
   spritesheets/ e ornamentos/       REMOVIDAS — redirect → /sprites (next.config.ts)
-  backlog/page.tsx                 Backlog: form de bug/melhoria/feature + lista (Admin)
+  backlog/page.tsx                 Backlog: form de bug/melhoria/feature + board
+                                    kanban por status, cards em post-it (Admin)
   api/**                           Rotas REST (players, games, characters,
                                     sprites, sheets, ornaments, treasures, curses,
                                     monsters, feedback, players/[id]/avatar/*)
@@ -1553,7 +1645,8 @@ components/
   TreasurePicker                       seletor híbrido no wizard: ícones já
                                         cadastrados + chips de pendentes + campo
                                         de texto livre (0+ por jogador)
-  BacklogClient                        form + lista do Backlog (Admin)
+  BacklogClient                        form + board kanban do Backlog em
+                                        post-its, modal de detalhe (Admin)
   SpritesClient                        catálogo de sprites (categorias fixas por
                                         papel de Artefato — `SPRITE_CATEGORIES`)
   TreasuresClient                       CRUD de Tesouros + posicionamento (icon/transform)

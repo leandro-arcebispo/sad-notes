@@ -296,25 +296,35 @@ export type FeedbackArea = (typeof FEEDBACK_AREAS)[number]["key"];
 export interface Feedback {
   id: number;
   kind: FeedbackKind;
+  title: string;
   description: string;
   area: FeedbackArea;
   priority: FeedbackPriority;
   status: FeedbackStatus;
   player_id: number | null;
+  assignee_player_id: number | null;
   created_at: string;
 }
 
-/** Linha do backlog com o nome do autor já resolvido, para a listagem. */
+/** Linha do backlog com nome do autor e do responsável já resolvidos, para o board. */
 export interface FeedbackFull extends Feedback {
   player_name: string | null;
+  assignee_name: string | null;
 }
 
 export interface FeedbackInput {
   kind: FeedbackKind;
+  title: string;
   description: string;
   area: FeedbackArea;
   priority: FeedbackPriority;
   player_id: number | null;
+}
+
+/** Patch parcial aceito por PATCH /api/feedback/[id] — mover de coluna e/ou trocar responsável. */
+export interface FeedbackPatch {
+  status?: FeedbackStatus;
+  assignee_player_id?: number | null;
 }
 
 /* ============================ Partidas (Fase 2) ============================ */
