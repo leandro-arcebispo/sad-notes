@@ -1047,6 +1047,143 @@ seção `#item`) não cobria:
   os sprites em si não são cascateados) — não limpos automaticamente, é lixo
   inofensivo até o usuário decidir o que fazer.
 
+Sessão 2026-07-22 (Backlog vira Kanban colaborativo):
+- **Motivo:** o Backlog era uma lista plana. O usuário quer melhorar o fator
+  colaborativo do grupo — um jeito de ver "quem já está mexendo em quê" pra
+  ninguém pegar a mesma tarefa sem saber (alguém pode escolher programar sem
+  IA e demorar; não faz sentido outra pessoa passar por cima nesse meio
+  tempo).
+- **Post-it como card, avaliado antes de implementar:** `public/sheets/note-postit..png`
+  (108×93px, pino no topo + dobra sombreada no canto inferior-esquerdo) foi
+  amostrado por pixel (grid de luminância 10×10 via `canvas`, feito no Browser
+  pane) pra achar a zona seguro de texto — pino concentrado em y≈10-20%,
+  sombra da dobra concentrada em y≈80-100%. O texto do título fica num
+  `<div>` **por cima** da imagem (`.postit-body`, inset `26% 14% 20% 16%`),
+  nunca dentro do bitmap — a imagem é só fundo, com `image-rendering:
+  pixelated`, escalada via `aspect-ratio: 108/93`.
+- **Tintura por tipo sem desenhar 3 post-its:** reaproveitado o mesmo truque
+  de `lib/hair-colors.ts` (filtro CSS `hue-rotate/saturate/brightness` sobre
+  a arte original) — `bug` sai avermelhado, `melhoria` fica na cor natural do
+  papel, `feature` sai arroxeado (mesma paleta semântica que já existia nas
+  tags `.bl-tag`). Verificado por amostragem de cor via `canvas` com
+  `ctx.filter` (não dá pra usar `screenshot`/`zoom` neste ambiente — ver
+  armadilha #5): bug→`(213,154,141)`, melhoria→`(199,178,154)`,
+  feature→`(191,181,255)`, claramente distintos.
+- **Schema (`feedback`):** dois campos novos — `title` (curto, obrigatório,
+  até 80 chars, é o que aparece no post-it) e `assignee_player_id`
+  (nullable, FK `players`, é quem "pegou" a tarefa). Migração idempotente
+  (`PRAGMA table_info` + `ALTER TABLE ADD COLUMN`) dentro de `migrateSchema()`
+  em `lib/db.ts`, chamada a cada `initSchema()` — o `CREATE TABLE IF NOT
+  EXISTS` também foi atualizado pra bancos novos já nascerem com as colunas.
+  Não havia `migrateSchema()` no arquivo desde a migração pro Turso (tinha
+  sido removida por já não ter pendência); reintroduzida seguindo o mesmo
+  formato de antes (ver armadilha técnica nova #10, abaixo).
+- **Regra de reserva (o que resolve o pedido original):** um card só pode
+  ficar na coluna "Em andamento" com `assignee_player_id` preenchido —
+  bloqueado nos dois lados (client, desabilitando visualmente o fluxo antes
+  de mandar; servidor, `lib/feedback.ts::updateFeedback` rejeita com 400 se
+  faltar). Voltar pra "Aberto" **libera automaticamente** o responsável
+  (`assignee_player_id` forçado a `NULL` nesse caminho), pra ficar realmente
+  disponível de novo — testado ponta a ponta no browser (mover sem
+  responsável → bloqueia com mensagem; escolher Mané → move e o card mostra
+  "MANÉ" na coluna; voltar pra Aberto → responsável some do select).
+- **Board:** `BacklogClient.tsx` reescrito — 4 colunas fixas (mesmos 4
+  status de sempre: Aberto/Em andamento/Concluído/Descartado, sem
+  drag-and-drop, por decisão do usuário: mover é por botão dentro do
+  modal). Card fechado mostra só título + tag de tipo tingida + nome do
+  responsável (quando houver); clicar abre um modal (`.modal-backdrop`/
+  `.modal-panel`, novo padrão de CSS, não existia nenhum modal no projeto
+  antes) com descrição completa, área, prioridade, autor+data, select de
+  responsável (editável a qualquer momento, botão "Salvar" próprio) e os
+  botões de mover coluna. Form de criação ganhou o campo **Título** antes da
+  Descrição (a descrição continua livre/longa, some do card, só aparece no
+  modal).
+- **API:** `PATCH /api/feedback/[id]` deixou de aceitar só `{status}` — agora
+  aceita `{status?, assignee_player_id?}` parcial via nova
+  `parseFeedbackPatch` (`lib/validation.ts`); `updateFeedbackStatus` foi
+  substituída por `updateFeedback` (única função que já aplica a regra de
+  reserva). `listFeedback` ganhou um segundo `LEFT JOIN players` (autor +
+  responsável, cada um com alias próprio).
+- **Verificado:** `npx tsc --noEmit` limpo, fluxo completo testado no
+  Browser pane (criar card com título → aparece em Aberto → tentar mover sem
+  responsável bloqueia → escolher Mané e mover → aparece em Em andamento com
+  a tag → voltar pra Aberto libera → remover via `curl -X DELETE`, já que
+  `confirm()` trava o Browser pane, ver armadilha #5). Backlog estava vazio
+  antes da sessão e voltou vazio depois — nenhum dado real tocado.
+- **Removido do CSS:** `.backlog-list`/`.backlog-row`/`.backlog-head`/
+  `.backlog-meta`/`.backlog-actions` (lista antiga, sem consumidor depois da
+  reescrita) — `.bl-tag` e `.backlog-desc` foram mantidos, ainda usados no
+  modal.
+
+Sessão 2026-07-22 (continuação — sincroniza com o remoto, troca o visual do
+card, move o form pra modal, e migra os 5 itens reais de Backlog da prod):
+- **Achado:** o checkout local estava 9 commits atrás de `origin/master` —
+  Maldições (catálogo + tela `/artefatos/maldicoes`) e Monstros (124
+  importados + tela `/artefatos/monstros`) **já tinham sido implementados e
+  mergeados** em sessões anteriores, só não tinham chegado nesta janela de
+  contexto. Resolvido criando a branch `feat/backlog-kanban` (a antiga
+  `fix/icones-tesouro-50px` já estava mergeada) e dando `git rebase
+  origin/master` nela. Dois conflitos reais, ambos porque as duas features
+  tocaram os mesmos arquivos: `lib/db.ts` (a branch remota já tinha criado um
+  `ensureColumn(db, table, column, ddl)` genérico pro mesmo problema que
+  este Kanban resolveu com um `migrateSchema()` ad-hoc — unificado pra usar
+  só o `ensureColumn`, ver armadilha #12 abaixo) e `HANDOFF.md` (só texto
+  descritivo, mesclado à mão). **Verificado depois do rebase:** Monstros
+  (124), Maldições (19) e o Kanban funcionando juntos, `tsc` limpo.
+- **Post-it trocado por card "desenhado":** o usuário achou o visual do
+  `note-postit..png` ruim na prática. Substituído por um card normal na
+  mesma linguagem do resto do app — painel (`var(--panel)`) com borda
+  esquerda de 4px colorida por tipo (`kind-bug`/`kind-melhoria`/
+  `kind-feature`, mesma paleta das tags `.bl-tag`), título + etiqueta
+  dourada do responsável quando houver (`.kanban-card`/`.kanban-card-title`/
+  `.kanban-card-assignee` no CSS). O PNG do post-it e o filtro de tintura por
+  CSS (`hue-rotate`) foram removidos do componente; o arquivo
+  `public/sheets/note-postit..png` **não foi apagado** (pode servir pra
+  outra coisa no futuro).
+- **Form de criação virou modal:** antes ficava sempre visível no topo da
+  página; agora só abre clicando em **"+ Novo card"** no cabeçalho do board
+  (mesmo padrão `.modal-backdrop`/`.modal-panel` do modal de detalhe). Fecha
+  sozinho ao salvar com sucesso.
+- **Nova capacidade: editar um card já criado.** Faltava desde o início — só
+  dava pra criar e mover de coluna/responsável, nunca corrigir
+  título/descrição/tipo/área/prioridade depois. `FeedbackPatch` (tipo) e
+  `parseFeedbackPatch` (validação) ganharam esses 5 campos opcionais, todos
+  seguindo o mesmo formato de validação do `parseFeedbackInput`.
+  `updateFeedback` (`lib/feedback.ts`) passou a fazer merge de **todo** o
+  patch contra a linha atual (`patch.campo ?? current.campo`) antes de
+  gravar — implementação de PATCH genuinamente parcial, o oposto do que
+  `PATCH /api/players/[id]` faz (armadilha #6: aquele sempre reescreve todos
+  os campos com default se ausente). No modal de detalhe, botão **"Editar"**
+  alterna pra um formulário inline (mesmos campos do modal de criação) com
+  "Salvar alterações"/"Cancelar".
+- **Motivo de ter descoberto a lacuna:** o usuário perguntou como migrar a
+  prod, que **já tinha 5 itens reais de Backlog** desde julho (relatos do
+  grupo, com descrições em markdown). Depois do `ALTER TABLE ADD COLUMN
+  title ... DEFAULT ''`, esses 5 ficariam com card em branco no kanban — e
+  sem a edição acima, não teria como corrigir pela UI. Título de cada um
+  extraído do cabeçalho markdown da própria descrição (3 dos 5 já tinham um
+  `# Título` no início) ou composto a partir do texto livre (os outros 2),
+  confirmado com o usuário antes de escrever.
+- **Migração da prod, executada nesta sessão** (`node
+  --env-file=.env.production.local <script>`, script descartável removido
+  depois — mesmo padrão de sempre): 1) `ensureColumn` criou
+  `feedback.title`/`feedback.assignee_player_id` na prod (idempotente, é a
+  mesma função que o app já roda sozinho no próximo boot — rodar antes só
+  adiantou o passo); 2) `UPDATE feedback SET title = ? WHERE id = ? AND
+  title = ''` pros 5 ids, então é seguro rodar de novo sem duplicar. Conferido
+  depois: os 5 títulos certos, e contagem de `players`/`games`/`sprites`/
+  `ornaments`/`treasures`/`curses`/`monsters` sem mudança inesperada (só
+  `players` variou, de fonte alheia a esta sessão — o usuário mexe na prod
+  entre sessões, ver aviso no topo do arquivo).
+- ⚠️ **Achado ao investigar:** o `.env.production.local` tinha um token do
+  Turso expirado/revogado (401 ao tentar ler) — o usuário renovou no
+  dashboard do Turso antes de eu conseguir ler/escrever. Se um 401 aparecer
+  de novo tentando acessar a prod, é isso, não um bug no client.
+- **Ainda não commitado nem enviado ao remoto** — branch `feat/backlog-kanban`
+  segue local, várias mudanças acumuladas sem commit (kanban + card
+  redesenhado + modal de criação + edição de card). O `push`/PR fica pra
+  quando o usuário pedir.
+
 ### Dados reais do usuário no banco (não são teste — não apagar)
 
 Desde 2026-07-19 sabemos que **local e prod são dois bancos com dado real
@@ -1099,6 +1236,16 @@ sessão de trabalho aqui):
   Belial" de fora por não existir em prod). `sprites` em prod: 169→306;
   `treasures` com ícone: 1→138.
 - 0 partidas registradas em prod até 2026-07-20.
+- **Backlog (`feedback`):** 5 itens reais desde julho (reportados pelo
+  grupo). Colunas `title`/`assignee_player_id` foram criadas na prod em
+  2026-07-22 (sessão do Kanban, `ensureColumn` rodado manualmente antes do
+  deploy do código novo) e os 5 títulos preenchidos — ver sessão acima pro
+  detalhe. **Atenção:** isso deixou o **banco** da prod na frente do
+  **código** que está de fato rodando lá (o processo de produção atual ainda
+  não conhece essas colunas/UI) — não é um problema (colunas extras não
+  quebram o app antigo), só um lembrete de que, quando o código novo for
+  publicado (`git pull` + `npm run build` + restart), os 5 títulos já vão
+  aparecer certos de primeira, sem precisar rodar nada de novo.
 
 **O usuário usa o app entre as sessões de trabalho — tanto local quanto
 publicado.** Isso já causou confusão mais de uma vez (dados que "apareceram"
@@ -1495,6 +1642,51 @@ trade-off de perspectiva aceito estão documentados na armadilha **#10** acima
   Antes do primeiro commit de uma tarefa nova, checar `git status`/`git
   branch` e abrir uma branch nova se a atual já carrega outro assunto.
 
+### 12. Coluna nova numa tabela que já existe precisa de migração idempotente — use `ensureColumn()`, não crie outra função
+
+A migração pro Turso (sessão 2026-07-14, ver acima) **removeu** a função
+`migrateSchema()` que existia antes (adicionava `hair_color`/`treasures` via
+`PRAGMA table_info` + `ALTER TABLE ADD COLUMN`) — na época fazia sentido
+porque não havia nenhuma coluna pendente. Só editar o `CREATE TABLE IF NOT
+EXISTS` **não basta** pra bancos que já têm a tabela (SQLite/libSQL não
+retroage `CREATE TABLE IF NOT EXISTS` num schema já existente, só bancos
+novos do zero).
+
+Isso mordeu **duas vezes na mesma sessão** (2026-07-22): eu reintroduzi uma
+`migrateSchema()` ad-hoc em `lib/db.ts` pra `feedback.title`/
+`assignee_player_id` (Kanban do Backlog) sem saber que a branch
+`feat/artefato-maldicoes`, já mergeada em `origin/master`, tinha acabado de
+criar `ensureColumn(db, table, column, ddl)` genérico pro mesmo problema
+(`curses.locked`). No rebase pra sincronizar as duas branches, isso virou
+conflito em `lib/db.ts` — resolvido **unificando pro `ensureColumn`** (mais
+reutilizável, um único ponto de manutenção) e descartando a
+`migrateSchema()` duplicada.
+
+**Regra:** toda vez que um campo novo for adicionado numa tabela que **já
+existe** em algum banco real (local e/ou prod — os dois têm dado real, ver
+aviso no topo do arquivo), chame `ensureColumn(db, "<tabela>", "<coluna>",
+"<ddl>")` dentro de `initSchema()` (`lib/db.ts`) — **não** crie uma função
+de migração nova. `ensureColumn` já existe, é idempotente, e cada
+`initSchema()` fica sendo só uma lista dessas chamadas + o `CREATE TABLE IF
+NOT EXISTS` (que continua precisando ser atualizado também, pra bancos novos
+do zero — as duas coisas juntas, não uma ou outra). Antes de escrever
+qualquer coisa parecida com `migrateSchema`/`ensureColumn`/`PRAGMA
+table_info`, **procure primeiro se já existe** — `grep -n "ensureColumn"
+lib/db.ts`. Diferente do padrão antigo dos scripts de sync/import (armadilha
+#8, "rodar uma vez e apagar"), essa migração fica **permanente** no
+`lib/db.ts` (é barata, roda a cada cold start, e não tem como saber se todo
+ambiente — inclusive prod, que não é tocado toda sessão — já rodou ela).
+
+**Migrar prod antes do deploy, se quiser (opcional mas seguro):** como
+`ensureColumn` é só SQL idempotente, dá pra rodar ela manualmente contra a
+prod (`node --env-file=.env.production.local <script>`, mesma lógica
+copiada num script descartável) **antes** de publicar o código novo lá —
+adianta o schema sem esperar o próximo restart do processo de produção.
+Feito assim pra `feedback.title`/`assignee_player_id` nesta sessão, ver
+"Sessão 2026-07-22 (continuação...)" acima. Não quebra nada: colunas extras
+não afetam o código antigo que ainda está rodando, que simplesmente não as
+usa até o deploy novo chegar.
+
 ## Onde as coisas estão (mapa rápido)
 
 ```
@@ -1512,7 +1704,8 @@ app/
   artefatos/maldicoes/page.tsx     CRUD de Maldições, só carta+nome (CursesClient)
   artefatos/monstros/page.tsx      CRUD de Monstros, só carta+nome (MonstersClient)
   spritesheets/ e ornamentos/       REMOVIDAS — redirect → /sprites (next.config.ts)
-  backlog/page.tsx                 Backlog: form de bug/melhoria/feature + lista (Admin)
+  backlog/page.tsx                 Backlog: form de bug/melhoria/feature + board
+                                    kanban por status, cards em post-it (Admin)
   api/**                           Rotas REST (players, games, characters,
                                     sprites, sheets, ornaments, treasures, curses,
                                     monsters, feedback, players/[id]/avatar/*)
@@ -1553,7 +1746,8 @@ components/
   TreasurePicker                       seletor híbrido no wizard: ícones já
                                         cadastrados + chips de pendentes + campo
                                         de texto livre (0+ por jogador)
-  BacklogClient                        form + lista do Backlog (Admin)
+  BacklogClient                        form + board kanban do Backlog em
+                                        post-its, modal de detalhe (Admin)
   SpritesClient                        catálogo de sprites (categorias fixas por
                                         papel de Artefato — `SPRITE_CATEGORIES`)
   TreasuresClient                       CRUD de Tesouros + posicionamento (icon/transform)

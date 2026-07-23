@@ -1111,40 +1111,6 @@ h2.title {
   min-height: 88px;
   line-height: 1.4;
 }
-.backlog-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.backlog-row {
-  background-color: var(--panel);
-  border: 2px solid var(--panel-border);
-  border-left-width: 5px;
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-hard);
-  padding: 14px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-/* faixa lateral colorida por status */
-.backlog-row.status-aberto { border-left-color: var(--accent); }
-.backlog-row.status-andamento { border-left-color: var(--coin); }
-.backlog-row.status-concluido { border-left-color: #4f8a4f; }
-.backlog-row.status-descartado {
-  border-left-color: var(--text-mute);
-  opacity: 0.6;
-}
-.backlog-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.backlog-meta {
-  font-size: 12px;
-  margin-left: auto;
-}
 .backlog-desc {
   margin: 0;
   color: var(--text);
@@ -1152,20 +1118,6 @@ h2.title {
   line-height: 1.45;
   white-space: pre-wrap;
   word-break: break-word;
-}
-.backlog-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.backlog-actions .select {
-  padding: 5px 8px;
-  font-size: 13px;
-}
-.backlog-actions .btn {
-  padding: 5px 12px;
-  font-size: 12px;
 }
 /* etiquetas de tipo/prioridade */
 .bl-tag {
@@ -1183,6 +1135,122 @@ h2.title {
 .bl-tag.prio-baixa { color: var(--text-dim); }
 .bl-tag.prio-media { color: var(--coin); border-color: #7a6a2e; }
 .bl-tag.prio-alta { color: #ffb0b0; border-color: var(--blood); }
+
+/* ---------- Kanban do Backlog ---------- */
+.kanban-board {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(190px, 1fr));
+  gap: 14px;
+  align-items: start;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.kanban-col {
+  background-color: var(--panel);
+  border: 2px solid var(--panel-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-hard);
+  padding: 12px;
+  min-width: 190px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.kanban-col-head {
+  font-family: var(--font-display);
+  letter-spacing: 0.04em;
+  font-size: 14px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--panel-border);
+}
+.kanban-col-aberto .kanban-col-head { color: var(--accent); }
+.kanban-col-andamento .kanban-col-head { color: var(--coin); }
+.kanban-col-concluido .kanban-col-head { color: #7fbf7f; }
+.kanban-col-descartado .kanban-col-head { color: var(--text-mute); }
+.kanban-col-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: 10px;
+}
+.kanban-col-empty {
+  font-size: 13px;
+  padding: 10px 2px;
+}
+
+/* card do kanban — mesma linguagem visual do resto do app (painel + faixa
+ * lateral colorida por tipo, igual o antigo .backlog-row usava por status) */
+.kanban-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  width: 100%;
+  text-align: left;
+  font-family: var(--font-body);
+  color: var(--text);
+  background-color: var(--panel);
+  border: 2px solid var(--panel-border);
+  border-left-width: 4px;
+  border-radius: var(--radius);
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.5);
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: transform 0.08s ease, border-color 0.12s ease;
+}
+.kanban-card:hover,
+.kanban-card:focus-visible {
+  transform: translateY(-2px);
+  border-color: var(--accent-dim);
+  outline: none;
+}
+.kanban-card.kind-bug { border-left-color: var(--blood); }
+.kanban-card.kind-melhoria { border-left-color: var(--accent); }
+.kanban-card.kind-feature { border-left-color: var(--soul); }
+
+.kanban-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.kanban-card-assignee {
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #1a1208;
+  background: var(--accent);
+  border-radius: var(--radius);
+  padding: 2px 7px;
+}
+
+/* ---------- Modal de detalhe do card ---------- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 100;
+}
+.modal-panel {
+  width: 100%;
+  max-width: 540px;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 20px;
+}
+.modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
 
 /* ---------- Galeria de spritesheets ---------- */
 .sheet-gallery {

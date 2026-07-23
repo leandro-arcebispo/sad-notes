@@ -210,14 +210,16 @@ async function initSchema(db: Client): Promise<void> {
     );
 
     CREATE TABLE IF NOT EXISTS feedback (
-      id          INTEGER PRIMARY KEY AUTOINCREMENT,
-      kind        TEXT NOT NULL DEFAULT 'bug',
-      description TEXT NOT NULL,
-      area        TEXT NOT NULL DEFAULT 'geral',
-      priority    TEXT NOT NULL DEFAULT 'media',
-      status      TEXT NOT NULL DEFAULT 'aberto',
-      player_id   INTEGER REFERENCES players(id),
-      created_at  TEXT NOT NULL
+      id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+      kind               TEXT NOT NULL DEFAULT 'bug',
+      title              TEXT NOT NULL DEFAULT '',
+      description        TEXT NOT NULL,
+      area               TEXT NOT NULL DEFAULT 'geral',
+      priority           TEXT NOT NULL DEFAULT 'media',
+      status             TEXT NOT NULL DEFAULT 'aberto',
+      player_id          INTEGER REFERENCES players(id),
+      assignee_player_id INTEGER REFERENCES players(id),
+      created_at         TEXT NOT NULL
     );
 
     CREATE INDEX IF NOT EXISTS idx_players_active ON players(active);
@@ -235,6 +237,8 @@ async function initSchema(db: Client): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_gpt_treasure ON game_player_treasures(treasure_id);
   `);
   await ensureColumn(db, "curses", "locked", "INTEGER NOT NULL DEFAULT 0");
+  await ensureColumn(db, "feedback", "title", "TEXT NOT NULL DEFAULT ''");
+  await ensureColumn(db, "feedback", "assignee_player_id", "INTEGER REFERENCES players(id)");
   await seedDefaultSettings(db);
   await seedCharactersIfEmpty(db);
 }
