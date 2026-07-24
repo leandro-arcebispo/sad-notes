@@ -85,12 +85,15 @@ async function initSchema(db: Client): Promise<void> {
     );
 
     CREATE TABLE IF NOT EXISTS characters (
-      id          INTEGER PRIMARY KEY AUTOINCREMENT,
-      name        TEXT NOT NULL,
-      expansion   TEXT NOT NULL DEFAULT 'base',
-      tainted     INTEGER NOT NULL DEFAULT 0,
-      sprite_path TEXT,
-      active      INTEGER NOT NULL DEFAULT 1
+      id                     INTEGER PRIMARY KEY AUTOINCREMENT,
+      name                   TEXT NOT NULL,
+      expansion              TEXT NOT NULL DEFAULT 'base',
+      tainted                INTEGER NOT NULL DEFAULT 0,
+      sprite_path            TEXT,
+      active                 INTEGER NOT NULL DEFAULT 1,
+      card_sprite_id         INTEGER REFERENCES sprites(id),
+      starter_item_sprite_id INTEGER REFERENCES sprites(id),
+      starter_item_name      TEXT
     );
 
     CREATE TABLE IF NOT EXISTS items (
@@ -239,6 +242,9 @@ async function initSchema(db: Client): Promise<void> {
   await ensureColumn(db, "curses", "locked", "INTEGER NOT NULL DEFAULT 0");
   await ensureColumn(db, "feedback", "title", "TEXT NOT NULL DEFAULT ''");
   await ensureColumn(db, "feedback", "assignee_player_id", "INTEGER REFERENCES players(id)");
+  await ensureColumn(db, "characters", "card_sprite_id", "INTEGER REFERENCES sprites(id)");
+  await ensureColumn(db, "characters", "starter_item_sprite_id", "INTEGER REFERENCES sprites(id)");
+  await ensureColumn(db, "characters", "starter_item_name", "TEXT");
   await seedDefaultSettings(db);
   await seedCharactersIfEmpty(db);
 }

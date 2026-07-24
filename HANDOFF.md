@@ -1687,6 +1687,176 @@ Feito assim pra `feedback.title`/`assignee_player_id` nesta sessão, ver
 não afetam o código antigo que ainda está rodando, que simplesmente não as
 usa até o deploy novo chegar.
 
+### Novo Artefato "Personagens" — carta com flip mostrando o item inicial (2026-07-24)
+
+Personagens (`characters`, pré-existente desde a Fase 1) ganhou tela própria
+no padrão dos outros Artefatos: `/artefatos/personagens`
+(`components/CharactersClient.tsx`, molde do `CursesClient.tsx` — busca +
+paginação + form atrás de "+ Cadastrar Personagem"), item novo "Personagens"
+no topo do `ARTIFACTS_NAV` (ícone `IconMask` novo). Frame `frame-isaacs-room`
+(ainda não usado por nenhuma tela) adicionado ao union `FrameVariant`.
+
+- **Diferencial pedido pelo usuário:** cada personagem tem um item inicial
+  fixo (Eternal Treasure) — o card faz um **flip 3D** (CSS puro,
+  `.character-flip`/`.character-flip-inner`/`.character-flip-face` em
+  `globals.css`, `transform-style:preserve-3d` + `rotateY(180deg)`) mostrando
+  a carta do item no verso. **Decisão de interação (perguntada ao
+  usuário):** o card inteiro (`<div role="button">`, não `<button>` — precisa
+  aninhar o botão de editar) faz o flip ao clicar; um botão "✎" no canto
+  (`stopPropagation`) abre a edição, evitando conflito entre as duas ações.
+- **Schema:** só colunas novas em `characters` (`card_sprite_id`,
+  `starter_item_sprite_id` → `sprites`, `starter_item_name` texto) via
+  `ensureColumn()` — **nada nos 34 registros existentes foi tocado**
+  (`name`/`expansion`/`tainted` continuam intactos, usados de verdade em
+  `game_players.character_id` e no filtro base/requiem do `GameWizard`).
+  Sem hard delete: "arquivar" é só `active=0` pelo mesmo form (payload
+  completo, mesmo padrão não-parcial de Tesouros/Maldições/Monstros).
+- **Categorias de sprite novas na Oficina:** `character-card` (carta do
+  personagem) e `character-item` (carta do item inicial) — `.card-art`
+  (não-pixelada, armadilha #9) estendida pras duas.
+- **Achado importante (confirmado com o usuário antes de agir):** o filtro
+  de produto do próprio `foursouls.com/card-search` (`value="g2">Gold
+  Box V2`) mostra que **Azazel, The Lost, Keeper e Apollyon** — hoje
+  seedados como `expansion='base'` desde a Fase 1 (melhor palpite do
+  assistente na época) — na verdade pertencem ao produto **"Gold Box V2"**,
+  não a Jogo Base nem Requiem. Não existe carta oficial deles nas buscas
+  filtradas por `b2`/`r`. **Decisão: ficam sem carta/item por ora** (mesmo
+  tratamento visual que um Tesouro pendente, "Sem carta"/"Sem item
+  cadastrado") — `expansion` deles **não foi reclassificado** (mudar isso
+  tiraria os 4 do sorteio de partidas "Jogo base" no `GameWizard`, que
+  filtra por `expansion==='base'`; é uma decisão maior, fora do escopo desta
+  sessão). Se o grupo um dia jogar com Gold Box, dá pra importar depois.
+- **Import (30 dos 34, script descartável `_import-characters.mjs`, já
+  removido):** pra cada personagem de Base (b2, 11) + Requiem normal (r, 2)
+  + Requiem tainted (r, 17), buscou `foursouls.com/cards/<slug>/` via
+  `fetch` nativo e leu o **outro** `<img>` de 308×420 da página (a própria
+  carta do personagem sempre aparece junto com a do seu item Eternal — único
+  sem par de verdade é Eden, cujos itens iniciais são aleatórios no jogo;
+  gravado com `starter_item_name='Aleatório'` e sem sprite). Nome do item
+  vem do próprio atributo `alt=""` da imagem (evita transliterar
+  errado apóstrofo — ex. "Lazarus' Rags", "Keeper's Bargain").
+  - **Mapeamento personagem↔item eterno**: verificado abrindo as 30 páginas
+    individuais (não inferido/calculado).
+  - **Mapeamento das 17 cartas tainted da Requiem** (o site usa o **epíteto
+    oficial**, ex. "The Broken", não "Tainted X") **pro nosso registro
+    existente**: cruzado por citação direta do próprio Edmund McMillen no
+    X/Twitter (Broken=Isaac, Curdled=Eve, Capricious=Eden, Baleful=Lost,
+    Deserter=Jacob) + achievements da Repentance indexados
+    (Dauntless=Magdalene, Hoarder=Cain, Deceiver=Judas, Harlot=Lilith,
+    Miser=Keeper, Empty=Apollyon, Fettered=Forgotten, Zealot=Bethany,
+    Soiled=???) + **os únicos 2 fechados por eliminação + checagem de
+    consistência mecânica** (Benighted=Azazel, Enigma=Lazarus — este último
+    reforçado pela carta ser fisicamente dupla-face no site, batendo com o
+    mecanismo real de "Lazarus vivo/morto"). Lista completa e fontes no
+    plano desta sessão; **os 2 inferidos são os únicos com confiança um
+    degrau abaixo dos demais** — fácil de conferir visualmente na tela.
+  - **Armadilha nova (script descartável, corrigida na mesma sessão):** a
+    primeira versão não excluía a imagem genérica de "verso de carta"
+    (`CharacterCardBack-308x420.png`, presente em quase toda página) da
+    lista de candidatos a item eterno — cada entrada tentava baixá-la como
+    se fosse uma URL relativa de item, e o `fetch` quebrava (`Failed to
+    parse URL`) **depois** de já ter salvo o sprite da carta do personagem
+    (efeito colateral: 29 sprites `character-card` órfãos, sem
+    `characters.card_sprite_id` apontando pra eles, porque o erro
+    interrompia antes do `UPDATE` final). Corrigido excluindo também
+    `CharacterCardBack` do filtro de candidatos; os 29 órfãos foram
+    identificados por `id NOT IN (SELECT card_sprite_id FROM characters
+    WHERE card_sprite_id IS NOT NULL)` e limpos (arquivo + linha) antes de
+    seguir — mesmo padrão de limpeza da armadilha #11 (Curse Of Amnesia).
+  - **Resultado local:** 30 personagens com carta certa, 29 com item
+    (Eden fica só com o texto "Aleatório"); os 4 do Gold Box V2 seguem sem
+    carta. Verificado no browser (`read_page`/`javascript_tool`): flip troca
+    a imagem certa, botão "Editar" abre o form sem disparar o flip (payload
+    prefillado confirmado via JS), `GameWizard` (`/partidas/nova`) segue
+    funcionando sem erro no console. Mané/Robertinho e partidas reais
+    intactos (nenhuma tabela de jogador/partida tocada).
+  - **Só rodou no banco local.** `scripts/sync-character-cards-to-prod.mjs`
+    preparado (mesmo molde idempotente de
+    `scripts/sync-treasure-cards-to-prod.mjs`: casa por nome, pula quem a
+    prod já tem, nunca toca em `players`/`games`/outros Artefatos, roda o
+    próprio `ensureColumn` de guarda porque a prod pode não ter as colunas
+    novas ainda — armadilha #11) — **fica no repo, não executado**; só rodar
+    depois que o usuário validar a tela e pedir explicitamente.
+- **Branch:** `feat/artefato-personagens`, criada a partir da `origin/master`
+  (a `feat/artefatos-busca-header` de outra sessão ainda não tinha virado PR
+  — mantidas separadas por assunto).
+
+**Ajustes de UI pedidos pelo usuário após a primeira versão:** checkbox
+"Mostrar arquivados" removido (lista sempre filtra só `active=1` — sem jeito
+de ver/reativar arquivado pela UI por ora, ver nota abaixo); busca voltou pro
+padrão das outras telas (`row` com `justifyContent:flex-end`, sem
+`actionsGrow`, que não existe nesta branch); botão "✎ Editar" saiu do canto
+absoluto do card e passou a ficar **inline, logo depois do nome** (nova
+`.character-edit-btn` deixou de ser `position:absolute`).
+
+**Ajustes de dado pedidos pelo usuário (2026-07-24, revisão do roster real):**
+- **The Lost** reclassificado `expansion: base → requiem` — a fonte oficial
+  categoriza a carta dele como "Gold Box V2" (`g2-the_lost`), mas o usuário
+  confirmou que o grupo joga com ele dentro do deck físico Base+Requiem.
+  Carta + item (**Holy Mantle**, `g2-holy_mantle`) importados a partir da
+  arte de Gold Box (única fonte existente).
+- **Flash Isaac** (não existia no roster) criado como `requiem`, carta +
+  item (**Classic Roller**, `r-classic_roller`) importados de
+  `r-flash_isaac` — confirmado pelo usuário como carta real do deck.
+- **Keeper removido de vez** (`DELETE`, não soft-delete) — checado antes que
+  não havia nenhum `game_players.character_id` apontando pra ele (0
+  referências), então seguro.
+- ⚠️ **Azazel e Apollyon NÃO foram removidos** apesar do pedido — achado ao
+  checar `game_players` antes de apagar: os dois **têm partidas reais
+  registradas** (Mané/Robertinho, partidas #7/#8/#12, 6 linhas de
+  `game_players` no total). Apagar a linha quebraria essa referência (FK) e
+  quaisquer sprites/exibição que dependam do personagem some pra
+  registro histórico. **Perguntado ao usuário, decisão: arquivar
+  (`active=0`) em vez de excluir** — mesmo mecanismo de soft-delete de
+  Jogadores, preserva o histórico das 3 partidas intacto. **Consequência
+  colateral do ajuste anterior (checkbox removido):** como não existe mais
+  um jeito de "mostrar arquivados" na tela, Azazel e Apollyon ficaram
+  **invisíveis** em `/artefatos/personagens` — quando o usuário for
+  cadastrá-los como carta bloqueada (mesmo padrão das Maldições `locked`),
+  vai precisar de uma forma de acessá-los de novo (reintroduzir o toggle
+  temporariamente, um filtro específico, ou edição direta via script/banco).
+  `expansion` dos dois **não foi tocado** (continuam `base`), só `active`.
+- Roster final: **34 personagens** (35 - Keeper + Flash Isaac), 32 ativos
+  (Azazel + Apollyon arquivados).
+- **"???" renomeado pra "Blue Baby"** (id 5) e **"Tainted ???" pra "Tainted
+  Blue Baby"** (id 22) — nome usado desde a Fase 1 era o apelido do
+  personagem em Rebirth, mas o usuário confirmou que a carta física do Four
+  Souls chama "Blue Baby" (bate com o `alt="Blue Baby"` da fonte oficial,
+  slug `b2-blue_baby`). Renomeei os dois juntos por consistência (só o
+  primeiro foi pedido explicitamente, mas deixar só um renomeado criaria um
+  par "Blue Baby"/"Tainted ???" incoerente) — checado antes: 0 partidas
+  reais referenciam qualquer um dos dois, renomear é seguro. `SEED_CHARACTERS`
+  (`lib/seed-characters.ts`) também atualizado, pra um banco novo já nascer
+  com o nome certo.
+- **Correção maior: os 17 "Tainted X" renomeados pro epíteto oficial da
+  própria carta** (usuário percebeu ao ver "TAINTED BLUE BABY" no card sendo
+  que a carta impressa é "The Soiled" — comparou com "Flash Isaac", onde
+  nome/carta/item batem os três). O nome "Tainted X" (Isaac, Magdalene, Cain,
+  etc.) era só o **melhor palpite do assistente na Fase 1** pra identificar a
+  linha no roster (documentado desde então como "editável depois, não é dado
+  sagrado" — ver "Decisões de arquitetura" item 5), nunca foi o nome real
+  impresso na carta do Four Souls. A coluna `tainted` já marca a condição
+  (o badge "Requiem · Tainted" na tela continua aparecendo), então o nome
+  não precisa mais repetir isso. Renomeados os 17: The Broken(Isaac),
+  The Dauntless(Magdalene), The Hoarder(Cain), The Deceiver(Judas),
+  The Soiled(Blue Baby), The Curdled(Eve), The Savage(Samson),
+  The Benighted(Azazel), The Enigma(Lazarus), The Capricious(Eden),
+  The Baleful(Lost), The Harlot(Lilith), The Miser(Keeper), The Empty
+  (Apollyon), The Fettered(Forgotten), The Zealot(Bethany), The Deserter
+  (Jacob) — mesmo mapeamento já usado no import de carta/item, só que agora
+  também no campo `name`. Checado antes: 0 partidas reais referenciam
+  qualquer um dos 17, renomear é seguro. `lib/seed-characters.ts` também
+  sincronizado: `REQUIEM_TAINTED` passou a listar os epítetos (comentário
+  ao lado de cada um com o "Tainted X" antigo, pra rastreabilidade).
+- **Aproveitado pra sincronizar o resto de `lib/seed-characters.ts`**, que
+  tinha ficado desatualizado pelos ajustes anteriores desta sessão sem eu
+  ter mexido no arquivo-fonte: `Keeper` removido de `BASE` (linha foi
+  apagada de verdade do banco), `The Lost` e `Flash Isaac` movidos/
+  adicionados em `REQUIEM_NORMAL` (reflete a reclassificação
+  `base→requiem` e a criação feitas nesta sessão). Um banco novo semeado do
+  zero agora nasce igual ao estado atual do local/prod em vez de reproduzir
+  o roster desatualizado da Fase 1.
+
 ## Onde as coisas estão (mapa rápido)
 
 ```
@@ -1700,24 +1870,29 @@ app/
                                     icones+pendentes+campo livre)
   partidas/[id]/page.tsx          Detalhe da partida (coluna "Tesouros": ícones + itens legados)
   sprites/page.tsx                 Oficina (Admin): abas Spritesheets/Sprites — SÓ corta sprites
+  artefatos/personagens/page.tsx   CRUD de Personagens + flip carta/item (CharactersClient)
   artefatos/tesouros/page.tsx      CRUD de Tesouros + posicionamento (TreasuresClient)
   artefatos/maldicoes/page.tsx     CRUD de Maldições, só carta+nome (CursesClient)
   artefatos/monstros/page.tsx      CRUD de Monstros, só carta+nome (MonstersClient)
   spritesheets/ e ornamentos/       REMOVIDAS — redirect → /sprites (next.config.ts)
   backlog/page.tsx                 Backlog: form de bug/melhoria/feature + board
                                     kanban por status, cards em post-it (Admin)
-  api/**                           Rotas REST (players, games, characters,
-                                    sprites, sheets, ornaments, treasures, curses,
-                                    monsters, feedback, players/[id]/avatar/*)
+  api/**                           Rotas REST (players, games, characters
+                                    (+ [id] PATCH), sprites, sheets, ornaments,
+                                    treasures, curses, monsters, feedback,
+                                    players/[id]/avatar/*)
                                     — api/items FOI REMOVIDA (sem consumidor)
 lib/
   db.ts               conexão libSQL (async) + helpers all/get/run + schema + settings
                         + ensureColumn() (migração idempotente de coluna nova)
   types.ts            todos os tipos (Player, Game, Sprite, Ornament, Treasure,
-                        Curse, Monster, UnlockMode, AvatarRecipe...)
+                        Curse, Monster, Character/CharacterFull, UnlockMode,
+                        AvatarRecipe...)
   validation.ts        parsePlayerInput / parseGamePayload / parseTreasureInput /
-                        parseCurseInput / parseMonsterInput
-  players.ts, characters.ts, games.ts   data layer core
+                        parseCurseInput / parseMonsterInput / parseCharacterInput
+  players.ts, characters.ts, games.ts   data layer core (characters.ts ganhou
+                        create/update além do listCharacters/join de sprites
+                        de carta+item)
   feedback.ts         data layer do Backlog (list/create/updateStatus/delete)
   sprites.ts, ornaments.ts, treasures.ts, player-avatar.ts   data layer do
                         pipeline de avatar + Tesouros. treasures.ts também
@@ -1750,6 +1925,9 @@ components/
                                         post-its, modal de detalhe (Admin)
   SpritesClient                        catálogo de sprites (categorias fixas por
                                         papel de Artefato — `SPRITE_CATEGORIES`)
+  CharactersClient                       CRUD de Personagens — card com flip 3D
+                                        (frente=carta, verso=item inicial),
+                                        botão "Editar" separado do clique de flip
   TreasuresClient                       CRUD de Tesouros + posicionamento (icon/transform)
   CursesClient                          CRUD de Maldições — mesmo card visual de
                                         Tesouro (reaproveita `.treasure-*` do CSS),

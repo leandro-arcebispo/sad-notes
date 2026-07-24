@@ -33,6 +33,29 @@ export interface Character {
   tainted: number; // 1 | 0
   sprite_path: string | null; // retrato do personagem (cadastro detalhado é fase futura)
   active: number;
+  /** Carta oficial do personagem (sprite categoria character-card). */
+  card_sprite_id: number | null;
+  /** Carta do item inicial/Eternal (sprite categoria character-item). Null = sem item fixo (ex.: Eden). */
+  starter_item_sprite_id: number | null;
+  /** Nome do item inicial — guardado à parte da imagem pra poder exibir mesmo sem carta cadastrada. */
+  starter_item_name: string | null;
+}
+
+/** Personagem com os sprites de carta/item já resolvidos, para exibição/CRUD
+ * do Artefato "Personagens" (`/artefatos/personagens`). Ver docs/PLANO-ARTEFATOS.md. */
+export interface CharacterFull extends Character {
+  card_sprite_path: string | null;
+  starter_item_sprite_path: string | null;
+}
+
+export interface CharacterInput {
+  name: string;
+  expansion: "base" | "requiem";
+  tainted: boolean;
+  active: boolean;
+  card_sprite_id: number | null;
+  starter_item_sprite_id: number | null;
+  starter_item_name: string | null;
 }
 
 /** Payload de criação/edição de jogador vindo do formulário. */

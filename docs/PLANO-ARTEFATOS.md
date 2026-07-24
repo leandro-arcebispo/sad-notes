@@ -33,7 +33,7 @@ forma confiável.
 
 | Artefato | Cardinalidade no registro de partida | Status |
 |---|---|---|
-| **Personagens** (`characters`) | 1 por jogador por partida | ✅ já existia **antes** do conceito de Artefato — é o precedente que inspirou o padrão, não nasceu deste plano |
+| **Personagens** (`characters`) | 1 por jogador por partida | ✅ já existia **antes** do conceito de Artefato — é o precedente que inspirou o padrão, não nasceu deste plano; tela `/artefatos/personagens` com carta+item inicial ganhada em 2026-07-24 (ver HANDOFF.md) |
 | **Tesouros** (`treasures`) | 0+ por jogador por partida | ✅ implementado (§3–§10 abaixo) |
 | **Maldições** (`curses`) | ainda não definido | 🔲 planejado (§11) |
 | **Monstros** (`monsters`) | 0+ por jogador por partida (quem matou) | 🔲 planejado (§12) |
@@ -599,7 +599,13 @@ CREATE TABLE IF NOT EXISTS game_rooms (
 ## 15. Status geral
 
 - [x] **Personagens** — catálogo pré-existente (`characters`), já usado no
-  registro estruturado de partida antes mesmo deste plano existir.
+  registro estruturado de partida antes mesmo deste plano existir. Tela
+  `/artefatos/personagens` (2026-07-24): carta oficial + item inicial (carta
+  no flip 3D do card) pros 30 personagens de Base+Requiem — importados de
+  `foursouls.com`, ver HANDOFF.md. Só local por ora (script de sync pra prod
+  preparado, não executado); os 4 personagens de Gold Box V2
+  (Azazel/Lost/Keeper/Apollyon, seedados como `base` desde a Fase 1) ficam
+  sem carta/item por enquanto — não são Base nem Requiem na fonte oficial.
 - [x] **Tesouros** — Fases 0–5 + revisões (§3–§10) — implementado, local e prod.
 - [x] **Maldições** — catálogo implementado (§11, schema/API/tela, campo
   `locked`); 19 cadastradas local+prod (4 migradas de Tesouro + 15 oficiais,
