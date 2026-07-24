@@ -103,11 +103,21 @@ export default function MonstersClient({
     <Frame
       variant="frame-dank-depths-skulls"
       title={`Monstros (${monsters.length})`}
+      actionsGrow
       actions={
         !formOpen && (
-          <button className="btn btn-accent" onClick={openCreate}>
-            + Cadastrar Monstro
-          </button>
+          <>
+            <input
+              className="input"
+              style={{ flex: 1, maxWidth: 480 }}
+              placeholder="Buscar por nome…"
+              value={search}
+              onChange={(e) => handleSearchChange(e.target.value)}
+            />
+            <button className="btn btn-accent" onClick={openCreate}>
+              + Cadastrar Monstro
+            </button>
+          </>
         )
       }
     >
@@ -175,16 +185,6 @@ export default function MonstersClient({
 
         {!formOpen && (
           <section className="stack" style={{ gap: 12 }}>
-            <div className="row" style={{ justifyContent: "flex-end" }}>
-              <input
-                className="input"
-                style={{ maxWidth: 260 }}
-                placeholder="Buscar por nome…"
-                value={search}
-                onChange={(e) => handleSearchChange(e.target.value)}
-              />
-            </div>
-
             {filtered.length === 0 ? (
               <div className="panel">
                 <div className="center-empty">
@@ -213,9 +213,18 @@ export default function MonstersClient({
                     <button className="btn" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={clampedPage <= 1}>
                       ← Anterior
                     </button>
-                    <span className="muted" style={{ fontSize: 13 }}>
-                      Página {clampedPage} de {totalPages}
-                    </span>
+                    <div className="seg">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+                        <button
+                          key={n}
+                          type="button"
+                          className={`seg-btn${n === clampedPage ? " active" : ""}`}
+                          onClick={() => setPage(n)}
+                        >
+                          {n}
+                        </button>
+                      ))}
+                    </div>
                     <button className="btn" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={clampedPage >= totalPages}>
                       Próxima →
                     </button>

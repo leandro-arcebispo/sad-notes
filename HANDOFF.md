@@ -1687,6 +1687,42 @@ Feito assim pra `feedback.title`/`assignee_player_id` nesta sessão, ver
 não afetam o código antigo que ainda está rodando, que simplesmente não as
 usa até o deploy novo chegar.
 
+### Sessão 2026-07-24 (ajuste de layout — busca + paginação nas 3 telas de Artefatos)
+
+Revisão de UI pontual pedida pelo usuário nas telas `/artefatos/tesouros`,
+`/artefatos/maldicoes` e `/artefatos/monstros` (`TreasuresClient.tsx`,
+`CursesClient.tsx`, `MonstersClient.tsx` — as três compartilham o mesmo
+molde de header/paginação). Sem filtros novos nesta rodada (decisão
+explícita do usuário: "por hora vamos sem os filtros" — ficou sugerido pra
+depois: desbloqueio/com-ícone/com-transformação em Tesouros, bloqueada/com-
+carta em Maldições, com-carta em Monstros, tudo derivável do schema atual
+sem precisar perguntar nada).
+
+- **Busca movida pro header.** Antes o input ficava numa linha isolada
+  abaixo do título, alinhado à direita — sobrava um vão vazio entre o título
+  e o botão "+ Cadastrar". Agora o input entra dentro de `actions` do
+  `Frame`, ao lado do botão: `Título (N)  [input de busca]  [+ Cadastrar]`.
+- **Input cresce pra preencher o espaço.** `Frame.tsx` ganhou um prop
+  opcional novo `actionsGrow` (default `false` — **não afeta nenhuma outra
+  tela** que usa `Frame` sem passar o prop) que aplica `flex:1` no wrapper
+  de `actions`. As 3 telas passam `actionsGrow` + o input com `flex:1,
+  maxWidth:480` — cresce até o vão entre título e botão, com teto de 480px
+  pra não esticar demais em tela ultrawide (a página já tem
+  `max-width:1440px` via `.page-frame`, então nunca fica gigantesco).
+- **Paginação: texto "Página X de Y" virou botões numerados clicáveis.**
+  Reaproveita `.seg`/`.seg-btn`/`.seg-btn.active` (mesmo estilo já usado no
+  toggle Ícone/Transformação de Tesouros) — dá pra pular direto pra
+  qualquer página, não só Anterior/Próxima. Decisão consciente de não somar
+  reticências (`1 2 3 … 7`) ainda: com 24 itens/página o maior caso hoje é
+  Tesouros com 7 páginas; se o catálogo crescer muito além de ~10-12
+  páginas essa lista numerada crua vai precisar de reticências.
+- **Verificado no browser (as 3 telas):** `getBoundingClientRect` confirmou
+  título à esquerda / input+botão colados à direita sem vão, busca por nome
+  ainda filtra em tempo real (`clampedPage` reseta pra 1), clique num número
+  de página troca a página e marca `.active` corretamente, zero erro no
+  console/servidor. Maldições (19 itens, 1 página) corretamente não mostra
+  paginação nenhuma — comportamento herdado, não mudou.
+
 ### Novo Artefato "Personagens" — carta com flip mostrando o item inicial (2026-07-24)
 
 Personagens (`characters`, pré-existente desde a Fase 1) ganhou tela própria
@@ -1784,10 +1820,15 @@ no topo do `ARTIFACTS_NAV` (ícone `IconMask` novo). Frame `frame-isaacs-room`
 **Ajustes de UI pedidos pelo usuário após a primeira versão:** checkbox
 "Mostrar arquivados" removido (lista sempre filtra só `active=1` — sem jeito
 de ver/reativar arquivado pela UI por ora, ver nota abaixo); busca voltou pro
-padrão das outras telas (`row` com `justifyContent:flex-end`, sem
-`actionsGrow`, que não existe nesta branch); botão "✎ Editar" saiu do canto
-absoluto do card e passou a ficar **inline, logo depois do nome** (nova
-`.character-edit-btn` deixou de ser `position:absolute`).
+padrão pré-`actionsGrow` (`row` com `justifyContent:flex-end`) — a branch
+desta feature nasceu de um ponto anterior à sessão de busca+paginação acima,
+que só chegou nela depois via o merge de `origin/master` (2026-07-24, ver
+"Branch" no fim desta seção); `CharactersClient` **não foi migrado** pro
+padrão `actionsGrow`/paginação numerada por não ter sido pedido — considerar
+alinhar com as outras 3 telas de Artefato num ajuste futuro. Botão
+"✎ Editar" saiu do canto absoluto do card e passou a ficar **inline, logo
+depois do nome** (nova `.character-edit-btn` deixou de ser
+`position:absolute`).
 
 **Ajustes de dado pedidos pelo usuário (2026-07-24, revisão do roster real):**
 - **The Lost** reclassificado `expansion: base → requiem` — a fonte oficial
@@ -1856,6 +1897,21 @@ absoluto do card e passou a ficar **inline, logo depois do nome** (nova
   `base→requiem` e a criação feitas nesta sessão). Um banco novo semeado do
   zero agora nasce igual ao estado atual do local/prod em vez de reproduzir
   o roster desatualizado da Fase 1.
+- **Label de expansão removido do card** — o card mostrava "Base"/"Requiem"
+  embaixo do nome; usuário pediu pra tirar (o card já deixa isso implícito
+  pelo próprio nome/contexto). Só o badge **"Tainted"** continua, e só
+  quando `tainted=1` (evita linha vazia nos outros).
+- **Merge de `origin/master` nesta branch** (2026-07-24, depois de commitar
+  o trabalho acima em `41f5895`): a `feat/artefatos-busca-header` (sessão
+  "ajuste de layout" logo acima) tinha virado PR #7 e sido mergeada em
+  `master` enquanto esta branch existia em paralelo. Conflito só em
+  `HANDOFF.md` (as duas sessões descreveram o mesmo dia em paralelo,
+  resolvido concatenando as duas narrativas, seção da busca+paginação
+  primeiro); `Frame.tsx` mesclou sozinho (o `actionsGrow` novo + o
+  `frame-isaacs-room` que esta branch adicionou ao union convivem sem
+  atrito); `CursesClient.tsx`/`TreasuresClient.tsx`/`MonstersClient.tsx`
+  vieram inteiros de `master` (esta branch nunca tinha tocado neles).
+  `npx tsc --noEmit` limpo depois do merge.
 
 ## Onde as coisas estão (mapa rápido)
 
