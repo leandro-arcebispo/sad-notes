@@ -23,11 +23,15 @@ export default function Frame({
   variant = "frame-chest-torch",
   title,
   actions,
+  actionsGrow = false,
   children,
 }: {
   variant?: FrameVariant;
   title?: string;
   actions?: ReactNode;
+  /** Quando true, a área de actions ocupa o espaço restante do header (ex.:
+   * pra um input de busca crescer até o botão em vez de ficar encolhido). */
+  actionsGrow?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -35,7 +39,11 @@ export default function Frame({
       {(title || actions) && (
         <header className="page-head">
           {title && <h1 className="title">{title}</h1>}
-          {actions && <div className="row">{actions}</div>}
+          {actions && (
+            <div className="row" style={actionsGrow ? { flex: 1 } : undefined}>
+              {actions}
+            </div>
+          )}
         </header>
       )}
       {children}
