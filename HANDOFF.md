@@ -1687,6 +1687,42 @@ Feito assim pra `feedback.title`/`assignee_player_id` nesta sessão, ver
 não afetam o código antigo que ainda está rodando, que simplesmente não as
 usa até o deploy novo chegar.
 
+### Sessão 2026-07-24 (ajuste de layout — busca + paginação nas 3 telas de Artefatos)
+
+Revisão de UI pontual pedida pelo usuário nas telas `/artefatos/tesouros`,
+`/artefatos/maldicoes` e `/artefatos/monstros` (`TreasuresClient.tsx`,
+`CursesClient.tsx`, `MonstersClient.tsx` — as três compartilham o mesmo
+molde de header/paginação). Sem filtros novos nesta rodada (decisão
+explícita do usuário: "por hora vamos sem os filtros" — ficou sugerido pra
+depois: desbloqueio/com-ícone/com-transformação em Tesouros, bloqueada/com-
+carta em Maldições, com-carta em Monstros, tudo derivável do schema atual
+sem precisar perguntar nada).
+
+- **Busca movida pro header.** Antes o input ficava numa linha isolada
+  abaixo do título, alinhado à direita — sobrava um vão vazio entre o título
+  e o botão "+ Cadastrar". Agora o input entra dentro de `actions` do
+  `Frame`, ao lado do botão: `Título (N)  [input de busca]  [+ Cadastrar]`.
+- **Input cresce pra preencher o espaço.** `Frame.tsx` ganhou um prop
+  opcional novo `actionsGrow` (default `false` — **não afeta nenhuma outra
+  tela** que usa `Frame` sem passar o prop) que aplica `flex:1` no wrapper
+  de `actions`. As 3 telas passam `actionsGrow` + o input com `flex:1,
+  maxWidth:480` — cresce até o vão entre título e botão, com teto de 480px
+  pra não esticar demais em tela ultrawide (a página já tem
+  `max-width:1440px` via `.page-frame`, então nunca fica gigantesco).
+- **Paginação: texto "Página X de Y" virou botões numerados clicáveis.**
+  Reaproveita `.seg`/`.seg-btn`/`.seg-btn.active` (mesmo estilo já usado no
+  toggle Ícone/Transformação de Tesouros) — dá pra pular direto pra
+  qualquer página, não só Anterior/Próxima. Decisão consciente de não somar
+  reticências (`1 2 3 … 7`) ainda: com 24 itens/página o maior caso hoje é
+  Tesouros com 7 páginas; se o catálogo crescer muito além de ~10-12
+  páginas essa lista numerada crua vai precisar de reticências.
+- **Verificado no browser (as 3 telas):** `getBoundingClientRect` confirmou
+  título à esquerda / input+botão colados à direita sem vão, busca por nome
+  ainda filtra em tempo real (`clampedPage` reseta pra 1), clique num número
+  de página troca a página e marca `.active` corretamente, zero erro no
+  console/servidor. Maldições (19 itens, 1 página) corretamente não mostra
+  paginação nenhuma — comportamento herdado, não mudou.
+
 ## Onde as coisas estão (mapa rápido)
 
 ```
