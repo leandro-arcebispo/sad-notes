@@ -33,6 +33,41 @@ export interface Character {
   tainted: number; // 1 | 0
   sprite_path: string | null; // retrato do personagem (cadastro detalhado é fase futura)
   active: number;
+  /** Carta oficial do personagem (sprite categoria character-card). */
+  card_sprite_id: number | null;
+  /** Carta do item inicial/Eternal (sprite categoria character-item). Null = sem item fixo (ex.: Eden). */
+  starter_item_sprite_id: number | null;
+  /** Nome do item inicial — guardado à parte da imagem pra poder exibir mesmo sem carta cadastrada. */
+  starter_item_name: string | null;
+  /** Verso real do personagem, só pra cartas fisicamente dupla-face no jogo
+   * (ex.: The Enigma). Null = sem verso próprio — a tela usa o verso
+   * genérico (`/design-system/img/character-card-back.png`). */
+  card_back_sprite_id: number | null;
+  /** Verso real do item inicial, só pra itens dupla-face (ex.: Anima Sola →
+   * The Revenant). Null = sem verso próprio — a tela usa o verso genérico
+   * (`/design-system/img/eternal-card-back.png`). */
+  starter_item_back_sprite_id: number | null;
+}
+
+/** Personagem com os sprites de carta/item já resolvidos, para exibição/CRUD
+ * do Artefato "Personagens" (`/artefatos/personagens`). Ver docs/PLANO-ARTEFATOS.md. */
+export interface CharacterFull extends Character {
+  card_sprite_path: string | null;
+  starter_item_sprite_path: string | null;
+  card_back_sprite_path: string | null;
+  starter_item_back_sprite_path: string | null;
+}
+
+export interface CharacterInput {
+  name: string;
+  expansion: "base" | "requiem";
+  tainted: boolean;
+  active: boolean;
+  card_sprite_id: number | null;
+  starter_item_sprite_id: number | null;
+  starter_item_name: string | null;
+  card_back_sprite_id: number | null;
+  starter_item_back_sprite_id: number | null;
 }
 
 /** Payload de criação/edição de jogador vindo do formulário. */

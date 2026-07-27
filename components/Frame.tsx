@@ -12,7 +12,8 @@ type FrameVariant =
   | "frame-brick"
   | "frame-dank-depths-skulls"
   | "frame-shop-stocked"
-  | "frame-cathedral-skulls";
+  | "frame-cathedral-skulls"
+  | "frame-isaacs-room";
 
 /**
  * Container padrão de página: a "sala" do jogo (border-image pixel-art) que

@@ -13,6 +13,7 @@ import {
   UNLOCK_MODES,
   type BaseFace,
   type CharacterSelection,
+  type CharacterInput,
   type CurseInput,
   type Edition,
   type FeedbackArea,
@@ -331,6 +332,36 @@ export function parseCurseInput(
       name,
       card_sprite_id: toIntOrNull(b.card_sprite_id),
       locked: Boolean(b.locked),
+    },
+  };
+}
+
+export function parseCharacterInput(
+  body: unknown
+): { value: CharacterInput } | { error: string } {
+  if (!body || typeof body !== "object") return { error: "corpo inválido" };
+  const b = body as Record<string, unknown>;
+
+  const name = typeof b.name === "string" ? b.name.trim() : "";
+  if (!name) return { error: "nome é obrigatório" };
+
+  const expansion = b.expansion === "requiem" ? "requiem" : "base";
+  const starterItemName =
+    typeof b.starter_item_name === "string" && b.starter_item_name.trim()
+      ? b.starter_item_name.trim()
+      : null;
+
+  return {
+    value: {
+      name,
+      expansion,
+      tainted: Boolean(b.tainted),
+      active: b.active === undefined ? true : Boolean(b.active),
+      card_sprite_id: toIntOrNull(b.card_sprite_id),
+      starter_item_sprite_id: toIntOrNull(b.starter_item_sprite_id),
+      starter_item_name: starterItemName,
+      card_back_sprite_id: toIntOrNull(b.card_back_sprite_id),
+      starter_item_back_sprite_id: toIntOrNull(b.starter_item_back_sprite_id),
     },
   };
 }

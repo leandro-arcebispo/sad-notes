@@ -16,41 +16,44 @@ const BASE: string[] = [
   "Magdalene",
   "Cain",
   "Judas",
-  "???", // Blue Baby
+  "Blue Baby",
   "Eve",
   "Samson",
   "Azazel",
   "Lazarus",
   "Eden",
-  "The Lost",
   "Lilith",
-  "Keeper",
   "Apollyon",
   "The Forgotten",
 ];
 
-// Personagens não-tainted adicionados pela Requiem (era Repentance).
-const REQUIEM_NORMAL: string[] = ["Bethany", "Jacob & Esau"];
+// Personagens não-tainted adicionados pela Requiem (era Repentance). "The
+// Lost" está aqui (não em BASE) porque a fonte oficial do card game
+// (foursouls.com) categoriza a carta dele como "Gold Box V2", mas o grupo
+// joga com ele dentro do deck físico Base+Requiem — ver HANDOFF.md.
+const REQUIEM_NORMAL: string[] = ["Bethany", "Jacob & Esau", "The Lost", "Flash Isaac"];
 
-// Os 17 tainted (Repentance), incluídos na Requiem.
+// Os 17 tainted (Repentance), incluídos na Requiem. Nome é o epíteto oficial
+// impresso na própria carta do Four Souls (ex. "The Broken"), não "Tainted X"
+// — a coluna `tainted` já marca a condição, não precisa repetir no nome.
 const REQUIEM_TAINTED: string[] = [
-  "Tainted Isaac",
-  "Tainted Magdalene",
-  "Tainted Cain",
-  "Tainted Judas",
-  "Tainted ???",
-  "Tainted Eve",
-  "Tainted Samson",
-  "Tainted Azazel",
-  "Tainted Lazarus",
-  "Tainted Eden",
-  "Tainted Lost",
-  "Tainted Lilith",
-  "Tainted Keeper",
-  "Tainted Apollyon",
-  "Tainted Forgotten",
-  "Tainted Bethany",
-  "Tainted Jacob",
+  "The Broken", // Tainted Isaac
+  "The Dauntless", // Tainted Magdalene
+  "The Hoarder", // Tainted Cain
+  "The Deceiver", // Tainted Judas
+  "The Soiled", // Tainted Blue Baby
+  "The Curdled", // Tainted Eve
+  "The Savage", // Tainted Samson
+  "The Benighted", // Tainted Azazel
+  "The Enigma", // Tainted Lazarus
+  "The Capricious", // Tainted Eden
+  "The Baleful", // Tainted Lost
+  "The Harlot", // Tainted Lilith
+  "The Miser", // Tainted Keeper
+  "The Empty", // Tainted Apollyon
+  "The Fettered", // Tainted Forgotten
+  "The Zealot", // Tainted Bethany
+  "The Deserter", // Tainted Jacob & Esau
 ];
 
 export const SEED_CHARACTERS: SeedCharacter[] = [

@@ -13,6 +13,7 @@ const NAV: NavEntry[] = [
 ];
 
 const ARTIFACTS_NAV: NavEntry[] = [
+  { href: "/artefatos/personagens", label: "Personagens", icon: <IconMask /> },
   { href: "/artefatos/tesouros", label: "Tesouros", icon: <img src="/design-system/img/icon-treasures.png" alt="" /> },
   { href: "/artefatos/maldicoes", label: "Maldições", icon: <IconSkull /> },
   { href: "/artefatos/monstros", label: "Monstros", icon: <IconClaw /> },
@@ -128,6 +129,16 @@ function IconSkull() {
       <circle cx="9.3" cy="10.5" r="1.4" />
       <circle cx="14.7" cy="10.5" r="1.4" />
       <path d="M11 13.5v1.5M13 13.5v1.5" />
+    </>
+  );
+}
+function IconMask() {
+  return svg(
+    <>
+      <path d="M4 9c0-3.3 3.6-6 8-6s8 2.7 8 6c0 5-3.6 10-8 10S4 14 4 9Z" />
+      <path d="M8.5 10.5c0 1-.7 1.8-1.5 1.8S5.5 11.5 5.5 10.5 6.2 8.7 7 8.7s1.5.8 1.5 1.8Z" />
+      <path d="M18.5 10.5c0 1-.7 1.8-1.5 1.8s-1.5-.8-1.5-1.8.7-1.8 1.5-1.8 1.5.8 1.5 1.8Z" />
+      <path d="M9.5 15.5c1.6 1 3.4 1 5 0" />
     </>
   );
 }
