@@ -1083,10 +1083,22 @@ h2.title {
   image-rendering: pixelated;
 }
 
-/* ---------- personagens (carta com flip) ---------- */
+/* ---------- personagens (grade wide + 2 cartas lado a lado, cada uma com flip) ---------- */
+.character-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 14px;
+}
+.character-pair {
+  display: flex;
+  gap: 6px;
+}
 .character-flip {
   position: relative;
   perspective: 1000px;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
 }
 .character-flip-inner {
   position: relative;

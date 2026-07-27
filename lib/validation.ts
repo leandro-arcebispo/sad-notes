@@ -360,6 +360,8 @@ export function parseCharacterInput(
       card_sprite_id: toIntOrNull(b.card_sprite_id),
       starter_item_sprite_id: toIntOrNull(b.starter_item_sprite_id),
       starter_item_name: starterItemName,
+      card_back_sprite_id: toIntOrNull(b.card_back_sprite_id),
+      starter_item_back_sprite_id: toIntOrNull(b.starter_item_back_sprite_id),
     },
   };
 }

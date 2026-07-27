@@ -1897,10 +1897,20 @@ depois do nome** (nova `.character-edit-btn` deixou de ser
   `base→requiem` e a criação feitas nesta sessão). Um banco novo semeado do
   zero agora nasce igual ao estado atual do local/prod em vez de reproduzir
   o roster desatualizado da Fase 1.
-- **Label de expansão removido do card** — o card mostrava "Base"/"Requiem"
-  embaixo do nome; usuário pediu pra tirar (o card já deixa isso implícito
-  pelo próprio nome/contexto). Só o badge **"Tainted"** continua, e só
-  quando `tainted=1` (evita linha vazia nos outros).
+- **Todo label de expansão/pack/tainted removido do card** (revisado depois
+  que o usuário esclareceu "deixe limpo em todos" — a primeira rodada só
+  tinha tirado "Base"/"Requiem" e deixado o badge "Tainted"). Card mostra só
+  carta/item (flip) + nome + botão editar, igual ao padrão sem metadado
+  visível de Tesouros/Maldições/Monstros; a condição `tainted` continua no
+  banco/form, só não aparece mais no card.
+- **Busca movida pro header, mesmo padrão das outras 3 telas de Artefato**
+  (pedido explícito, depois do merge trazer o `actionsGrow` — ver abaixo):
+  `Frame` ganhou `actionsGrow` + o input dentro de `actions` (`flex:1,
+  maxWidth:480`) ao lado do "+ Cadastrar Personagem", removida a linha
+  isolada `justifyContent:flex-end` que ficava abaixo do título. Paginação
+  não foi mexida (o usuário pediu só o input; `CharactersClient` continua
+  com "Página X de Y" simples, não os botões numerados das outras 3 —
+  alinhar isso também fica como próximo passo se pedido).
 - **Merge de `origin/master` nesta branch** (2026-07-24, depois de commitar
   o trabalho acima em `41f5895`): a `feat/artefatos-busca-header` (sessão
   "ajuste de layout" logo acima) tinha virado PR #7 e sido mergeada em
@@ -1912,6 +1922,68 @@ depois do nome** (nova `.character-edit-btn` deixou de ser
   atrito); `CursesClient.tsx`/`TreasuresClient.tsx`/`MonstersClient.tsx`
   vieram inteiros de `master` (esta branch nunca tinha tocado neles).
   `npx tsc --noEmit` limpo depois do merge.
+- **Eden ganhou imagem no verso do card** (antes só tinha o texto
+  "Aleatório", sem sprite). Usuário passou a URL oficial
+  `foursouls.com/wp-content/uploads/2021/10/TreasureCardBack.png` (o verso
+  genérico de carta de Tesouro do jogo — faz sentido pro item "aleatório"
+  de Eden). Baixado (962×1312, maior resolução que os 308×420 padrão dos
+  outros — sprites não exigem tamanho fixo, só grava o real) e vinculado
+  como `character-item` só ao Eden (id 10; `Tainted Eden`/"The Capricious"
+  já tinha item de verdade, "Glitch", não mexido). Texto "Aleatório"
+  mantido como `starter_item_name`, só ganhou imagem.
+
+### Layout reformulado: 2 cartas lado a lado, cada uma com flip independente (2026-07-24)
+
+Achado do usuário: algumas cartas do jogo são **fisicamente dupla-face de
+verdade** (não é um conceito nosso, é a arte real do card game) —
+**"The Enigma"** (o próprio personagem tem um verso alternativo, mecânica de
+Lazarus vivo/morto) e **"Anima Sola"** (item do "The Deserter", vira
+**"The Revenant"** no verso). O antigo modelo (1 card só, frente=personagem/
+verso=item) não tinha onde guardar isso. Layout novo: cada linha da grade
+mostra **2 cartas lado a lado** — **item à esquerda, personagem à direita**
+— e **cada uma flipa de forma independente** ao clicar (não é mais um clique
+só pro card inteiro).
+
+- **Verificado nas fontes oficiais que só essas duas cartas são dupla-face**
+  entre as 32 já cadastradas: reli o card-search de personagem e de eternal
+  procurando por `alt` com "/" ou "Card Back" (é assim que o site já
+  sinaliza os dois casos: `"The Enigma/amginE ehT Card Back"` e
+  `"Anima Sola/The Revenant Card Back"`) — só essas duas apareceram. Conferi
+  também abrindo de novo as 32 páginas individuais de personagem + as 30 de
+  item contando quantas imagens 308×420 cada uma tem — só `r-the_enigma`
+  teve uma real (`r-the_enigma_back`), e o verso de "Anima Sola" (`r-the_
+  revenant`) só aparecia na página do card-search, não na própria página do
+  item (achado técnico: nem toda referência cruzada aparece na página
+  individual da carta, vale sempre checar o card-search também).
+- **Schema:** 2 colunas novas em `characters` (`ensureColumn`, mesmo padrão):
+  `card_back_sprite_id` (verso real do personagem, só The Enigma preenchido)
+  e `starter_item_back_sprite_id` (verso real do item, só The Deserter
+  preenchido — o verso pertence ao *item*, não ao personagem que o carrega).
+  Sprites dos dois versos reais importados nas categorias já existentes
+  (`character-card`/`character-item` — não criei categoria nova pra "verso",
+  é o mesmo tipo de asset).
+  **Verso padrão pra quem não tem verso real** (a esmagadora maioria):
+  **não é um sprite no banco** — são 2 arquivos estáticos novos em
+  `public/design-system/img/` (`character-card-back.png` /
+  `eternal-card-back.png`, baixados das URLs oficiais que o usuário passou),
+  referenciados por caminho fixo direto no componente. Decisão consciente:
+  são a mesma imagem pra todo mundo, não faz sentido duplicar como sprite
+  por personagem nem depender da Oficina pra cadastrar — mesmo padrão de
+  asset estático compartilhado que `faces/*`/ícones do nav já usam.
+- **UI (`CharactersClient.tsx`):** `.character-pair` (flex row, item+
+  personagem) dentro do card; dois `.character-flip` independentes, cada um
+  com seu próprio estado (`flippedItem`/`flippedChar`, dois `Set<number>`
+  ao invés de um só). Grade trocou de `.treasure-grid` (150px min) pra
+  `.character-grid` nova (230px min) — precisa de mais largura por card
+  agora que cabem 2 cartas 308:420 lado a lado. Form ganhou 2 seletores de
+  sprite novos ("Verso do personagem"/"Verso do item", mesmas categorias de
+  sempre, só preenchidos pros 2 casos reais hoje).
+- **Verificado no browser:** Isaac (nenhum verso real) flipa os dois lados
+  pros 2 fallbacks genéricos; The Enigma flipa o lado do personagem pro
+  verso real dele E o lado do item pro fallback genérico (o item dele,
+  "Flip", não é dupla-face); The Deserter flipa o item pro verso real
+  ("The Revenant") E o personagem pro fallback genérico. Três combinações
+  testadas, todas corretas, zero erro no console.
 
 ## Onde as coisas estão (mapa rápido)
 

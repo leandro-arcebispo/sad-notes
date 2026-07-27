@@ -93,7 +93,9 @@ async function initSchema(db: Client): Promise<void> {
       active                 INTEGER NOT NULL DEFAULT 1,
       card_sprite_id         INTEGER REFERENCES sprites(id),
       starter_item_sprite_id INTEGER REFERENCES sprites(id),
-      starter_item_name      TEXT
+      starter_item_name      TEXT,
+      card_back_sprite_id         INTEGER REFERENCES sprites(id),
+      starter_item_back_sprite_id INTEGER REFERENCES sprites(id)
     );
 
     CREATE TABLE IF NOT EXISTS items (
@@ -245,6 +247,8 @@ async function initSchema(db: Client): Promise<void> {
   await ensureColumn(db, "characters", "card_sprite_id", "INTEGER REFERENCES sprites(id)");
   await ensureColumn(db, "characters", "starter_item_sprite_id", "INTEGER REFERENCES sprites(id)");
   await ensureColumn(db, "characters", "starter_item_name", "TEXT");
+  await ensureColumn(db, "characters", "card_back_sprite_id", "INTEGER REFERENCES sprites(id)");
+  await ensureColumn(db, "characters", "starter_item_back_sprite_id", "INTEGER REFERENCES sprites(id)");
   await seedDefaultSettings(db);
   await seedCharactersIfEmpty(db);
 }

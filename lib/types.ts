@@ -39,6 +39,14 @@ export interface Character {
   starter_item_sprite_id: number | null;
   /** Nome do item inicial — guardado à parte da imagem pra poder exibir mesmo sem carta cadastrada. */
   starter_item_name: string | null;
+  /** Verso real do personagem, só pra cartas fisicamente dupla-face no jogo
+   * (ex.: The Enigma). Null = sem verso próprio — a tela usa o verso
+   * genérico (`/design-system/img/character-card-back.png`). */
+  card_back_sprite_id: number | null;
+  /** Verso real do item inicial, só pra itens dupla-face (ex.: Anima Sola →
+   * The Revenant). Null = sem verso próprio — a tela usa o verso genérico
+   * (`/design-system/img/eternal-card-back.png`). */
+  starter_item_back_sprite_id: number | null;
 }
 
 /** Personagem com os sprites de carta/item já resolvidos, para exibição/CRUD
@@ -46,6 +54,8 @@ export interface Character {
 export interface CharacterFull extends Character {
   card_sprite_path: string | null;
   starter_item_sprite_path: string | null;
+  card_back_sprite_path: string | null;
+  starter_item_back_sprite_path: string | null;
 }
 
 export interface CharacterInput {
@@ -56,6 +66,8 @@ export interface CharacterInput {
   card_sprite_id: number | null;
   starter_item_sprite_id: number | null;
   starter_item_name: string | null;
+  card_back_sprite_id: number | null;
+  starter_item_back_sprite_id: number | null;
 }
 
 /** Payload de criação/edição de jogador vindo do formulário. */

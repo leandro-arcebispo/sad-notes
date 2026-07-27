@@ -8,6 +8,9 @@ import { assetUrl } from "@/lib/asset-url";
 
 const PAGE_SIZE = 24;
 
+const CHARACTER_BACK_FALLBACK = "/design-system/img/character-card-back.png";
+const ITEM_BACK_FALLBACK = "/design-system/img/eternal-card-back.png";
+
 function emptyForm() {
   return {
     name: "",
@@ -17,6 +20,8 @@ function emptyForm() {
     cardSpriteId: null as number | null,
     starterItemSpriteId: null as number | null,
     starterItemName: "",
+    cardBackSpriteId: null as number | null,
+    starterItemBackSpriteId: null as number | null,
   };
 }
 
@@ -35,7 +40,8 @@ export default function CharactersClient({
   const [msg, setMsg] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [flipped, setFlipped] = useState<Set<number>>(new Set());
+  const [flippedChar, setFlippedChar] = useState<Set<number>>(new Set());
+  const [flippedItem, setFlippedItem] = useState<Set<number>>(new Set());
 
   const cardSprites = useMemo(
     () => sprites.filter((s) => s.category === "character-card"),
@@ -64,8 +70,8 @@ export default function CharactersClient({
     setPage(1);
   }
 
-  function toggleFlip(id: number) {
-    setFlipped((prev) => {
+  function toggleFlip(setter: typeof setFlippedChar, id: number) {
+    setter((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -90,6 +96,8 @@ export default function CharactersClient({
       cardSpriteId: c.card_sprite_id,
       starterItemSpriteId: c.starter_item_sprite_id,
       starterItemName: c.starter_item_name ?? "",
+      cardBackSpriteId: c.card_back_sprite_id,
+      starterItemBackSpriteId: c.starter_item_back_sprite_id,
     });
     setMsg(null);
     setFormOpen(true);
@@ -114,6 +122,8 @@ export default function CharactersClient({
       card_sprite_id: form.cardSpriteId,
       starter_item_sprite_id: form.starterItemSpriteId,
       starter_item_name: form.starterItemName.trim() || null,
+      card_back_sprite_id: form.cardBackSpriteId,
+      starter_item_back_sprite_id: form.starterItemBackSpriteId,
     };
     const url = editingId ? `/api/characters/${editingId}` : "/api/characters";
     const res = await fetch(url, {
@@ -133,15 +143,62 @@ export default function CharactersClient({
     router.refresh();
   }
 
+  function spritePicker(
+    label: string,
+    options: Sprite[],
+    selectedId: number | null,
+    onPick: (id: number | null) => void,
+    emptyCategory: string
+  ) {
+    return (
+      <div className="field" style={{ flex: 1, minWidth: 260 }}>
+        <label>{label}</label>
+        {options.length === 0 ? (
+          <div className="panel">
+            <div className="center-empty">
+              Nenhum sprite “{emptyCategory}” recortado ainda.
+              <br />
+              Corte na Oficina primeiro (Admin → Oficina).
+            </div>
+          </div>
+        ) : (
+          <div className="sprite-grid" style={{ maxHeight: 220, overflowY: "auto" }}>
+            {options.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                className={`sprite-pick${selectedId === s.id ? " selected" : ""}`}
+                onClick={() => onPick(selectedId === s.id ? null : s.id)}
+                title={s.name}
+              >
+                <img className="card-art" src={assetUrl(s.path)} alt={s.name} />
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <Frame
       variant="frame-isaacs-room"
       title={`Personagens (${characters.length})`}
+      actionsGrow
       actions={
         !formOpen && (
-          <button className="btn btn-accent" onClick={openCreate}>
-            + Cadastrar Personagem
-          </button>
+          <>
+            <input
+              className="input"
+              style={{ flex: 1, maxWidth: 480 }}
+              placeholder="Buscar por nome…"
+              value={search}
+              onChange={(e) => handleSearchChange(e.target.value)}
+            />
+            <button className="btn btn-accent" onClick={openCreate}>
+              + Cadastrar Personagem
+            </button>
+          </>
         )
       }
     >
@@ -208,69 +265,37 @@ export default function CharactersClient({
             </div>
 
             <div className="row" style={{ gap: 20, flexWrap: "wrap", alignItems: "flex-start" }}>
-              <div className="field" style={{ flex: 1, minWidth: 260 }}>
-                <label>Carta do personagem</label>
-                {cardSprites.length === 0 ? (
-                  <div className="panel">
-                    <div className="center-empty">
-                      Nenhum sprite “character-card” recortado ainda.
-                      <br />
-                      Corte na Oficina primeiro (Admin → Oficina).
-                    </div>
-                  </div>
-                ) : (
-                  <div className="sprite-grid" style={{ maxHeight: 220, overflowY: "auto" }}>
-                    {cardSprites.map((s) => (
-                      <button
-                        key={s.id}
-                        type="button"
-                        className={`sprite-pick${form.cardSpriteId === s.id ? " selected" : ""}`}
-                        onClick={() =>
-                          setForm((f) => ({
-                            ...f,
-                            cardSpriteId: f.cardSpriteId === s.id ? null : s.id,
-                          }))
-                        }
-                        title={s.name}
-                      >
-                        <img className="card-art" src={assetUrl(s.path)} alt={s.name} />
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              {spritePicker(
+                "Carta do personagem",
+                cardSprites,
+                form.cardSpriteId,
+                (id) => setForm((f) => ({ ...f, cardSpriteId: id })),
+                "character-card"
+              )}
+              {spritePicker(
+                "Carta do item inicial",
+                itemSprites,
+                form.starterItemSpriteId,
+                (id) => setForm((f) => ({ ...f, starterItemSpriteId: id })),
+                "character-item"
+              )}
+            </div>
 
-              <div className="field" style={{ flex: 1, minWidth: 260 }}>
-                <label>Carta do item inicial</label>
-                {itemSprites.length === 0 ? (
-                  <div className="panel">
-                    <div className="center-empty">
-                      Nenhum sprite “character-item” recortado ainda.
-                      <br />
-                      Corte na Oficina primeiro (Admin → Oficina).
-                    </div>
-                  </div>
-                ) : (
-                  <div className="sprite-grid" style={{ maxHeight: 220, overflowY: "auto" }}>
-                    {itemSprites.map((s) => (
-                      <button
-                        key={s.id}
-                        type="button"
-                        className={`sprite-pick${form.starterItemSpriteId === s.id ? " selected" : ""}`}
-                        onClick={() =>
-                          setForm((f) => ({
-                            ...f,
-                            starterItemSpriteId: f.starterItemSpriteId === s.id ? null : s.id,
-                          }))
-                        }
-                        title={s.name}
-                      >
-                        <img className="card-art" src={assetUrl(s.path)} alt={s.name} />
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+            <div className="row" style={{ gap: 20, flexWrap: "wrap", alignItems: "flex-start" }}>
+              {spritePicker(
+                "Verso do personagem (só se a carta for fisicamente dupla-face, ex.: The Enigma)",
+                cardSprites,
+                form.cardBackSpriteId,
+                (id) => setForm((f) => ({ ...f, cardBackSpriteId: id })),
+                "character-card"
+              )}
+              {spritePicker(
+                "Verso do item (só se a carta for fisicamente dupla-face, ex.: Anima Sola)",
+                itemSprites,
+                form.starterItemBackSpriteId,
+                (id) => setForm((f) => ({ ...f, starterItemBackSpriteId: id })),
+                "character-item"
+              )}
             </div>
 
             <div className="row">
@@ -287,16 +312,6 @@ export default function CharactersClient({
 
         {!formOpen && (
           <section className="stack" style={{ gap: 12 }}>
-            <div className="row" style={{ justifyContent: "flex-end" }}>
-              <input
-                className="input"
-                style={{ maxWidth: 260 }}
-                placeholder="Buscar por nome…"
-                value={search}
-                onChange={(e) => handleSearchChange(e.target.value)}
-              />
-            </div>
-
             {filtered.length === 0 ? (
               <div className="panel">
                 <div className="center-empty">
@@ -307,40 +322,79 @@ export default function CharactersClient({
               </div>
             ) : (
               <>
-                <div className="treasure-grid">
+                <div className="character-grid">
                   {pageItems.map((c) => {
-                    const isFlipped = flipped.has(c.id);
+                    const isCharFlipped = flippedChar.has(c.id);
+                    const isItemFlipped = flippedItem.has(c.id);
                     return (
-                      <div
-                        key={c.id}
-                        className={`treasure-card character-flip${isFlipped ? " flipped" : ""}`}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => toggleFlip(c.id)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") toggleFlip(c.id);
-                        }}
-                      >
-                        <div className="character-flip-inner">
-                          <div className="treasure-card-art character-flip-face">
-                            {c.card_sprite_path ? (
-                              <img className="card-art" src={assetUrl(c.card_sprite_path)} alt="" />
-                            ) : (
-                              <span className="muted" style={{ fontSize: 10 }}>Sem carta</span>
-                            )}
+                      <div key={c.id} className="treasure-card">
+                        <div className="character-pair">
+                          <div
+                            className={`character-flip${isCharFlipped ? " flipped" : ""}`}
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => toggleFlip(setFlippedChar, c.id)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") toggleFlip(setFlippedChar, c.id);
+                            }}
+                          >
+                            <div className="character-flip-inner">
+                              <div className="treasure-card-art character-flip-face">
+                                {c.card_sprite_path ? (
+                                  <img className="card-art" src={assetUrl(c.card_sprite_path)} alt="" />
+                                ) : (
+                                  <span className="muted" style={{ fontSize: 10 }}>Sem carta</span>
+                                )}
+                              </div>
+                              <div className="treasure-card-art character-flip-face back">
+                                <img
+                                  className="card-art"
+                                  src={
+                                    c.card_back_sprite_path
+                                      ? assetUrl(c.card_back_sprite_path)
+                                      : CHARACTER_BACK_FALLBACK
+                                  }
+                                  alt=""
+                                />
+                              </div>
+                            </div>
                           </div>
-                          <div className="treasure-card-art character-flip-face back">
-                            {c.starter_item_sprite_path ? (
-                              <img className="card-art" src={assetUrl(c.starter_item_sprite_path)} alt="" />
-                            ) : c.starter_item_name ? (
-                              <span className="pixel-label" style={{ fontSize: 12, padding: 8 }}>
-                                {c.starter_item_name}
-                              </span>
-                            ) : (
-                              <span className="muted" style={{ fontSize: 10, padding: 8 }}>
-                                Sem item cadastrado
-                              </span>
-                            )}
+
+                          <div
+                            className={`character-flip${isItemFlipped ? " flipped" : ""}`}
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => toggleFlip(setFlippedItem, c.id)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") toggleFlip(setFlippedItem, c.id);
+                            }}
+                          >
+                            <div className="character-flip-inner">
+                              <div className="treasure-card-art character-flip-face">
+                                {c.starter_item_sprite_path ? (
+                                  <img className="card-art" src={assetUrl(c.starter_item_sprite_path)} alt="" />
+                                ) : c.starter_item_name ? (
+                                  <span className="pixel-label" style={{ fontSize: 12, padding: 8 }}>
+                                    {c.starter_item_name}
+                                  </span>
+                                ) : (
+                                  <span className="muted" style={{ fontSize: 10, padding: 8 }}>
+                                    Sem item cadastrado
+                                  </span>
+                                )}
+                              </div>
+                              <div className="treasure-card-art character-flip-face back">
+                                <img
+                                  className="card-art"
+                                  src={
+                                    c.starter_item_back_sprite_path
+                                      ? assetUrl(c.starter_item_back_sprite_path)
+                                      : ITEM_BACK_FALLBACK
+                                  }
+                                  alt=""
+                                />
+                              </div>
+                            </div>
                           </div>
                         </div>
 
@@ -358,9 +412,6 @@ export default function CharactersClient({
                             ✎
                           </button>
                         </div>
-                        {c.tainted === 1 && (
-                          <div className="muted" style={{ fontSize: 10 }}>Tainted</div>
-                        )}
                       </div>
                     );
                   })}

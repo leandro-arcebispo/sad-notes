@@ -8,7 +8,12 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 async function validateSpriteRefs(value: CharacterInput): Promise<string | null> {
-  for (const id of [value.card_sprite_id, value.starter_item_sprite_id]) {
+  for (const id of [
+    value.card_sprite_id,
+    value.starter_item_sprite_id,
+    value.card_back_sprite_id,
+    value.starter_item_back_sprite_id,
+  ]) {
     if (id === null) continue;
     const sprite = await get<{ id: number }>("SELECT id FROM sprites WHERE id = ?", [id]);
     if (!sprite) return `sprite ${id} não encontrado`;

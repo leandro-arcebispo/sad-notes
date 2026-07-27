@@ -4,10 +4,14 @@ import type { Character, CharacterFull, CharacterInput } from "./types";
 const SELECT_FULL = `
   SELECT c.*,
          sc.path AS card_sprite_path,
-         si.path AS starter_item_sprite_path
+         si.path AS starter_item_sprite_path,
+         scb.path AS card_back_sprite_path,
+         sib.path AS starter_item_back_sprite_path
     FROM characters c
     LEFT JOIN sprites sc ON sc.id = c.card_sprite_id
     LEFT JOIN sprites si ON si.id = c.starter_item_sprite_id
+    LEFT JOIN sprites scb ON scb.id = c.card_back_sprite_id
+    LEFT JOIN sprites sib ON sib.id = c.starter_item_back_sprite_id
 `;
 
 export async function listCharacters(includeInactive = false): Promise<CharacterFull[]> {
@@ -25,8 +29,9 @@ export async function getCharacter(id: number): Promise<CharacterFull | undefine
 export async function createCharacter(input: CharacterInput): Promise<CharacterFull> {
   const { lastId } = await run(
     `INSERT INTO characters
-       (name, expansion, tainted, active, card_sprite_id, starter_item_sprite_id, starter_item_name)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+       (name, expansion, tainted, active, card_sprite_id, starter_item_sprite_id,
+        starter_item_name, card_back_sprite_id, starter_item_back_sprite_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       input.name,
       input.expansion,
@@ -35,6 +40,8 @@ export async function createCharacter(input: CharacterInput): Promise<CharacterF
       input.card_sprite_id,
       input.starter_item_sprite_id,
       input.starter_item_name,
+      input.card_back_sprite_id,
+      input.starter_item_back_sprite_id,
     ]
   );
   return (await getCharacter(lastId))!;
@@ -49,7 +56,8 @@ export async function updateCharacter(
   await run(
     `UPDATE characters
         SET name = ?, expansion = ?, tainted = ?, active = ?,
-            card_sprite_id = ?, starter_item_sprite_id = ?, starter_item_name = ?
+            card_sprite_id = ?, starter_item_sprite_id = ?, starter_item_name = ?,
+            card_back_sprite_id = ?, starter_item_back_sprite_id = ?
       WHERE id = ?`,
     [
       input.name,
@@ -59,6 +67,8 @@ export async function updateCharacter(
       input.card_sprite_id,
       input.starter_item_sprite_id,
       input.starter_item_name,
+      input.card_back_sprite_id,
+      input.starter_item_back_sprite_id,
       id,
     ]
   );
