@@ -1985,6 +1985,53 @@ só pro card inteiro).
   ("The Revenant") E o personagem pro fallback genérico. Três combinações
   testadas, todas corretas, zero erro no console.
 
+### Personagens sincronizado pra prod (2026-07-24) + branch mergeada
+
+`scripts/sync-character-cards-to-prod.mjs` foi **revisado e rodado de
+verdade** contra a prod nesta sessão (não ficou só "preparado" como a nota
+acima registrava na hora). Antes de rodar, reli o script e achei 3 lacunas
+(escrito antes das mudanças de nome/layout mais recentes) e corrigi:
+
+1. **Versos dupla-face** (`card_back_sprite_id`/`starter_item_back_sprite_id`)
+   não estavam no script — adicionado backfill independente do sync
+   principal (dá pra rodar de novo com segurança mesmo se a carta principal
+   já tiver sido sincronizada antes).
+2. **Risco de nome:** a prod nunca tinha sido tocada por esta sessão, então
+   ainda tinha os nomes antigos (`"Tainted Isaac"`, `"???"`, `"Tainted
+   ???"` etc.) — casar só por nome exato ia pular silenciosamente os 18
+   personagens renomeados. Adicionado `ALIAS_MAP` (nome antigo → nome
+   atual): se não achar pelo nome novo, tenta pelo antigo e **renomeia a
+   linha da prod** junto com o resto do sync.
+3. **"Flash Isaac" nunca existiu em prod** (criado só nesta sessão, local)
+   — adicionado um `ALLOW_CREATE` explícito só pra esse nome (único caso em
+   que o script cria linha nova em `characters`; qualquer outro nome não
+   encontrado continua só reportado, nunca criado — evita linha órfã por
+   dado divergente).
+
+**Confirmado por leitura antes de escrever** (regra de sempre): prod tinha
+34 personagens, todos os 18 com nome antigo, nenhum com carta, sem Flash
+Isaac — bateu exatamente com o esperado.
+
+**Rodado** (`node --env-file=.env.production.local
+scripts/sync-character-cards-to-prod.mjs`): **32 criados/atualizados** (31
+existentes ganharam carta+item, 1 — Flash Isaac — criado do zero), **18
+renomeados**, **2 versos dupla-face preenchidos** (Enigma + Deserter/
+Revenant), **0 falhas**. 66 sprites novos no Blob. Conferido depois:
+`players` (6) e `games` (0) sem nenhuma mudança — só `characters`+`sprites`
+foram tocados, como desenhado. `Keeper`/`Azazel`/`Apollyon`/`The Lost`
+(campo `expansion`) **não foram sincronizados** de propósito (fora do
+escopo — só imagens desta rodada; ver decisões da sessão acima).
+
+**Branch:** o PR de `feat/artefato-personagens` (#8) **já foi mergeado em
+`master`** durante esta sessão (`086b293`) — inclui tudo até o commit
+`86bd148` (labels removidos + layout 2-cartas). A correção do script de
+sync acima aconteceu **depois** desse merge, então existe como commit(s)
+extra(s) só nesta branch, ainda não em `master` — precisa de um PR novo
+(pequeno) se for pra entrar lá. Script já rodou contra prod com sucesso
+independente disso (rodar um script solto não depende de estar em
+`master`), então o efeito em produção já está valendo mesmo sem esse PR
+extra.
+
 ## Onde as coisas estão (mapa rápido)
 
 ```
