@@ -1,5 +1,5 @@
 import { all, get } from "./db";
-import type { UnlockMode } from "./types";
+import { RANKED_STATUS, type UnlockMode } from "./types";
 
 /**
  * Sistema de desbloqueio de cosméticos — escalável por design: cada modo é
@@ -41,22 +41,30 @@ const UNLOCK_MODE_DEFS: Record<UnlockMode, UnlockModeDef> = {
   },
 };
 
+/**
+ * ⚠️ Só partida **finalizada** desbloqueia (`RANKED_STATUS`). Sem esse filtro,
+ * uma partida ainda em andamento — ou abandonada no meio — já liberaria o
+ * cosmético, e "terminar a partida com o item" deixaria de significar isso.
+ * Mesma regra do ranking (§2.10 de docs/PLANO-PARTIDAS.md).
+ */
 async function loadPlayerContext(playerId: number): Promise<PlayerUnlockContext> {
   const [treasureRows, itemRows] = await Promise.all([
     all<{ treasure_id: number }>(
       `SELECT DISTINCT gpt.treasure_id
          FROM game_player_treasures gpt
          JOIN game_players gp ON gp.id = gpt.game_player_id
+         JOIN games g ON g.id = gp.game_id AND g.status = ?
         WHERE gp.player_id = ?`,
-      [playerId]
+      [RANKED_STATUS, playerId]
     ),
     all<{ name: string }>(
       `SELECT DISTINCT i.name
          FROM game_player_items gpi
          JOIN game_players gp ON gp.id = gpi.game_player_id
+         JOIN games g ON g.id = gp.game_id AND g.status = ?
          JOIN items i ON i.id = gpi.item_id
         WHERE gp.player_id = ?`,
-      [playerId]
+      [RANKED_STATUS, playerId]
     ),
   ]);
   return {

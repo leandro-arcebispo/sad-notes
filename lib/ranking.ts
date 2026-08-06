@@ -1,5 +1,5 @@
 import { all } from "./db";
-import type { BaseFace } from "./types";
+import { RANKED_STATUS, type BaseFace } from "./types";
 
 export interface RankingRow {
   rank: number;
@@ -22,6 +22,11 @@ export interface RankingRow {
  * Ranking derivado das partidas (Global Board). Só entram jogadores que já
  * jogaram ao menos uma partida. Ordenação: vitórias ↓, depois win% ↓, depois
  * almas ↓. O ranking nunca é digitado — é sempre calculado daqui.
+ *
+ * ⚠️ **Só partida `finalizada` conta** (`RANKED_STATUS`). Partida em andamento
+ * tem o snapshot todo zerado e partida abandonada não vale (decisão do usuário,
+ * §2.10 de docs/PLANO-PARTIDAS.md) — sem o join em `games` as duas entrariam no
+ * ranking e diluiriam o win% de todo mundo.
  */
 export async function getRanking(): Promise<RankingRow[]> {
   const agg = await all<Omit<RankingRow, "rank" | "win_pct" | "streak">>(
@@ -34,7 +39,9 @@ export async function getRanking(): Promise<RankingRow[]> {
             COALESCE(SUM(gp.treasures), 0) AS treasures
        FROM players p
        JOIN game_players gp ON gp.player_id = p.id
-      GROUP BY p.id`
+       JOIN games g ON g.id = gp.game_id AND g.status = ?
+      GROUP BY p.id`,
+    [RANKED_STATUS]
   );
 
   const streaks = await computeStreaks();
@@ -61,7 +68,9 @@ async function computeStreaks(): Promise<Map<number, number>> {
     `SELECT gp.player_id, gp.is_winner
        FROM game_players gp
        JOIN games g ON g.id = gp.game_id
-      ORDER BY gp.player_id, g.played_at DESC, g.id DESC`
+      WHERE g.status = ?
+      ORDER BY gp.player_id, g.played_at DESC, g.id DESC`,
+    [RANKED_STATUS]
   );
 
   const out = new Map<number, number>();

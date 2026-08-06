@@ -1,30 +1,21 @@
 import Frame from "@/components/Frame";
-import GameWizard from "@/components/GameWizard";
-import { listPlayers } from "@/lib/players";
+import GameSetup from "@/components/GameSetup";
 import { listCharacters } from "@/lib/characters";
-import { listTreasures } from "@/lib/treasures";
+import { listGameModes } from "@/lib/game-modes";
+import { listPlayers } from "@/lib/players";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export default async function NovaPartidaPage() {
-  const [players, characters, treasures] = await Promise.all([
+  const [players, characters, modes] = await Promise.all([
     listPlayers(false), // só ativos
     listCharacters(),
-    listTreasures(),
+    listGameModes(),
   ]);
-  const treasureOptions = treasures.map((t) => ({
-    id: t.id,
-    name: t.name,
-    icon_sprite_path: t.icon_sprite_path,
-  }));
   return (
     <Frame variant="frame-library" title="Nova partida">
-      <GameWizard
-        players={players}
-        characters={characters}
-        treasureOptions={treasureOptions}
-      />
+      <GameSetup players={players} characters={characters} modes={modes} />
     </Frame>
   );
 }

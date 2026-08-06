@@ -372,9 +372,14 @@ export interface FeedbackPatch {
 
 /* ============================ Partidas (Fase 2) ============================ */
 
-export type Edition = "base" | "requiem";
-export type CharacterSelection = "free" | "random";
-export type GameFormat = "solo" | "duo" | "trio";
+export const EDITIONS = ["base", "requiem"] as const;
+export type Edition = (typeof EDITIONS)[number];
+
+export const CHARACTER_SELECTIONS = ["free", "random"] as const;
+export type CharacterSelection = (typeof CHARACTER_SELECTIONS)[number];
+
+export const GAME_FORMATS = ["solo", "duo", "trio"] as const;
+export type GameFormat = (typeof GAME_FORMATS)[number];
 
 export const TEAM_SIZE: Record<GameFormat, number> = { solo: 1, duo: 2, trio: 3 };
 
@@ -390,6 +395,17 @@ export interface Game {
   rounds: number | null;
   notes: string | null;
   created_at: string;
+  /** Ciclo de vida — ver GAME_STATUSES. Partidas legadas nascem 'finalizada'. */
+  status: GameStatus;
+  /** Modo de jogo usado (só rótulo — os parâmetros valem por `params_json`). */
+  mode_id: number | null;
+  /** SNAPSHOT dos parâmetros do modo no momento do Setup. Editar o modo depois
+   * NÃO pode alterar partidas antigas (§5 do plano). */
+  params_json: string | null;
+  bonus_souls: number; // 1 | 0
+  rerolls_allowed: number;
+  started_at: string | null;
+  ended_at: string | null;
 }
 
 export interface GamePlayerRow {
@@ -397,6 +413,7 @@ export interface GamePlayerRow {
   game_id: number;
   player_id: number;
   character_id: number | null;
+  /** Legado (booleano da Fase 2). `reroll_count` é o campo vivo. */
   had_reroll: number;
   loot_in_hand: number;
   coins: number;
@@ -406,6 +423,11 @@ export interface GamePlayerRow {
   is_winner: number;
   team: number | null;
   seat_order: number;
+  pvp_kills: number;
+  reroll_count: number;
+  /** Lobby (Fase 4). No fluxo de uma pessoa só, já nasce 1. */
+  ready: number;
+  joined_at: string | null;
 }
 
 /** Estado final de um jogador, como vem do wizard. */
@@ -455,6 +477,192 @@ export interface GameTreasureRef {
   id: number;
   name: string;
   icon_sprite_path: string | null;
+}
+
+/* ============ Ciclo de vida, modos e eventos (docs/PLANO-PARTIDAS.md) ====== */
+
+/**
+ * A partida deixou de ser "uma linha criada no fim" e virou uma entidade com
+ * ciclo de vida: `setup` → `andamento` ⇄ `pausada` → `finalizada` (ou
+ * `abortada`). `lobby` está reservado pra sessão multi-celular (Fase 4).
+ *
+ * ⚠️ Só `finalizada` entra em ranking e desbloqueio — ver RANKED_STATUS.
+ */
+export const GAME_STATUSES = [
+  "setup",
+  "lobby",
+  "andamento",
+  "pausada",
+  "finalizada",
+  "abortada",
+] as const;
+export type GameStatus = (typeof GAME_STATUSES)[number];
+
+/** Único status que conta pra ranking/estatística/desbloqueio (§2.10 do plano). */
+export const RANKED_STATUS = "finalizada" satisfies GameStatus;
+
+/** Status em que a partida ainda está sendo jogada (aparecem em destaque na lista). */
+export const LIVE_STATUSES = ["setup", "lobby", "andamento", "pausada"] as const;
+
+export const GAME_STATUS_LABELS: Record<GameStatus, string> = {
+  setup: "Em setup",
+  lobby: "Aguardando jogadores",
+  andamento: "Em andamento",
+  pausada: "Pausada",
+  finalizada: "Finalizada",
+  abortada: "Abandonada",
+};
+
+/**
+ * Tipos de evento registráveis durante a Run. O registro com o significado de
+ * cada operando vive em `lib/game-events.ts` (`EVENT_TYPE_DEFS`) — tipo novo é
+ * uma entrada lá, sem migração de schema.
+ */
+export const GAME_EVENT_TYPES = [
+  "alma_ganha",
+  "alma_perdida",
+  "alma_roubada",
+  "morte",
+  "monstro_derrotado",
+  "maldicao_recebida",
+  "personagem_sorteado",
+  "pause",
+  "resume",
+  "nota",
+] as const;
+export type GameEventType = (typeof GAME_EVENT_TYPES)[number];
+
+/** Artefato ao qual um evento pode apontar. `alma_bonus` ainda não tem
+ * catálogo (§2.1 do plano) — até lá o evento guarda só `ref_name`. */
+export type GameEventRefType =
+  | "monstro"
+  | "maldicao"
+  | "tesouro"
+  | "personagem"
+  | "alma_bonus";
+
+export interface GameEvent {
+  id: number;
+  game_id: number;
+  seq: number;
+  round: number | null;
+  type: GameEventType;
+  /** Sujeito do evento — o significado exato por tipo está em EVENT_TYPE_DEFS. */
+  player_id: number | null;
+  /** Contraparte (ex.: quem matou, de quem roubou). */
+  other_player_id: number | null;
+  ref_type: GameEventRefType | null;
+  ref_id: number | null;
+  ref_name: string | null;
+  amount: number;
+  meta_json: string | null;
+  created_by_player_id: number | null;
+  client_event_id: string | null;
+  created_at: string;
+  deleted_at: string | null;
+  deleted_by_player_id: number | null;
+}
+
+/** Evento com os nomes já resolvidos, pro Diário da Run. */
+export interface GameEventFull extends GameEvent {
+  player_name: string | null;
+  other_player_name: string | null;
+  created_by_name: string | null;
+}
+
+/** Evento como chega do cliente. `client_event_id` é a chave de idempotência
+ * (§6.1 do plano): reenvio por rede ruim não pode duplicar registro. */
+export interface GameEventInput {
+  type: GameEventType;
+  player_id: number | null;
+  other_player_id: number | null;
+  ref_type: GameEventRefType | null;
+  ref_id: number | null;
+  ref_name: string | null;
+  amount: number;
+  round: number | null;
+  client_event_id: string | null;
+}
+
+/** Estatísticas de um jogador derivadas dos eventos — usadas pra pré-preencher
+ * a finalização. NÃO são a fonte de verdade do ranking (§1.3 do plano). */
+export interface DerivedPlayerStats {
+  souls: number;
+  deaths: number;
+  pvp_kills: number;
+  monsters: number;
+  curses: number;
+  reroll_count: number;
+}
+
+/** Parâmetros de um modo de jogo. Os que o ranking/filtros consultam também
+ * viram coluna real em `games`; o resto vive só aqui (§5 do plano). */
+export interface GameModeParams {
+  edition: Edition;
+  souls_to_win: number;
+  bonus_souls: boolean;
+  format: GameFormat;
+  character_selection: CharacterSelection;
+  rerolls_allowed: number;
+  allow_tainted: boolean;
+  enabled_events: GameEventType[];
+}
+
+export interface GameMode {
+  id: number;
+  name: string;
+  description: string | null;
+  /** 1 = semeado pelo app; não pode ser apagado (pode ser copiado). */
+  is_preset: number;
+  params_json: string;
+  active: number;
+  created_at: string;
+}
+
+/** Modo com os parâmetros já desserializados. */
+export interface GameModeFull extends GameMode {
+  params: GameModeParams;
+}
+
+export interface GameModeInput {
+  name: string;
+  description: string | null;
+  params: GameModeParams;
+}
+
+/** Payload do Setup — cria a partida ANTES de jogar (não tem estado final). */
+export interface GameSetupPayload {
+  played_at: string;
+  mode_id: number | null;
+  params: GameModeParams;
+  tournament_id: number | null;
+  notes: string | null;
+  players: { player_id: number; character_id: number | null; team: number | null }[];
+  /** Partida que já aconteceu sem o app na mesa (§7.4): nasce sem `started_at`,
+   * então a duração não vem pré-preenchida com um cronômetro que nunca rodou —
+   * fica em branco pro usuário digitar. */
+  retro: boolean;
+}
+
+/** Estado final de um jogador na finalização. */
+export interface GameFinishPlayerInput {
+  player_id: number;
+  loot_in_hand: number;
+  coins: number;
+  deaths: number;
+  pvp_kills: number;
+  treasures: number;
+  souls: number;
+  is_winner: boolean;
+  treasure_ids: number[];
+  treasure_names: string[];
+}
+
+export interface GameFinishPayload {
+  duration_min: number | null;
+  rounds: number | null;
+  notes: string | null;
+  players: GameFinishPlayerInput[];
 }
 
 /** Partida expandida para a tela de detalhe. */

@@ -449,12 +449,12 @@ preservado como atalho — não como o padrão.
 
 | Arquivo | Mudança | Criticidade |
 |---|---|---|
-| `lib/ranking.ts` | **Filtrar `g.status='finalizada'`** nas duas queries (a agregação hoje nem faz join com `games`). Sem isso, partida em andamento e abortada entram no ranking. | 🔴 obrigatório (§2.10) |
-| `lib/unlocks.ts` | `loadPlayerContext` idem — hoje desbloquearia cosmético de partida não terminada. | 🔴 obrigatório |
-| `lib/games.ts` | `deleteGame` precisa incluir `game_events` na **cascata manual** (FK não é garantida em Turso; ver armadilha #7). | 🔴 obrigatório |
-| `components/GameWizard.tsx` | Quebra em Setup / Mesa / Finalização; sorteio vai pro servidor e vira por-participante. | 🟡 |
-| `app/partidas/page.tsx` | Listagem passa a mostrar status (em andamento em destaque). | 🟡 |
-| `app/partidas/[id]/page.tsx` | Ganha o diário de eventos. | 🟡 |
+| `lib/ranking.ts` | ✅ **Feito.** Filtra `g.status='finalizada'` nas duas queries (a agregação não fazia join com `games`). Medido no banco real: sem o filtro, Mané ia a 3 vitórias/**5** partidas em vez de 3/4 — win% de 75% → 60% por causa de uma partida que nem tinha acabado. | 🔴 obrigatório (§2.10) |
+| `lib/unlocks.ts` | ✅ **Feito.** `loadPlayerContext` tinha o mesmo buraco — desbloquearia cosmético de partida não terminada. | 🔴 obrigatório |
+| `lib/games.ts` | ✅ **Feito.** `deleteGame` inclui `game_events` na cascata manual (FK não é garantida em Turso; armadilha #7). Verificado: 12 eventos + 2 participantes + 1 tesouro removidos junto. | 🔴 obrigatório |
+| `components/GameWizard.tsx` | ✅ **Deletado.** Virou `GameSetup` + `GameFinish` + `GameLiveControls`; sorteio foi pro servidor e virou por-participante. | 🟡 |
+| `app/partidas/page.tsx` | ✅ **Feito.** Coluna "Situação" + linha destacada e "continuar →" pra partida em andamento. | 🟡 |
+| `app/partidas/[id]/page.tsx` | ✅ Controles de ciclo de vida quando a partida está rolando. O **Diário** de eventos vem na Fase 2. | 🟡 |
 | `game_player_treasures` / `TreasurePicker` | **Nada muda.** | ✅ |
 
 **Ganho colateral no `unlocks.ts`:** com eventos + agregados, modos novos
@@ -469,8 +469,8 @@ entradas no registro que já existe.
 
 | Fase | Entrega | Vale sozinha? |
 |---|---|---|
-| **1 — Modelo & ciclo de vida** | schema (§3) · `game_modes` + presets semeados · API de ciclo de vida · Setup grava a partida · Finalização vira etapa · sorteio no servidor · filtros de status no ranking/unlocks · registro retroativo preservado · **"Quem é você?"** (§6) | Corrige o absurdo da duração e destrava tudo |
-| **2 — A Run** | tela ao vivo · eventos tier 1+2 · pause/retomar · contador de rodada · Diário da Run · finalização pré-preenchida | **É o registro que o usuário quer, hoje** |
+| **1 — Modelo & ciclo de vida** ✅ **(2026-08-06)** | schema (§3) · `game_modes` + presets semeados · API de ciclo de vida · Setup grava a partida · Finalização vira etapa · sorteio no servidor · filtros de status no ranking/unlocks · registro retroativo preservado · **"Quem é você?"** (§6) | Corrige o absurdo da duração e destrava tudo |
+| **2 — A Run** | tela ao vivo · paleta de eventos tier 1+2 · Diário da Run *(pause/retomar, contador de rodada e finalização pré-preenchida já saíram na Fase 1)* | **É o registro que o usuário quer, hoje** |
 | **3 — Estatísticas & badges** | telas de estatística por evento · novos `unlock_mode`s (`monster_kill`, `stat_threshold`) · primeiros badges | Colhe o que 1–2 plantaram |
 | **4 — Sessão multi-celular** | lobby · convite · ready · cada um sorteia o seu · polling incremental · cada um registra o seu | A feature grande |
 

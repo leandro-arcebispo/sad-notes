@@ -2,7 +2,7 @@ import Link from "next/link";
 import Frame from "@/components/Frame";
 import StatIcon from "@/components/StatIcon";
 import { listGames } from "@/lib/games";
-import type { Edition, GameFormat } from "@/lib/types";
+import { GAME_STATUS_LABELS, type Edition, type GameFormat } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,16 +32,18 @@ export default async function PartidasPage() {
         <div className="panel" style={{ padding: 0 }}>
           <table className="data-table">
             <colgroup>
+              <col style={{ width: "14%" }} />
               <col style={{ width: "16%" }} />
-              <col style={{ width: "13%" }} />
               <col style={{ width: "12%" }} />
-              <col style={{ width: "10%" }} />
-              <col style={{ width: "10%" }} />
-              <col style={{ width: "39%" }} />
+              <col style={{ width: "11%" }} />
+              <col style={{ width: "9%" }} />
+              <col style={{ width: "9%" }} />
+              <col style={{ width: "29%" }} />
             </colgroup>
             <thead>
               <tr>
                 <th>Data</th>
+                <th>Situação</th>
                 <th>Edição</th>
                 <th>Formato</th>
                 <th style={{ textAlign: "center" }}>Jogadores</th>
@@ -52,20 +54,36 @@ export default async function PartidasPage() {
               </tr>
             </thead>
             <tbody>
-              {games.map((g) => (
-                <tr key={g.id} className="clickable-row">
-                  <td>
-                    <Link href={`/partidas/${g.id}`} className="row-link">
-                      {g.played_at}
-                    </Link>
-                  </td>
-                  <td>{EDITION_LABEL[g.edition]}</td>
-                  <td>{FORMAT_LABEL[g.format]}</td>
-                  <td style={{ textAlign: "center" }}>{g.num_players}</td>
-                  <td style={{ textAlign: "center" }}>{g.souls_to_win}</td>
-                  <td className="winners-cell">👑 {g.winners.join(" • ") || "—"}</td>
-                </tr>
-              ))}
+              {games.map((g) => {
+                const live = g.status !== "finalizada" && g.status !== "abortada";
+                return (
+                  <tr key={g.id} className={`clickable-row${live ? " live-row" : ""}`}>
+                    <td>
+                      <Link href={`/partidas/${g.id}`} className="row-link">
+                        {g.played_at}
+                      </Link>
+                    </td>
+                    <td>
+                      <span className={`badge status-${g.status}`}>
+                        {GAME_STATUS_LABELS[g.status]}
+                      </span>
+                    </td>
+                    <td>{EDITION_LABEL[g.edition]}</td>
+                    <td>{FORMAT_LABEL[g.format]}</td>
+                    <td style={{ textAlign: "center" }}>{g.num_players}</td>
+                    <td style={{ textAlign: "center" }}>{g.souls_to_win}</td>
+                    <td className="winners-cell">
+                      {live ? (
+                        <Link href={`/partidas/${g.id}`} className="row-link">
+                          continuar →
+                        </Link>
+                      ) : (
+                        `👑 ${g.winners.join(" • ") || "—"}`
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
