@@ -2228,17 +2228,34 @@ só o **resultado** é derivado das partidas.
 - Schema: **uma coluna só**, `games.tournament_slot` ("A".."F", "FINAL"). O
   `tournament_id` já existia desde a Fase 2 de partidas e estava sempre NULL.
 
-**Jogadores referenciados por NOME, não por id.** Local e prod são bancos com
-ids independentes e o usuário vai montar a Copa em prod — id hardcoded
-apontaria pra outra pessoa lá. Nome é a chave natural, padrão já adotado no
-projeto pra tudo que atravessa os dois bancos. Nome que não bate aparece como
-"não cadastrado" e a mesa não libera a partida.
+**Onde a linha do "estático" foi traçada:** o *chaveamento* (mesas, quem joga
+contra quem, dias, pontuação) é código; os **participantes** não. A primeira
+versão referenciava jogadores por nome dentro do arquivo de definição, mas
+trocar os 6 exigiria **deploy** — inviável pra montar a Copa em produção. O
+usuário pediu pra escolher a partir do cadastro, e o desenho virou:
 
-⚠️ **Os 6 participantes ainda são placeholders** ("Jogador 1".."Jogador 6") em
-`COPA_2026_PLAYERS`. Trocar por nomes reais é o único passo que falta — e
-**exige deploy**, porque é código. Se isso incomodar, a alternativa é guardar
-os 6 na tabela `settings` com uma telinha de escolha (aí deixa de ser 100%
-estático).
+- O cartaz fala em "Jogador 1".."Jogador 6" — são **vagas**. A definição usa
+  números de vaga (`seats: [1, 2, 3]`), não nomes.
+- Quem ocupa cada vaga fica em **`settings`**, na chave
+  `tournament:<slug>:roster`, como JSON de ids.
+- **Ids e não nomes aqui**, porque é o MESMO banco: em produção a escolha
+  aponta pros jogadores de produção, e renomear alguém não quebra o
+  chaveamento. (Nome como chave natural continua valendo pra scripts que
+  atravessam local↔prod — não é o caso aqui.)
+- Painel "Participantes" na própria tela, com um select por vaga. Abre sozinho
+  enquanto houver vaga aberta.
+
+**Vaga aberta é permitida** (dá pra montar aos poucos — hoje o banco só tem 2
+jogadores pra 6 vagas), mas **jogador repetido não**: a mesma pessoa em duas
+vagas jogaria contra si mesma em alguma mesa. A UI desabilita quem já foi
+escolhido e o servidor recusa de novo (`saveRosterIds`). Mesa com vaga aberta
+não libera o botão de começar.
+
+⚠️ **Trocar o participante de uma vaga NÃO reescreve partida já jogada** — os
+jogadores ficam gravados em `game_players` no momento em que a mesa começa, e
+a classificação sai de lá. Isso é o comportamento certo (histórico não muda),
+mas significa que trocar alguém no meio do torneio deixa a tabela com o antigo
+nas mesas que ele já jogou.
 
 **Colocação na mesa (regra do usuário):** vencedor primeiro, depois
 **almas → tesouros → loots → moedas**. Empate em TODOS os critérios não é
@@ -2324,8 +2341,9 @@ lib/
                         adicionar parâmetro novo) + parseParams
   seed-game-modes.ts  4 presets semeados (dado puro, evita ciclo de import)
   identity.ts         "Quem é você?" — cookie de perfil por dispositivo
-  tournament-defs.ts  definição ESTÁTICA de torneio (dado puro, sem CRUD)
-  tournaments.ts      classificação derivada das partidas do torneio
+  tournament-defs.ts  chaveamento ESTÁTICO do torneio (dado puro); as vagas
+                        são números, quem as ocupa vem de `settings`
+  tournaments.ts      classificação derivada + leitura/gravação do roster
   feedback.ts         data layer do Backlog (list/create/updateStatus/delete)
   sprites.ts, ornaments.ts, treasures.ts, player-avatar.ts   data layer do
                         pipeline de avatar + Tesouros. treasures.ts também
@@ -2359,8 +2377,9 @@ components/
                                         polling 4s, fila local de reenvio
   GameLiveControls                     DELETADO na Fase 2 (absorvido pela Run)
   IdentityPicker                       seletor de perfil estilo Netflix
-  TournamentClient                     mesas do torneio + classificação;
-                                        só leitura, exceto "começar mesa"
+  TournamentClient                     mesas do torneio + classificação +
+                                        painel de participantes (o único
+                                        editável); "começar mesa" cria a partida
   GameWizard                           DELETADO (substituído pelos 3 acima)
   TreasurePicker                       seletor híbrido no wizard: ícones já
                                         cadastrados + chips de pendentes + campo

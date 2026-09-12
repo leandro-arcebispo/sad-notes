@@ -1972,3 +1972,26 @@ img.card-art {
   justify-content: flex-end;
   padding-top: 4px;
 }
+
+/* Participantes do torneio: a única parte editável da tela. */
+.tourney-roster {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  margin: 12px 0;
+}
+.tourney-roster-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.tourney-roster-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel);
+  font-size: 13px;
+}

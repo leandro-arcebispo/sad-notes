@@ -5,23 +5,54 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import PlayerAvatar from "./PlayerAvatar";
 import type { TournamentState } from "@/lib/tournaments";
-import { GAME_STATUS_LABELS } from "@/lib/types";
+import { GAME_STATUS_LABELS, type Player } from "@/lib/types";
 
 /**
- * Tela de torneio — **somente leitura** sobre uma definição estática
- * (`lib/tournament-defs.ts`). A única ação é abrir a partida de uma mesa, que
- * nasce já amarrada ao torneio e cai na Run normal.
+ * Tela de torneio. O chaveamento é estático (`lib/tournament-defs.ts`) e a
+ * classificação é derivada das partidas — nunca digitada.
  *
- * A classificação nunca é digitada: sai das partidas finalizadas, na regra de
- * desempate definida pelo usuário (almas → tesouros → loots → moedas).
+ * A única coisa editável aqui são os **participantes**: quem ocupa cada vaga
+ * ("Jogador 1".."Jogador 6") é escolhido entre os jogadores cadastrados e fica
+ * em `settings`, pra dar pra montar o torneio em produção sem deploy.
  */
-export default function TournamentClient({ state }: { state: TournamentState }) {
+export default function TournamentClient({
+  state,
+  players,
+}: {
+  state: TournamentState;
+  players: Player[];
+}) {
   const router = useRouter();
-  const { def, tables, standings, missingPlayers } = state;
+  const { def, roster, tables, standings, missingSeats } = state;
+
+  const [picks, setPicks] = useState<(number | null)[]>(() =>
+    roster.map((s) => s.player?.id ?? null)
+  );
+  const [editing, setEditing] = useState(missingSeats > 0);
+  const [saving, setSaving] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const byDay = Array.from(new Set(tables.map((t) => t.def.day))).sort((a, b) => a - b);
+  const dirty = picks.some((p, i) => p !== (roster[i].player?.id ?? null));
+
+  async function saveRoster() {
+    setError(null);
+    setSaving(true);
+    const res = await fetch(`/api/tournaments/${def.slug}/roster`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ roster: picks }),
+    });
+    setSaving(false);
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}));
+      setError(j.error ?? "Não deu para salvar os participantes.");
+      return;
+    }
+    setEditing(false);
+    router.refresh();
+  }
 
   async function startTable(slot: string) {
     const table = tables.find((t) => t.def.slot === slot);
@@ -59,7 +90,7 @@ export default function TournamentClient({ state }: { state: TournamentState }) 
           ],
         },
         players: table.seats.map((s) => ({
-          player_id: s.player_id,
+          player_id: s.player!.id,
           character_id: null,
           team: null,
         })),
@@ -88,18 +119,92 @@ export default function TournamentClient({ state }: { state: TournamentState }) 
         </span>
       </div>
 
-      {missingPlayers.length > 0 && (
-        <div className="panel form-panel tourney-warn">
-          <strong>Faltam jogadores.</strong> Estes nomes da definição não batem com
-          nenhum jogador cadastrado:{" "}
-          <span className="pixel-label">{missingPlayers.join(" · ")}</span>.
-          <div className="muted" style={{ marginTop: 6 }}>
-            Cadastre-os em Jogadores com o nome exato, ou troque os nomes em{" "}
-            <code>lib/tournament-defs.ts</code> (<code>COPA_2026_PLAYERS</code>). As
-            mesas só liberam a partida quando os três nomes existirem.
+      {/* ----------------------------- participantes ------------------------- */}
+      <div className={`panel form-panel${missingSeats > 0 ? " tourney-warn" : ""}`}>
+        <button className="run-collapse" onClick={() => setEditing((v) => !v)}>
+          <span className="mini-label">
+            Participantes
+            {missingSeats > 0 && ` — faltam ${missingSeats} de ${def.rosterSize}`}
+          </span>
+          <span className="muted">{editing ? "▲ esconder" : "▼ trocar"}</span>
+        </button>
+
+        {!editing && (
+          <div className="tourney-roster-summary">
+            {roster.map((s) => (
+              <span key={s.seat} className="tourney-roster-chip">
+                {s.player ? (
+                  <>
+                    <PlayerAvatar
+                      face={s.player.base_face}
+                      size={26}
+                      avatarCache={s.player.avatar_cache}
+                    />
+                    {s.player.name}
+                  </>
+                ) : (
+                  <span className="muted">{s.label} — vaga aberta</span>
+                )}
+              </span>
+            ))}
           </div>
-        </div>
-      )}
+        )}
+
+        {editing && (
+          <>
+            {players.length < def.rosterSize && (
+              <div className="muted" style={{ marginTop: 8 }}>
+                Só há {players.length} jogador(es) cadastrado(s) para {def.rosterSize} vagas
+                — dá para deixar vagas abertas e completar depois.{" "}
+                <Link href="/jogadores" className="row-link">
+                  Cadastrar jogadores
+                </Link>
+                .
+              </div>
+            )}
+            <div className="tourney-roster">
+              {roster.map((s, i) => (
+                <div key={s.seat} className="field">
+                  <label>{s.label}</label>
+                  <select
+                    className="select"
+                    value={picks[i] ?? ""}
+                    onChange={(e) => {
+                      const v = e.target.value ? Number(e.target.value) : null;
+                      setPicks((prev) => prev.map((p, j) => (j === i ? v : p)));
+                    }}
+                  >
+                    <option value="">— vaga aberta —</option>
+                    {players.map((p) => (
+                      <option
+                        key={p.id}
+                        value={p.id}
+                        // Já está em outra vaga: aparece, mas não deixa escolher —
+                        // a mesma pessoa em duas vagas jogaria contra si mesma.
+                        disabled={picks.includes(p.id) && picks[i] !== p.id}
+                      >
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ))}
+            </div>
+            <div className="row" style={{ gap: 8, justifyContent: "flex-end" }}>
+              <button
+                className="btn"
+                onClick={() => setPicks(roster.map((s) => s.player?.id ?? null))}
+                disabled={!dirty || saving}
+              >
+                Desfazer
+              </button>
+              <button className="btn btn-accent" onClick={saveRoster} disabled={saving}>
+                {saving ? "Salvando…" : "Salvar participantes"}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
 
       {/* ------------------------------ classificação ------------------------ */}
       <div className="panel" style={{ padding: 0 }}>
@@ -119,7 +224,9 @@ export default function TournamentClient({ state }: { state: TournamentState }) 
               <tr>
                 <td colSpan={6}>
                   <div className="center-empty">
-                    A classificação aparece assim que a primeira mesa for finalizada.
+                    {missingSeats === def.rosterSize
+                      ? "Escolha os participantes para montar as mesas."
+                      : "A classificação aparece assim que a primeira mesa for finalizada."}
                   </div>
                 </td>
               </tr>
@@ -210,21 +317,23 @@ export default function TournamentClient({ state }: { state: TournamentState }) 
                         <li className="muted">Definida pela classificação</li>
                       )}
                       {t.seats.map((s) => (
-                        <li key={s.name}>
+                        <li key={s.seat}>
                           <span className="tourney-place">—</span>
-                          {s.player_id ? (
+                          {s.player ? (
                             <PlayerAvatar
-                              face={s.base_face!}
+                              face={s.player.base_face}
                               size={28}
-                              avatarCache={s.avatar_cache}
+                              avatarCache={s.player.avatar_cache}
                             />
                           ) : (
                             <span className="tourney-place">?</span>
                           )}
-                          <span className="tourney-name">{s.name}</span>
-                          {!s.player_id && (
+                          <span className="tourney-name">
+                            {s.player ? s.player.name : s.label}
+                          </span>
+                          {!s.player && (
                             <span className="muted" style={{ fontSize: 11 }}>
-                              não cadastrado
+                              vaga aberta
                             </span>
                           )}
                         </li>
@@ -250,10 +359,20 @@ export default function TournamentClient({ state }: { state: TournamentState }) 
                       <button
                         className="btn btn-accent"
                         disabled={!t.ready || busy !== null}
-                        title={!t.ready ? "faltam jogadores cadastrados nesta mesa" : undefined}
+                        title={
+                          t.ready
+                            ? undefined
+                            : t.seats.length === 0
+                              ? "os finalistas saem da classificação"
+                              : "esta mesa ainda tem vaga aberta"
+                        }
                         onClick={() => startTable(t.def.slot)}
                       >
-                        {busy === t.def.slot ? "Criando…" : "▶ Começar mesa"}
+                        {busy === t.def.slot
+                          ? "Criando…"
+                          : t.seats.length === 0
+                            ? "aguardando classificação"
+                            : "▶ Começar mesa"}
                       </button>
                     )}
                   </div>

@@ -1,22 +1,27 @@
-import { all } from "./db";
-import { RANKED_STATUS, type BaseFace, type GameStatus } from "./types";
-import type { TournamentDef, TournamentTableDef } from "./tournament-defs";
+import { all, getSetting, setSetting } from "./db";
+import { RANKED_STATUS, type BaseFace, type GameStatus, type Player } from "./types";
+import {
+  rosterSettingKey,
+  type TournamentDef,
+  type TournamentTableDef,
+} from "./tournament-defs";
 
 /**
  * Classificação de torneio — **derivada das partidas**, nunca digitada. Mesmo
  * princípio do ranking global (`lib/ranking.ts`): o que vale é o snapshot das
  * partidas finalizadas, e a tabela é sempre recalculada daqui.
  *
- * A definição do torneio (mesas, jogadores, datas, pontuação) é estática e
- * mora em `lib/tournament-defs.ts` — decisão do usuário: sem CRUD.
+ * O chaveamento é estático (`lib/tournament-defs.ts`); só **quem ocupa cada
+ * vaga** é escolhido na tela e guardado em `settings`, pra dar pra montar o
+ * torneio em produção sem deploy.
  */
 
-/** Um participante já resolvido do nome estático para o jogador cadastrado. */
+/** Vaga do torneio ("Jogador 1".."Jogador 6") já resolvida — ou vazia. */
 export interface TournamentSeat {
-  name: string;
-  player_id: number | null;
-  base_face: BaseFace | null;
-  avatar_cache: string | null;
+  /** Número da vaga no cartaz. */
+  seat: number;
+  label: string;
+  player: Player | null;
 }
 
 /** Resultado de um jogador numa mesa já finalizada. */
@@ -44,7 +49,7 @@ export interface TournamentTableState {
   game_id: number | null;
   game_status: GameStatus | null;
   results: TableResult[];
-  /** Todos os nomes da mesa bateram com jogadores cadastrados? */
+  /** Todas as vagas da mesa estão preenchidas? */
   ready: boolean;
 }
 
@@ -69,10 +74,12 @@ export interface StandingRow {
 
 export interface TournamentState {
   def: TournamentDef;
+  /** Vaga → jogador escolhido (ou null). Sempre `rosterSize` posições. */
+  roster: TournamentSeat[];
   tables: TournamentTableState[];
   standings: StandingRow[];
-  /** Nomes da definição que não bateram com nenhum jogador cadastrado. */
-  missingPlayers: string[];
+  /** Quantas vagas ainda faltam preencher. */
+  missingSeats: number;
 }
 
 interface GamePlayerRowLite {
@@ -89,6 +96,70 @@ interface GamePlayerRowLite {
   coins: number;
   is_winner: number;
 }
+
+export const seatLabel = (seat: number) => `Jogador ${seat}`;
+
+/* ------------------------------- participantes ---------------------------- */
+
+/**
+ * Participantes escolhidos, por vaga. Guardado em `settings` como JSON de ids
+ * — ids e não nomes porque é o MESMO banco: em produção a escolha aponta pros
+ * jogadores de produção, e renomear alguém não quebra o chaveamento.
+ */
+export async function getRosterIds(def: TournamentDef): Promise<(number | null)[]> {
+  const raw = await getSetting(rosterSettingKey(def));
+  const empty = Array<number | null>(def.rosterSize).fill(null);
+  if (!raw) return empty;
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return empty;
+    return empty.map((_, i) => {
+      const v = Math.trunc(Number(parsed[i]));
+      return Number.isFinite(v) && v > 0 ? v : null;
+    });
+  } catch {
+    return empty;
+  }
+}
+
+export type RosterSaveResult = { ok: true } | { ok: false; error: string };
+
+/**
+ * Grava os participantes. Vaga vazia é permitida (dá pra montar aos poucos),
+ * mas **jogador repetido não**: a mesma pessoa em duas vagas a colocaria
+ * jogando contra si mesma em alguma mesa do chaveamento.
+ */
+export async function saveRosterIds(
+  def: TournamentDef,
+  ids: (number | null)[]
+): Promise<RosterSaveResult> {
+  const normalized = Array<number | null>(def.rosterSize)
+    .fill(null)
+    .map((_, i) => {
+      const v = Math.trunc(Number(ids[i]));
+      return Number.isFinite(v) && v > 0 ? v : null;
+    });
+
+  const filled = normalized.filter((v): v is number => v != null);
+  if (new Set(filled).size !== filled.length) {
+    return { ok: false, error: "o mesmo jogador não pode ocupar duas vagas" };
+  }
+
+  if (filled.length > 0) {
+    const found = await all<{ id: number }>(
+      `SELECT id FROM players WHERE active = 1 AND id IN (${filled.map(() => "?").join(",")})`,
+      filled
+    );
+    if (found.length !== filled.length) {
+      return { ok: false, error: "algum jogador selecionado não existe mais" };
+    }
+  }
+
+  await setSetting(rosterSettingKey(def), JSON.stringify(normalized));
+  return { ok: true };
+}
+
+/* --------------------------------- estado --------------------------------- */
 
 /**
  * Ordem de colocação dentro da mesa, na regra definida pelo usuário:
@@ -119,23 +190,23 @@ function fullyTied(a: GamePlayerRowLite, b: GamePlayerRowLite): boolean {
 }
 
 export async function getTournamentState(def: TournamentDef): Promise<TournamentState> {
-  // Jogadores da definição resolvidos por NOME (local e prod têm ids
-  // diferentes — ver o comentário em tournament-defs.ts).
-  const wanted = Array.from(new Set(def.tables.flatMap((t) => t.playerNames)));
+  const rosterIds = await getRosterIds(def);
+  const wanted = rosterIds.filter((v): v is number => v != null);
+
   const players = wanted.length
-    ? await all<{
-        id: number;
-        name: string;
-        base_face: BaseFace;
-        avatar_cache: string | null;
-      }>(
-        `SELECT id, name, base_face, avatar_cache FROM players
-          WHERE name COLLATE NOCASE IN (${wanted.map(() => "?").join(",")})`,
+    ? await all<Player>(
+        `SELECT * FROM players WHERE id IN (${wanted.map(() => "?").join(",")})`,
         wanted
       )
     : [];
-  const byName = new Map(players.map((p) => [p.name.toLowerCase(), p]));
-  const missingPlayers = wanted.filter((n) => !byName.has(n.toLowerCase()));
+  const byId = new Map(players.map((p) => [p.id, p]));
+
+  const roster: TournamentSeat[] = rosterIds.map((id, i) => ({
+    seat: i + 1,
+    label: seatLabel(i + 1),
+    player: id != null ? byId.get(id) ?? null : null,
+  }));
+  const seatByNumber = new Map(roster.map((s) => [s.seat, s]));
 
   // Todas as partidas deste torneio, com o estado final de cada participante.
   const rows = await all<GamePlayerRowLite>(
@@ -159,15 +230,9 @@ export async function getTournamentState(def: TournamentDef): Promise<Tournament
   }
 
   const tables: TournamentTableState[] = def.tables.map((tableDef) => {
-    const seats: TournamentSeat[] = tableDef.playerNames.map((name) => {
-      const p = byName.get(name.toLowerCase());
-      return {
-        name,
-        player_id: p?.id ?? null,
-        base_face: p?.base_face ?? null,
-        avatar_cache: p?.avatar_cache ?? null,
-      };
-    });
+    const seats: TournamentSeat[] = tableDef.seats.map(
+      (n) => seatByNumber.get(n) ?? { seat: n, label: seatLabel(n), player: null }
+    );
 
     const gameRows = bySlot.get(tableDef.slot) ?? [];
     const gameId = gameRows[0]?.game_id ?? null;
@@ -201,22 +266,23 @@ export async function getTournamentState(def: TournamentDef): Promise<Tournament
       game_id: gameId,
       game_status: status,
       results,
-      ready: seats.length > 0 && seats.every((s) => s.player_id != null),
+      ready: seats.length > 0 && seats.every((s) => s.player != null),
     };
   });
 
   return {
     def,
+    roster,
     tables,
     standings: buildStandings(def, tables),
-    missingPlayers,
+    missingSeats: roster.filter((s) => s.player == null).length,
   };
 }
 
 /**
- * Soma os pontos das mesas de classificação. Jogador que ainda não jogou
- * nenhuma mesa entra zerado (o cartaz lista os 6 desde o início, então sumir
- * da tabela seria pior que aparecer com 0).
+ * Soma os pontos das mesas de classificação. Participante que ainda não jogou
+ * entra zerado (o cartaz lista os 6 desde o início, então sumir da tabela seria
+ * pior que aparecer com 0).
  */
 function buildStandings(def: TournamentDef, tables: TournamentTableState[]): StandingRow[] {
   const acc = new Map<number, StandingRow>();
@@ -249,11 +315,11 @@ function buildStandings(def: TournamentDef, tables: TournamentTableState[]): Sta
     return acc.get(id)!;
   };
 
-  // Todo mundo que a definição prevê aparece, mesmo sem ter jogado ainda.
+  // Todo mundo que já tem vaga aparece, mesmo sem ter jogado ainda.
   for (const t of tables) {
     if (!t.def.scoring) continue;
     for (const s of t.seats) {
-      if (s.player_id != null) touch(s.player_id, s.name, s.base_face!, s.avatar_cache);
+      if (s.player) touch(s.player.id, s.player.name, s.player.base_face, s.player.avatar_cache);
     }
   }
 
