@@ -47,6 +47,12 @@
   --font-display: "Upheaval", "IsaacGame", Georgia, serif; /* títulos, nav, cabeçalho de tabela */
   --font-body: "Segoe UI", system-ui, -apple-system, sans-serif; /* corpo, formulários */
 
+  /* Faz o navegador desenhar os widgets nativos (calendário do date,
+     spinners, scrollbar, menu do select) em tema escuro. É o que impede o
+     date picker de abrir branco no meio de um app preto — vale pros dois,
+     Firefox e Chrome. */
+  color-scheme: dark;
+
   --sidebar-w: 56px;
   --sidebar-w-open: 216px;
 }
@@ -174,8 +180,9 @@ h2.title {
 .input,
 .select,
 .textarea {
-  font-family: var(--font-body);
-  font-size: 14px;
+  font-family: var(--font-display);
+  font-size: 15px;
+  letter-spacing: 0.02em;
   color: var(--text);
   background: #120c09;
   border: 2px solid var(--panel-border);
@@ -183,11 +190,103 @@ h2.title {
   padding: 8px 10px;
   box-shadow: var(--shadow-inset);
 }
+
+/* Exceção consciente: onde se escreve FRASE (notas da partida, história
+   triste, descrição do backlog) a fonte de corpo ganha da estética — pixel
+   font em texto longo cansa de ler. */
+.textarea {
+  font-family: var(--font-body);
+  font-size: 14px;
+  letter-spacing: normal;
+}
+
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--text-mute);
+}
+
 .input:focus,
 .select:focus,
 .textarea:focus {
   outline: none;
   border-color: var(--accent);
+  /* Anel duro, sem blur — a regra do style guide. */
+  box-shadow: var(--shadow-inset), 0 0 0 2px var(--accent-dim);
+}
+
+/* O menu aberto do select é desenhado pelo sistema; o Firefox respeita
+   estas duas propriedades, então ao menos o fundo não abre branco. */
+.select option {
+  background: var(--panel-2);
+  color: var(--text);
+}
+
+/* Seta própria no lugar da nativa (que muda de desenho entre Firefox e
+   Chrome). Triângulo em degraus pra ficar pixel-art de verdade. */
+.select {
+  appearance: none;
+  -moz-appearance: none;
+  -webkit-appearance: none;
+  padding-right: 26px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='9' height='5' shape-rendering='crispEdges'><g fill='%23e8b978'><rect x='0' y='0' width='9' height='1'/><rect x='1' y='1' width='7' height='1'/><rect x='2' y='2' width='5' height='1'/><rect x='3' y='3' width='3' height='1'/><rect x='4' y='4' width='1' height='1'/></g></svg>");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+}
+
+/* Spinner nativo do number: some. Ele é o widget mais destoante do conjunto
+   (cinza/azulado, desenhado pelo navegador) e roubava largura justo nas
+   caixinhas de 64px do resultado. Digitar continua funcionando, e as setas
+   do teclado também. */
+.input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.input[type="number"]::-webkit-outer-spin-button,
+.input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* ---------- checkbox pixel-art ----------
+   Antes era o checkbox nativo: azul do navegador quando marcado, em cima de
+   um app inteiro dourado/sépia. `appearance:none` tira o desenho do sistema
+   e o estado marcado vira um quadrado dourado preenchido — some a
+   dependência de como cada navegador pinta o padrão dele. */
+input[type="checkbox"] {
+  appearance: none;
+  -moz-appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  flex: none;
+  margin: 0;
+  display: inline-grid;
+  place-content: center;
+  background: #120c09;
+  border: 2px solid var(--panel-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-inset);
+  cursor: pointer;
+}
+input[type="checkbox"]::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  background: transparent;
+}
+input[type="checkbox"]:checked {
+  border-color: var(--accent-dim);
+}
+input[type="checkbox"]:checked::after {
+  background: var(--accent);
+}
+input[type="checkbox"]:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+}
+input[type="checkbox"]:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 /* ---------- tabela de dados ---------- */
@@ -590,9 +689,15 @@ h2.title {
 .mini-check {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
+  font-family: var(--font-display);
   font-size: 13px;
+  letter-spacing: 0.02em;
   color: var(--text-dim);
+  cursor: pointer;
+}
+.mini-check:hover {
+  color: var(--text);
 }
 .team-select {
   width: 110px;
