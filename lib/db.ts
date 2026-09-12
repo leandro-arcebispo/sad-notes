@@ -29,7 +29,16 @@ function rawClient(): Client {
 /** Cliente pronto (schema garantido). Use os helpers `all/get/run` no lugar. */
 export async function getClient(): Promise<Client> {
   const c = rawClient();
-  if (!_ready) _ready = initSchema(c);
+  if (!_ready) {
+    _ready = initSchema(c).catch((e) => {
+      // Sem isto a promise REJEITADA fica em cache e toda requisição
+      // seguinte desta instância falha igual, até o lambda ser reciclado —
+      // uma falha transitória (rede, concorrência no deploy) viraria queda
+      // permanente. Limpar o cache deixa a próxima requisição tentar de novo.
+      _ready = null;
+      throw e;
+    });
+  }
   await _ready;
   return c;
 }
@@ -321,9 +330,17 @@ async function ensureColumn(
   ddl: string
 ): Promise<void> {
   const info = await db.execute(`PRAGMA table_info(${table})`);
-  const exists = info.rows.some((r) => String(r[1]) === column);
-  if (!exists) {
+  if (info.rows.some((r) => String(r[1]) === column)) return;
+
+  try {
     await db.execute(`ALTER TABLE ${table} ADD COLUMN ${column} ${ddl}`);
+  } catch (e) {
+    // Checar-e-alterar NÃO é atômico. Em serverless várias instâncias sobem
+    // juntas no primeiro tráfego pós-deploy, todas rodam o initSchema e podem
+    // disputar o mesmo ALTER: quem perde recebe "duplicate column name".
+    // Isso é sucesso, não erro — a coluna existe, que é o que se queria.
+    const msg = e instanceof Error ? e.message.toLowerCase() : "";
+    if (!msg.includes("duplicate column")) throw e;
   }
 }
 
