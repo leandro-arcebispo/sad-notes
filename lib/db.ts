@@ -301,6 +301,11 @@ async function initSchema(db: Client): Promise<void> {
   await ensureColumn(db, "game_players", "ready", "INTEGER NOT NULL DEFAULT 1");
   await ensureColumn(db, "game_players", "joined_at", "TEXT");
 
+  // Mesa do torneio a que a partida pertence ("A".."F", "FINAL"). A definição
+  // do torneio é estática (lib/tournament-defs.ts); isto é o único vínculo que
+  // precisa ficar no banco, junto do tournament_id que já existia.
+  await ensureColumn(db, "games", "tournament_slot", "TEXT");
+
   await seedDefaultSettings(db);
   await seedCharactersIfEmpty(db);
   await seedGameModesIfEmpty(db);

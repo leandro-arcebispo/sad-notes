@@ -341,6 +341,10 @@ export function parseGameSetupPayload(
       mode_id: toIntOrNull(b.mode_id),
       params,
       tournament_id: toIntOrNull(b.tournament_id),
+      tournament_slot:
+        typeof b.tournament_slot === "string" && b.tournament_slot.trim()
+          ? b.tournament_slot.trim().slice(0, 16)
+          : null,
       notes: typeof b.notes === "string" && b.notes.trim() ? b.notes.trim() : null,
       players,
       retro: Boolean(b.retro),

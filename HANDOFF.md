@@ -2215,6 +2215,58 @@ produto, não bug.
 `unlock_mode`: `monster_kill`, `stat_threshold`) e a sessão multi-celular
 (lobby, ready, cada um registrando no próprio aparelho).
 
+### Copa Isaacquinho 2026 — torneio estático (2026-09-12)
+
+Primeiro torneio de verdade no app. **Estático e sem CRUD, por decisão do
+usuário**: a definição (mesas, jogadores, datas, pontuação) mora em código e
+só o **resultado** é derivado das partidas.
+
+- `lib/tournament-defs.ts` — dado puro (padrão de `seed-game-modes.ts`): as 6
+  mesas do cartaz + a Grande Final, pontuação 5/3/1, jogo base, 4 almas.
+- `lib/tournaments.ts` — classificação derivada.
+- `/torneios` e `/torneios/[slug]` + `components/TournamentClient.tsx`.
+- Schema: **uma coluna só**, `games.tournament_slot` ("A".."F", "FINAL"). O
+  `tournament_id` já existia desde a Fase 2 de partidas e estava sempre NULL.
+
+**Jogadores referenciados por NOME, não por id.** Local e prod são bancos com
+ids independentes e o usuário vai montar a Copa em prod — id hardcoded
+apontaria pra outra pessoa lá. Nome é a chave natural, padrão já adotado no
+projeto pra tudo que atravessa os dois bancos. Nome que não bate aparece como
+"não cadastrado" e a mesa não libera a partida.
+
+⚠️ **Os 6 participantes ainda são placeholders** ("Jogador 1".."Jogador 6") em
+`COPA_2026_PLAYERS`. Trocar por nomes reais é o único passo que falta — e
+**exige deploy**, porque é código. Se isso incomodar, a alternativa é guardar
+os 6 na tabela `settings` com uma telinha de escolha (aí deixa de ser 100%
+estático).
+
+**Colocação na mesa (regra do usuário):** vencedor primeiro, depois
+**almas → tesouros → loots → moedas**. Empate em TODOS os critérios não é
+desempatado no chute: os dois ganham um ⚠ na tela. A classificação usa o mesmo
+critério sobre os totais, com 1ºs lugares como primeiro desempate.
+
+⚠️ **Armadilha evitada: mesa de 3 NÃO é `format: "trio"`.** No app `format` é
+tamanho de TIME; a Copa é `solo` (cada um por si) com 3 participantes. Modelar
+como trio faria o vencedor virar "time" e quebraria a classificação inteira.
+
+**O ranking global não mudou:** `getRanking()` continua somando toda partida
+finalizada, inclusive as da Copa. O usuário pediu um ranking separado do
+torneio (feito), não a separação do global — se um dia quiser Global Board =
+só mesa livre, é filtrar `tournament_id IS NULL` lá.
+
+**Verificado** com 4 mesas sintéticas, uma pra cada nível de desempate:
+tesouros (2-2 almas), loots (2-2 almas + 2-2 tesouros), moedas (empate até o
+loot) e empate total (os dois marcados com ⚠). Soma da classificação conferida
+na mão: 18 / 14 / 4 pontos. Dados de teste e o jogador `__TESTE__ Terceiro`
+removidos no fim; as partidas do usuário ficaram intactas.
+
+**Relação com `docs/PLANO-TORNEIOS.md`:** aquele plano estava parado em
+"formato não definido — bloqueador de tudo o resto". O cartaz da Copa definiu o
+formato, e isto aqui é a implementação de UM torneio concreto — de propósito,
+não a entidade genérica. Construir o caso real primeiro é o que vai mostrar o
+que a entidade genérica precisa ter. O usuário disse explicitamente: "depois
+faremos genérico".
+
 ## Onde as coisas estão (mapa rápido)
 
 ```
@@ -2233,6 +2285,9 @@ app/
   partidas/[id]/run/page.tsx        A RUN (RunClient) — tela ao vivo: placar,
                                     paleta de eventos, Diário, pause, rodada
   quem-e-voce/page.tsx            Seletor de perfil (IdentityPicker)
+  torneios/page.tsx               Lista dos torneios estáticos
+  torneios/[slug]/page.tsx        Torneio: mesas + classificação derivada
+                                    (TournamentClient)
   sprites/page.tsx                 Oficina (Admin): abas Spritesheets/Sprites — SÓ corta sprites
   artefatos/personagens/page.tsx   CRUD de Personagens + flip carta/item (CharactersClient)
   artefatos/tesouros/page.tsx      CRUD de Tesouros + posicionamento (TreasuresClient)
@@ -2269,6 +2324,8 @@ lib/
                         adicionar parâmetro novo) + parseParams
   seed-game-modes.ts  4 presets semeados (dado puro, evita ciclo de import)
   identity.ts         "Quem é você?" — cookie de perfil por dispositivo
+  tournament-defs.ts  definição ESTÁTICA de torneio (dado puro, sem CRUD)
+  tournaments.ts      classificação derivada das partidas do torneio
   feedback.ts         data layer do Backlog (list/create/updateStatus/delete)
   sprites.ts, ornaments.ts, treasures.ts, player-avatar.ts   data layer do
                         pipeline de avatar + Tesouros. treasures.ts também
@@ -2302,6 +2359,8 @@ components/
                                         polling 4s, fila local de reenvio
   GameLiveControls                     DELETADO na Fase 2 (absorvido pela Run)
   IdentityPicker                       seletor de perfil estilo Netflix
+  TournamentClient                     mesas do torneio + classificação;
+                                        só leitura, exceto "começar mesa"
   GameWizard                           DELETADO (substituído pelos 3 acima)
   TreasurePicker                       seletor híbrido no wizard: ícones já
                                         cadastrados + chips de pendentes + campo

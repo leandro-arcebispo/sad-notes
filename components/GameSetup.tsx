@@ -127,6 +127,7 @@ export default function GameSetup({
         mode_id: modeId,
         params,
         tournament_id: null, // Global Board
+        tournament_slot: null,
         notes: notes.trim() || null,
         players: parts,
       }),

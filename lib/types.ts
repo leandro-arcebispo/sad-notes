@@ -406,6 +406,9 @@ export interface Game {
   rerolls_allowed: number;
   started_at: string | null;
   ended_at: string | null;
+  /** Mesa do torneio ("A".."F", "FINAL"). Null nas partidas de mesa livre.
+   * A definição do torneio é estática — ver lib/tournament-defs.ts. */
+  tournament_slot: string | null;
 }
 
 export interface GamePlayerRow {
@@ -636,6 +639,9 @@ export interface GameSetupPayload {
   mode_id: number | null;
   params: GameModeParams;
   tournament_id: number | null;
+  /** Mesa do torneio ("A".."F", "FINAL"), quando a partida nasce de um
+   * torneio. Null em partida de mesa livre. */
+  tournament_slot: string | null;
   notes: string | null;
   players: { player_id: number; character_id: number | null; team: number | null }[];
   /** Partida que já aconteceu sem o app na mesa (§7.4): nasce sem `started_at`,

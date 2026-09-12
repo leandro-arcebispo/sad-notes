@@ -53,6 +53,32 @@ comprometer nenhuma decisão**:
 - Chaveamento (se o formato escolhido precisar) seria uma estrutura nova,
   totalmente dependente do formato — não dá pra desenhar sem essa decisão.
 
+## 6. Copa Isaacquinho 2026 — o formato apareceu (2026-09-12)
+
+O bloqueador do §3 ("sem formato definido") **caiu**: o usuário trouxe o
+cartaz da Copa Isaacquinho 2026, que responde quase tudo que estava em aberto.
+
+| Pergunta do §3 | Resposta |
+|---|---|
+| Formato | Fase de classificação (6 mesas de 3, cada um joga 3) + Grande Final dos 4 melhores |
+| Duração/cadência | 3 dias |
+| Inscrição | 6 jogadores fixos, escolhidos entre os cadastrados |
+| Pontuação | 5 / 3 / 1 por mesa |
+| Colocação na mesa | vencedor, depois almas → tesouros → loots → moedas |
+| Ranking | separado do global, por enquanto |
+
+**Implementado de forma ESTÁTICA e sem CRUD**, a pedido do usuário — ver a
+sessão correspondente no `HANDOFF.md`. `lib/tournament-defs.ts` +
+`lib/tournaments.ts` + `/torneios`, e uma coluna nova (`games.tournament_slot`).
+
+⚠️ Isto **não** é a entidade genérica que este plano previa, e é de propósito:
+o caso concreto primeiro é o que revela o que a entidade genérica precisa ter.
+O usuário: *"crie um ranking separado pra esse torneio específico, depois
+faremos genérico"*.
+
+**Ainda em aberto na Copa:** o formato da Grande Final (uma mesa só com 4, ou
+chaveamento?) e as datas do Dia 2 e Dia 3.
+
 ## 5. Status
 
 - [ ] Formato de torneio definido — **bloqueador de tudo o resto**.

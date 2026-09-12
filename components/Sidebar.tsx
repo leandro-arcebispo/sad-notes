@@ -12,6 +12,7 @@ const NAV: NavEntry[] = [
   { href: "/", label: "Ranking", exact: true, icon: <img src="/design-system/img/icon-nav-ranking.png" alt="" /> },
   { href: "/partidas", label: "Partidas", icon: <img src="/design-system/img/icon-report.png" alt="" /> },
   { href: "/jogadores", label: "Jogadores", icon: <img src="/design-system/img/icon-isaac-avatar.png" alt="" /> },
+  { href: "/torneios", label: "Torneios", icon: <IconTrophy /> },
 ];
 
 const ARTIFACTS_NAV: NavEntry[] = [
@@ -149,6 +150,15 @@ function IconUser() {
     <>
       <circle cx="12" cy="8" r="4" />
       <path d="M4.5 20c0-3.6 3.4-6 7.5-6s7.5 2.4 7.5 6" />
+    </>
+  );
+}
+function IconTrophy() {
+  return svg(
+    <>
+      <path d="M7 4h10v5a5 5 0 0 1-10 0V4Z" />
+      <path d="M7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3" />
+      <path d="M12 14v4M9 21h6M10 18h4" />
     </>
   );
 }

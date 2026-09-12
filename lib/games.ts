@@ -49,9 +49,9 @@ export async function createGameSetup(
     const gi = await tx.execute({
       sql: `INSERT INTO games
               (played_at, edition, souls_to_win, character_selection, format,
-               tournament_id, duration_min, rounds, notes, created_at,
+               tournament_id, tournament_slot, duration_min, rounds, notes, created_at,
                status, mode_id, params_json, bonus_souls, rerolls_allowed, started_at)
-            VALUES (?, ?, ?, ?, ?, ?, NULL, NULL, ?, ?, 'andamento', ?, ?, ?, ?, ?)`,
+            VALUES (?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?, ?, 'andamento', ?, ?, ?, ?, ?)`,
       args: [
         payload.played_at,
         params.edition,
@@ -59,6 +59,7 @@ export async function createGameSetup(
         params.character_selection,
         params.format,
         payload.tournament_id,
+        payload.tournament_slot,
         payload.notes,
         now,
         payload.mode_id,
