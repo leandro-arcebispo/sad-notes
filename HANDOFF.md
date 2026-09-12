@@ -1985,6 +1985,305 @@ só pro card inteiro).
   ("The Revenant") E o personagem pro fallback genérico. Três combinações
   testadas, todas corretas, zero erro no console.
 
+### Reformulação do Registro de Partidas — Fase 1 (2026-08-06)
+
+Plano completo em **`docs/PLANO-PARTIDAS.md`** (fonte de verdade deste
+sistema; o §2 tem as regras do jogo apuradas com o usuário — **não
+re-perguntar**). Fase 1 de 4 entregue nesta sessão.
+
+**O problema que motivou tudo:** a partida só existia quando acabava. O
+`GameWizard` guardava tudo em `useState` e disparava um único `POST /api/games`
+no fim. Por isso "Duração da partida" estava na etapa de **Setup** — não por
+descuido, mas porque o wizard inteiro era um formulário retrospectivo. Sem
+linha no banco não havia onde gravar nada durante o jogo.
+
+**As três decisões estruturantes (não re-discutir):**
+1. **Partida é entidade com ciclo de vida** — `setup → andamento ⇄ pausada →
+   finalizada`, mais `abortada` e `lobby` (reservado pro multi-celular).
+2. **`game_events` append-only** é o substrato: tipo de evento novo é uma
+   entrada em `EVENT_TYPE_DEFS` (`lib/game-events.ts`), **sem migração**;
+   estatística nova é query, não schema. Mesmo padrão plugável de
+   `lib/unlocks.ts`.
+3. **O ranking NÃO lê eventos** — continua agregando o snapshot em
+   `game_players`. Alma pode ser roubada/destruída e partida retroativa não tem
+   evento nenhum, então derivar placar de evento seria pesadelo de
+   reconciliação. Eventos **pré-preenchem** a finalização e alimentam
+   estatística/badge.
+
+**Colunas `player_id`/`other_player_id` (e não `actor`/`target`):** a convenção
+actor/target quebra em `morte`, onde o sujeito da estatística é quem *sofreu*.
+O significado de cada operando é declarado por tipo no `EVENT_TYPE_DEFS`, que
+é a mesma fonte dos rótulos da UI.
+
+**Dois buracos reais achados e corrigidos** (existiam antes, mas o ciclo de
+vida os tornaria visíveis):
+- `lib/ranking.ts` agregava `game_players` **sem nenhum join com `games`** —
+  partida em andamento (snapshot zerado) e abandonada entrariam no ranking.
+  Medido no banco real: sem o filtro Mané ficava 3 vitórias/5 partidas em vez
+  de 3/4 — win% caindo de 75% pra 60% por causa de uma partida que ainda nem
+  acabou.
+- `lib/unlocks.ts` tinha o mesmo buraco: desbloquearia cosmético de partida não
+  terminada. Os dois agora filtram por `RANKED_STATUS` (`'finalizada'`).
+
+**Sorteio de personagem foi pro servidor** (`rollCharacter` em `lib/games.ts`,
+rota `PATCH /api/games/[id]/players/[playerId]` com `{action:"roll"}`) e virou
+operação **por participante**, não em lote. No cliente dava pra re-rolar até
+gostar e dois celulares podiam tirar o mesmo personagem. Agora o pool exclui
+quem já foi sorteado, o limite de re-roll é conferido de verdade, e cada
+sorteio deixa evento (`personagem_sorteado`) — auditoria de graça. O primeiro
+sorteio não conta como re-roll.
+
+**Modos de jogo (`game_modes`)** no modelo Project Zomboid (preset → sandbox).
+⚠️ **Regra inegociável:** os parâmetros são **copiados** pra
+`games.params_json` no Setup. Editar um modo NUNCA reescreve partida antiga.
+Híbrido de propósito: o que o ranking/filtros consultam (edition,
+souls_to_win, format, character_selection) continua **coluna real** em `games`;
+a cauda longa vive no JSON, então parâmetro novo não exige migração.
+4 presets semeados via `INSERT OR IGNORE` por nome (`lib/seed-game-modes.ts`) —
+preset novo numa versão futura aparece sem apagar os modos do usuário.
+
+**Identidade "Quem é você?"** (`/quem-e-voce`, `lib/identity.ts`): seletor de
+perfil estilo Netflix, **sem PIN e sem senha, de propósito** (decisão do
+usuário — qualquer um entra em qualquer perfil). Cookie httpOnly simples, sem
+assinatura: não há o que proteger quando o próprio seletor é aberto. **Não
+substitui o basic-auth do `middleware.ts`** — a senha do grupo continua sendo a
+porta; o perfil é a camada de dentro. O que isso resolve é **autoria**:
+`created_by_player_id` nasce preenchido. Subiu da Fase 4 pra Fase 1 justamente
+por isso (ficou barato demais sem PIN). Chip no rodapé da Sidebar; o
+`RootLayout` virou `async` pra ler o cookie.
+
+**Duração:** derivada de `started_at` + eventos `pause`/`resume` + `ended_at`
+(`deriveActiveMinutes`) — soma só os intervalos ativos, então partida em dois
+dias não infla o tempo. Pause é evento, não tabela.
+**Rodadas:** contador **livre** (+/−) por decisão explícita do usuário — nada
+pode travar a mesa nem impedir voltar pra vez de alguém. Sem rastreamento de
+turno nesta fase.
+
+**Registro retroativo preservado** (§7.4 do plano): botão "Já jogamos —
+registrar direto" cria a partida com `retro:true` (que deixa `started_at`
+NULL, então a duração não vem chutada como 0) e manda direto pra
+`/partidas/[id]/finalizar`. Existe também um caminho **só de API**,
+`POST /api/games` com `{"mode":"retroativo"}`, que grava tudo numa tacada
+(`createGame` + `parseGamePayload`) — mantido pra scripts/import, sem
+consumidor na UI.
+
+**`components/GameWizard.tsx` foi DELETADO** — substituído por `GameSetup.tsx`
++ `GameFinish.tsx` + `GameLiveControls.tsx`. (Diferente do `OrnamentBuilder`,
+que fica sem uso de propósito; este foi de fato superado.)
+
+**Verificação ponta a ponta** (dados de teste criados e removidos; as 4
+partidas reais e os 2 jogadores do usuário ficaram intactos):
+- Migração testada primeiro numa **cópia** do banco: backfill correto (as 4
+  partidas legadas viraram `finalizada` pelo `DEFAULT`), idempotente rodando
+  2×, e o índice `UNIQUE(game_id, client_event_id)` bloqueia duplicata mas
+  aceita vários `NULL` (idempotência do §6.1).
+- Sorteio: personagens distintos, re-roll permitido 1× e barrado no 2º com
+  409, eventos carimbados com `created_by_player_id` vindo do cookie.
+- Duração: com timestamps forjados (início −60min, pausa −40min, retoma
+  −10min) o derivado deu **exatamente 30 min**.
+- Derivados: roubo de alma como transferência (+1/−1) e PvP kill indo pra
+  contraparte da morte — bateu número a número.
+- Transições inválidas devolvem 409 (pausar pausada, finalizar finalizada).
+- Cascata do `deleteGame` levou 12 eventos + 2 participantes + 1 tesouro.
+- Setup provado **sem** duração/rodadas/vencedor (o problema original).
+
+**Falta (Fases 2–4):** a tela **"Run"** (nome escolhido pelo usuário — partida
+é o registro, Run é a partida acontecendo; rota prevista
+`/partidas/[id]/run`), com a paleta de botões de evento, o Diário e o polling;
+depois estatísticas/badges; depois a sessão multi-celular.
+
+### Reformulação do Registro de Partidas — Fase 2: a Run (2026-09-12)
+
+Fase 2 de 4 do `docs/PLANO-PARTIDAS.md`. Entrega a **tela ao vivo** —
+`/partidas/[id]/run`, `components/RunClient.tsx`.
+
+**Vocabulário (fixado na Fase 1, vale pra tudo):** *partida* é o registro (a
+linha em `games`, o que aparece na listagem e no ranking); ***Run*** é a
+partida enquanto está acontecendo. O log de eventos é o **Diário da Run**.
+
+**API de eventos nova:**
+- `POST /api/games/[id]/events` — idempotente por `client_event_id`; recusa
+  partida encerrada (409).
+- `GET  /api/games/[id]/events?since=N` — delta do polling: eventos novos +
+  derivado fresco + status/rodadas/duração, numa ida só ao servidor.
+- `DELETE /api/games/[id]/events/[eventId]` — soft-delete com autoria.
+
+**Travas do `parseGameEventInput` (todas verificadas):** só tipo `manual` entra
+pela API — `pause`/`resume`/`personagem_sorteado` são gerados pelo sistema, e
+aceitá-los pela mesa deixaria a **duração** e a **auditoria de re-roll**
+forjáveis. Também barra: contraparte obrigatória ausente (roubo de alma sem a
+vítima viraria +1 sem o −1 correspondente), contraparte em evento que não tem,
+jogador como própria contraparte, nota sem texto, sujeito ausente, tipo
+inexistente.
+
+**Fluxo de registro = 2 a 3 toques**, derivado do próprio `EVENT_TYPE_DEFS`
+(mesma fonte que valida no servidor). O passo de referência **só aparece quando
+existe catálogo**: “ganhou alma” não para o jogo pra perguntar qual alma bônus
+foi (o Artefato Almas Bônus ainda não existe, §2.1), então sai em 2 toques;
+monstro e maldição abrem busca sobre os catálogos (124 e 19 registros) com
+opção de “pular”. Morte tem “sem culpado” pra morte por monstro/carta (§2.3).
+
+⚠️ **O polling recarrega tudo (`since=0`), e é de propósito.** O parâmetro
+`since` existe na API (a Fase 4 vai usar), mas o cliente pede a lista inteira:
+**evento apagado em outro aparelho não aparece num delta** (o soft-delete some
+da listagem) e a tela ficaria com um registro fantasma. O custo real do poll é
+a query no servidor, idêntica nos dois casos — o derivado varre todos os
+eventos de qualquer jeito. Paga-se bytes, ganha-se convergência. Intervalo 4s,
+e só com a aba visível.
+
+**`nota`:** o texto mora em `ref_name` (o slot de texto curto que o evento já
+tem), com `freeText: true` no def liberando isso sem `ref_type`. `meta_json`
+segue reservado pra cauda longa estruturada de tipos futuros.
+
+**`components/GameLiveControls.tsx` foi DELETADO.** Pausar/retomar/rodada/
+sortear/finalizar viveram nele por uma fase; agora moram na Run, e o detalhe da
+partida virou só a visão de registro com um atalho “▶ Abrir a Run” — não podem
+existir dois lugares controlando a mesma coisa.
+
+**DOIS BUGS REAIS de React, os dois só apareceram dirigindo a tela** — a API
+passava nos testes nos dois casos. Vale insistir em verificar pela UI:
+
+1. **Rascunho completo não era enviado.** Ao quebrar o sub-componente da folha
+   em JSX inline, o auto-submit de `step === "done"` se perdeu: a folha só
+   sumia e nada era registrado. Só o fluxo de monstro funcionava, porque
+   chamava `submitDraft` direto no clique. Corrigido com um `useEffect` que
+   envia quando o rascunho fica completo — o ÚLTIMO toque do fluxo já é o
+   registro, sem um botão “confirmar” que ninguém apertaria com o jogo rolando.
+2. **A folha da `nota` desmontava na primeira letra.** `currentStep` tratava o
+   passo de texto como satisfeito assim que houvesse conteúdo, então o rascunho
+   virava `"done"` e a condição de render escondia o formulário — levando junto
+   o que estava sendo digitado, e deixando um rascunho invisível que fazia o
+   clique seguinte no botão Nota *fechar* em vez de abrir. Corrigido na causa:
+   **passo de digitação nunca se conclui sozinho**, quem encerra é o submit do
+   form. Isso tornou redundante a guarda por `freeText` no efeito, que foi
+   removida — uma regra só, num lugar só.
+
+**Verificação ponta a ponta** (dados de teste criados e removidos):
+- API: 5 eventos de tipos diferentes, 8 travas de validação, idempotência
+  (reenvio do mesmo `client_event_id` devolveu o MESMO evento — id e seq
+  iguais, total continuou 5), delta `since=3` trouxe só seq 4 e 5, nomes
+  resolvidos no Diário.
+- Soft-delete: a linha permanece no banco com `deleted_by_player_id`, some da
+  listagem, o derivado reflete a remoção, e o **`seq` não é reciclado** (o
+  evento seguinte foi pro 6, não ocupou o 4 vago).
+- UI: fluxo de 3 toques (morte com culpado → PvP na contraparte), de 2 toques
+  (alma), busca de monstro (124 → 6 digitando “mom”), “sem culpado”, nota,
+  apagar pelo Diário, contador de rodada, pausar/retomar.
+- Finalização pré-preenchida bateu com o Diário: almas 2/1, mortes 2/2, PvP
+  1/1, rodadas 2, duração 6 min (sem contar a pausa). O aviso de divergência
+  aparece ao editar um número e **não bloqueia** o salvar (§7.3).
+- Run de partida finalizada redireciona pro detalhe; evento em partida
+  encerrada dá 409.
+
+#### Ajustes na tela de Finalizar (mesma sessão, a pedido do usuário)
+
+- **Rodadas já vinham da Run** (`games.rounds`, gravado pelo contador livre) —
+  conferido: mostrou 5 depois de 5 incrementos. O que mudou é que **rodada 0
+  agora abre o campo vazio**: nenhuma partida tem zero rodadas, então 0
+  significa “ninguém usou o contador”, e mostrar o zero fazia parecer dado
+  preenchido.
+- **Vencedor sugerido:** quem chegou em `souls_to_win` já vem marcado (com a
+  coroa na linha e um aviso “Sugerido: chegou a N almas — troque se não for o
+  caso”). Em duplas/trios a soma é **por time** (§2.4). **Empate no topo não
+  sugere nada** de propósito: dois lados no mesmo número é justamente o caso em
+  que só quem estava na mesa sabe, e chutar seria pior que deixar em branco.
+  As opções do select passaram a mostrar as almas de cada um.
+- **`TreasurePicker` reescrito — era o problema real.** Ele despejava o
+  catálogo inteiro na tela, **por jogador**: medido numa partida de 2, eram
+  **292 ícones + 16 chips** e uma página de **6410px** (e 146 PNGs baixados
+  antes de qualquer escolha). Agora mostra **só o escolhido** e o resto entra
+  por busca, no mesmo padrão da busca de monstro da Run: página caiu pra
+  **1104px** e só as imagens dos resultados são baixadas. O campo livre
+  continua (item sem cadastro vira Tesouro pendente no servidor) e virou a
+  opção “+ cadastrar «x»” quando a busca não acha nada; Enter pega o primeiro
+  resultado. Clicar num chip remove.
+
+Verificado ponta a ponta, inclusive na **partida 19 do próprio usuário** (só
+leitura, não foi finalizada): rodadas 1 vindas da Run, Robertinho sugerido com
+4/4 almas, zero parede de ícone.
+⚠️ **Dado real do usuário encontrado nesta sessão:** partidas **16**
+(2026-08-06), **17** e **19** (2026-09-12), as três em `andamento`, criadas
+pelo próprio usuário — a **19** ele criou no meio desta sessão, testando a Run
+recém-entregue (9 eventos reais: morte, Big Spider, Curse Of Tiny Hands, alma
+perdida, alma roubada). Nenhuma foi tocada; a 19 serviu de verificação só de
+leitura da tela de Finalizar. Na 16 os dois jogadores
+estão com **Magdalene** — seleção livre não impede personagem repetido (o
+sorteio server-side impede; a escolha manual não). Se incomodar, é decisão de
+produto, não bug.
+
+**Falta (Fases 3 e 4):** estatísticas/badges em cima dos eventos (novos
+`unlock_mode`: `monster_kill`, `stat_threshold`) e a sessão multi-celular
+(lobby, ready, cada um registrando no próprio aparelho).
+
+### Copa Isaacquinho 2026 — torneio estático (2026-09-12)
+
+Primeiro torneio de verdade no app. **Estático e sem CRUD, por decisão do
+usuário**: a definição (mesas, jogadores, datas, pontuação) mora em código e
+só o **resultado** é derivado das partidas.
+
+- `lib/tournament-defs.ts` — dado puro (padrão de `seed-game-modes.ts`): as 6
+  mesas do cartaz + a Grande Final, pontuação 5/3/1, jogo base, 4 almas.
+- `lib/tournaments.ts` — classificação derivada.
+- `/torneios` e `/torneios/[slug]` + `components/TournamentClient.tsx`.
+- Schema: **uma coluna só**, `games.tournament_slot` ("A".."F", "FINAL"). O
+  `tournament_id` já existia desde a Fase 2 de partidas e estava sempre NULL.
+
+**Onde a linha do "estático" foi traçada:** o *chaveamento* (mesas, quem joga
+contra quem, dias, pontuação) é código; os **participantes** não. A primeira
+versão referenciava jogadores por nome dentro do arquivo de definição, mas
+trocar os 6 exigiria **deploy** — inviável pra montar a Copa em produção. O
+usuário pediu pra escolher a partir do cadastro, e o desenho virou:
+
+- O cartaz fala em "Jogador 1".."Jogador 6" — são **vagas**. A definição usa
+  números de vaga (`seats: [1, 2, 3]`), não nomes.
+- Quem ocupa cada vaga fica em **`settings`**, na chave
+  `tournament:<slug>:roster`, como JSON de ids.
+- **Ids e não nomes aqui**, porque é o MESMO banco: em produção a escolha
+  aponta pros jogadores de produção, e renomear alguém não quebra o
+  chaveamento. (Nome como chave natural continua valendo pra scripts que
+  atravessam local↔prod — não é o caso aqui.)
+- Painel "Participantes" na própria tela, com um select por vaga. Abre sozinho
+  enquanto houver vaga aberta.
+
+**Vaga aberta é permitida** (dá pra montar aos poucos — hoje o banco só tem 2
+jogadores pra 6 vagas), mas **jogador repetido não**: a mesma pessoa em duas
+vagas jogaria contra si mesma em alguma mesa. A UI desabilita quem já foi
+escolhido e o servidor recusa de novo (`saveRosterIds`). Mesa com vaga aberta
+não libera o botão de começar.
+
+⚠️ **Trocar o participante de uma vaga NÃO reescreve partida já jogada** — os
+jogadores ficam gravados em `game_players` no momento em que a mesa começa, e
+a classificação sai de lá. Isso é o comportamento certo (histórico não muda),
+mas significa que trocar alguém no meio do torneio deixa a tabela com o antigo
+nas mesas que ele já jogou.
+
+**Colocação na mesa (regra do usuário):** vencedor primeiro, depois
+**almas → tesouros → loots → moedas**. Empate em TODOS os critérios não é
+desempatado no chute: os dois ganham um ⚠ na tela. A classificação usa o mesmo
+critério sobre os totais, com 1ºs lugares como primeiro desempate.
+
+⚠️ **Armadilha evitada: mesa de 3 NÃO é `format: "trio"`.** No app `format` é
+tamanho de TIME; a Copa é `solo` (cada um por si) com 3 participantes. Modelar
+como trio faria o vencedor virar "time" e quebraria a classificação inteira.
+
+**O ranking global não mudou:** `getRanking()` continua somando toda partida
+finalizada, inclusive as da Copa. O usuário pediu um ranking separado do
+torneio (feito), não a separação do global — se um dia quiser Global Board =
+só mesa livre, é filtrar `tournament_id IS NULL` lá.
+
+**Verificado** com 4 mesas sintéticas, uma pra cada nível de desempate:
+tesouros (2-2 almas), loots (2-2 almas + 2-2 tesouros), moedas (empate até o
+loot) e empate total (os dois marcados com ⚠). Soma da classificação conferida
+na mão: 18 / 14 / 4 pontos. Dados de teste e o jogador `__TESTE__ Terceiro`
+removidos no fim; as partidas do usuário ficaram intactas.
+
+**Relação com `docs/PLANO-TORNEIOS.md`:** aquele plano estava parado em
+"formato não definido — bloqueador de tudo o resto". O cartaz da Copa definiu o
+formato, e isto aqui é a implementação de UM torneio concreto — de propósito,
+não a entidade genérica. Construir o caso real primeiro é o que vai mostrar o
+que a entidade genérica precisa ter. O usuário disse explicitamente: "depois
+faremos genérico".
+
 ## Onde as coisas estão (mapa rápido)
 
 ```
@@ -1993,10 +2292,19 @@ app/
   jogadores/page.tsx             Lista de jogadores (StatIcon do "+ New Born" via Frame actions)
   jogadores/[id]/avatar/page.tsx Editor unificado: Identidade (nome/história
                                   triste/rosto) + Cabelo + Tesouros (icon/transform)
-  partidas/page.tsx               Lista de partidas
-  partidas/nova/page.tsx          Wizard de cadastro (passo 3 usa TreasurePicker,
-                                    icones+pendentes+campo livre)
-  partidas/[id]/page.tsx          Detalhe da partida (coluna "Tesouros": ícones + itens legados)
+  partidas/page.tsx               Lista de partidas (+ coluna "Situação"/status)
+  partidas/nova/page.tsx          SETUP (GameSetup) — só o que é decidido antes
+                                    de jogar; grava a partida em 'andamento'
+  partidas/[id]/page.tsx          Detalhe = visão de REGISTRO (+ atalho
+                                    "Abrir a Run" enquanto está rolando)
+  partidas/[id]/finalizar/page.tsx  FINALIZAÇÃO (GameFinish) — pré-preenchida
+                                    pelos eventos; redireciona se já finalizada
+  partidas/[id]/run/page.tsx        A RUN (RunClient) — tela ao vivo: placar,
+                                    paleta de eventos, Diário, pause, rodada
+  quem-e-voce/page.tsx            Seletor de perfil (IdentityPicker)
+  torneios/page.tsx               Lista dos torneios estáticos
+  torneios/[slug]/page.tsx        Torneio: mesas + classificação derivada
+                                    (TournamentClient)
   sprites/page.tsx                 Oficina (Admin): abas Spritesheets/Sprites — SÓ corta sprites
   artefatos/personagens/page.tsx   CRUD de Personagens + flip carta/item (CharactersClient)
   artefatos/tesouros/page.tsx      CRUD de Tesouros + posicionamento (TreasuresClient)
@@ -2020,7 +2328,22 @@ lib/
                         parseCurseInput / parseMonsterInput / parseCharacterInput
   players.ts, characters.ts, games.ts   data layer core (characters.ts ganhou
                         create/update além do listCharacters/join de sprites
-                        de carta+item)
+                        de carta+item). games.ts agora tem o CICLO DE VIDA:
+                        createGameSetup / finishGame / setGameStatus /
+                        rollCharacter (sorteio no SERVIDOR) / getRunState
+  game-events.ts      EVENT_TYPE_DEFS (registro plugável de tipos de evento;
+                        `manual` separa o que a mesa registra do que o sistema
+                        gera, `freeText` libera texto sem Artefato)
+                        + appendEvent (idempotente por client_event_id) +
+                        listEvents + deleteEvent (soft) + deriveStats +
+                        deriveActiveMinutes
+  game-modes.ts       presets/sandbox + normalizeParams (ponto único pra
+                        adicionar parâmetro novo) + parseParams
+  seed-game-modes.ts  4 presets semeados (dado puro, evita ciclo de import)
+  identity.ts         "Quem é você?" — cookie de perfil por dispositivo
+  tournament-defs.ts  chaveamento ESTÁTICO do torneio (dado puro); as vagas
+                        são números, quem as ocupa vem de `settings`
+  tournaments.ts      classificação derivada + leitura/gravação do roster
   feedback.ts         data layer do Backlog (list/create/updateStatus/delete)
   sprites.ts, ornaments.ts, treasures.ts, player-avatar.ts   data layer do
                         pipeline de avatar + Tesouros. treasures.ts também
@@ -2043,9 +2366,21 @@ lib/
                         `items`/`game_player_items` seguem no schema só como
                         histórico read-only (lidos direto em lib/games.ts)
 components/
-  Frame, Sidebar, ComingSoon           shell/layout
+  Frame, Sidebar, ComingSoon           shell/layout (Sidebar recebe
+                                        `currentPlayer`; RootLayout é async)
   PlayerAvatar                        avatar (cache PNG ou fallback de rosto)
-  JogadoresClient, GameWizard, DeleteGameButton
+  JogadoresClient, DeleteGameButton
+  GameSetup                            etapa de Setup (grava a partida)
+  GameFinish                           etapa de finalização (pré-preenchida)
+  RunClient                            A RUN: placar derivado, paleta de
+                                        eventos (2–3 toques), Diário com apagar,
+                                        polling 4s, fila local de reenvio
+  GameLiveControls                     DELETADO na Fase 2 (absorvido pela Run)
+  IdentityPicker                       seletor de perfil estilo Netflix
+  TournamentClient                     mesas do torneio + classificação +
+                                        painel de participantes (o único
+                                        editável); "começar mesa" cria a partida
+  GameWizard                           DELETADO (substituído pelos 3 acima)
   TreasurePicker                       seletor híbrido no wizard: ícones já
                                         cadastrados + chips de pendentes + campo
                                         de texto livre (0+ por jogador)

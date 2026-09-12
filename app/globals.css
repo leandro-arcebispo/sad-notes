@@ -47,6 +47,12 @@
   --font-display: "Upheaval", "IsaacGame", Georgia, serif; /* títulos, nav, cabeçalho de tabela */
   --font-body: "Segoe UI", system-ui, -apple-system, sans-serif; /* corpo, formulários */
 
+  /* Faz o navegador desenhar os widgets nativos (calendário do date,
+     spinners, scrollbar, menu do select) em tema escuro. É o que impede o
+     date picker de abrir branco no meio de um app preto — vale pros dois,
+     Firefox e Chrome. */
+  color-scheme: dark;
+
   --sidebar-w: 56px;
   --sidebar-w-open: 216px;
 }
@@ -174,8 +180,9 @@ h2.title {
 .input,
 .select,
 .textarea {
-  font-family: var(--font-body);
-  font-size: 14px;
+  font-family: var(--font-display);
+  font-size: 15px;
+  letter-spacing: 0.02em;
   color: var(--text);
   background: #120c09;
   border: 2px solid var(--panel-border);
@@ -183,11 +190,103 @@ h2.title {
   padding: 8px 10px;
   box-shadow: var(--shadow-inset);
 }
+
+/* Exceção consciente: onde se escreve FRASE (notas da partida, história
+   triste, descrição do backlog) a fonte de corpo ganha da estética — pixel
+   font em texto longo cansa de ler. */
+.textarea {
+  font-family: var(--font-body);
+  font-size: 14px;
+  letter-spacing: normal;
+}
+
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--text-mute);
+}
+
 .input:focus,
 .select:focus,
 .textarea:focus {
   outline: none;
   border-color: var(--accent);
+  /* Anel duro, sem blur — a regra do style guide. */
+  box-shadow: var(--shadow-inset), 0 0 0 2px var(--accent-dim);
+}
+
+/* O menu aberto do select é desenhado pelo sistema; o Firefox respeita
+   estas duas propriedades, então ao menos o fundo não abre branco. */
+.select option {
+  background: var(--panel-2);
+  color: var(--text);
+}
+
+/* Seta própria no lugar da nativa (que muda de desenho entre Firefox e
+   Chrome). Triângulo em degraus pra ficar pixel-art de verdade. */
+.select {
+  appearance: none;
+  -moz-appearance: none;
+  -webkit-appearance: none;
+  padding-right: 26px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='9' height='5' shape-rendering='crispEdges'><g fill='%23e8b978'><rect x='0' y='0' width='9' height='1'/><rect x='1' y='1' width='7' height='1'/><rect x='2' y='2' width='5' height='1'/><rect x='3' y='3' width='3' height='1'/><rect x='4' y='4' width='1' height='1'/></g></svg>");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+}
+
+/* Spinner nativo do number: some. Ele é o widget mais destoante do conjunto
+   (cinza/azulado, desenhado pelo navegador) e roubava largura justo nas
+   caixinhas de 64px do resultado. Digitar continua funcionando, e as setas
+   do teclado também. */
+.input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.input[type="number"]::-webkit-outer-spin-button,
+.input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* ---------- checkbox pixel-art ----------
+   Antes era o checkbox nativo: azul do navegador quando marcado, em cima de
+   um app inteiro dourado/sépia. `appearance:none` tira o desenho do sistema
+   e o estado marcado vira um quadrado dourado preenchido — some a
+   dependência de como cada navegador pinta o padrão dele. */
+input[type="checkbox"] {
+  appearance: none;
+  -moz-appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  flex: none;
+  margin: 0;
+  display: inline-grid;
+  place-content: center;
+  background: #120c09;
+  border: 2px solid var(--panel-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-inset);
+  cursor: pointer;
+}
+input[type="checkbox"]::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  background: transparent;
+}
+input[type="checkbox"]:checked {
+  border-color: var(--accent-dim);
+}
+input[type="checkbox"]:checked::after {
+  background: var(--accent);
+}
+input[type="checkbox"]:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+}
+input[type="checkbox"]:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 /* ---------- tabela de dados ---------- */
@@ -590,9 +689,15 @@ h2.title {
 .mini-check {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
+  font-family: var(--font-display);
   font-size: 13px;
+  letter-spacing: 0.02em;
   color: var(--text-dim);
+  cursor: pointer;
+}
+.mini-check:hover {
+  color: var(--text);
 }
 .team-select {
   width: 110px;
@@ -1446,4 +1551,447 @@ h2.title {
    (classe + tipo); vence por vir depois no arquivo. */
 img.card-art {
   image-rendering: auto;
+}
+
+/* ---------- seletor de perfil ("Quem é você?") ---------- */
+.identity-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 14px;
+}
+.identity-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 16px 10px;
+  background: var(--panel-2);
+  border: 2px solid var(--panel-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-hard);
+  color: var(--text);
+  text-decoration: none;
+  cursor: pointer;
+  font: inherit;
+}
+.identity-card:hover:not(:disabled) {
+  border-color: var(--accent-dim);
+  background: var(--panel);
+}
+.identity-card.current {
+  border-color: var(--accent);
+}
+.identity-card:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.identity-name {
+  font-size: 15px;
+}
+.identity-nick {
+  font-size: 12px;
+}
+.identity-new {
+  justify-content: center;
+  border-style: dashed;
+  color: var(--text-dim);
+}
+.identity-plus {
+  font-family: var(--font-display);
+  font-size: 48px;
+  line-height: 96px;
+  color: var(--text-mute);
+}
+
+/* ---------- situação da partida (ciclo de vida) ---------- */
+.badge.status-andamento,
+.badge.status-setup,
+.badge.status-lobby {
+  color: var(--accent);
+  border-color: var(--accent-dim);
+}
+.badge.status-pausada {
+  color: var(--loot);
+  border-color: var(--accent-dim);
+}
+.badge.status-abortada {
+  color: var(--text-mute);
+}
+.data-table tr.live-row td {
+  background: rgba(232, 185, 120, 0.06);
+}
+
+/* ============================ A Run (partida ao vivo) =======================
+   Tela pensada pra celular sobre a mesa: alvos de toque grandes, placar
+   legível de longe e o Diário sempre visível. Ver docs/PLANO-PARTIDAS.md §7.2.
+   ========================================================================== */
+.run-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+}
+.run-rounds {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.run-cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* -------------------------------- placar --------------------------------- */
+.run-board {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+}
+.run-player {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+}
+.run-player-id {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.run-player-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.run-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel);
+  font-family: var(--font-display);
+  font-size: 14px;
+  color: var(--text-dim);
+}
+.run-stat.big {
+  font-size: 20px;
+  padding: 4px 12px;
+  color: var(--soul);
+  border-color: var(--accent-dim);
+}
+.run-stat-icon {
+  font-size: 0.9em;
+}
+.run-stat-value {
+  color: var(--text);
+}
+.run-stat.big .run-stat-value {
+  color: var(--soul);
+}
+
+/* ------------------------------ paleta/sheet ------------------------------ */
+.run-palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.run-evt {
+  font-size: 15px;
+  padding: 12px 16px;
+}
+.run-evt-icon {
+  font-size: 18px;
+}
+.run-evt.active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.run-sheet {
+  margin-top: 12px;
+  padding: 12px;
+  border: 2px dashed var(--accent-dim);
+  background: var(--panel);
+}
+.run-sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.run-pick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.run-pick-player {
+  gap: 8px;
+  padding: 8px 14px;
+}
+
+/* -------------------------------- diário ---------------------------------- */
+.run-log {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 420px;
+  overflow-y: auto;
+}
+.run-log-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--panel-border);
+}
+.run-log-item.sending {
+  opacity: 0.6;
+}
+.run-log-seq {
+  font-family: var(--font-display);
+  font-size: 12px;
+  color: var(--text-mute);
+  min-width: 34px;
+}
+.run-log-text {
+  flex: 1;
+}
+.run-log-meta {
+  font-size: 11px;
+  white-space: nowrap;
+}
+.run-log-del {
+  background: none;
+  border: none;
+  color: var(--text-mute);
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  padding: 0 4px;
+}
+.run-log-del:hover {
+  color: var(--blood);
+}
+
+.run-collapse {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+}
+
+/* Celular sobre a mesa: uma coluna e botões maiores. */
+@media (max-width: 640px) {
+  .run-board {
+    grid-template-columns: 1fr;
+  }
+  .run-evt {
+    flex: 1 1 45%;
+    justify-content: flex-start;
+  }
+}
+
+/* --------------- seletor de Tesouros da finalização ----------------------
+   Só o escolhido fica na tela; o catálogo (154 itens) entra por busca. Antes
+   isso despejava ~150 ícones POR JOGADOR e a página passava de 6000px.
+   ------------------------------------------------------------------------ */
+.treasure-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.treasure-chosen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  min-height: 28px;
+}
+.treasure-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 6px;
+  border: 1px solid var(--accent-dim);
+  background: var(--panel);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 12px;
+  cursor: pointer;
+}
+.treasure-chip:hover {
+  border-color: var(--blood);
+}
+.treasure-chip.novo {
+  border-style: dashed;
+}
+.treasure-chip img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+.treasure-chip-x {
+  color: var(--text-mute);
+  font-size: 14px;
+  line-height: 1;
+}
+.treasure-search {
+  position: relative;
+}
+.treasure-results {
+  display: flex;
+  flex-direction: column;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 2px solid var(--panel-border);
+  background: var(--panel-2);
+  box-shadow: var(--shadow-hard);
+}
+.treasure-result {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--panel-border);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.treasure-result:hover {
+  background: var(--panel);
+  color: var(--accent);
+}
+.treasure-result img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  flex: none;
+}
+.treasure-result-noicon {
+  width: 24px;
+  text-align: center;
+  color: var(--text-mute);
+  flex: none;
+}
+.treasure-result.novo {
+  color: var(--accent);
+  font-style: italic;
+}
+
+/* ============================== Torneios ==================================
+   Definição estática (lib/tournament-defs.ts); a classificação é derivada das
+   partidas, nunca digitada — mesmo princípio do ranking global.
+   ========================================================================= */
+.tourney-day {
+  font-size: 20px;
+  color: var(--accent);
+}
+.tourney-warn {
+  border-color: var(--blood);
+}
+.tourney-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+}
+.tourney-table {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+}
+.tourney-table-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-bottom: 1px solid var(--panel-border);
+  padding-bottom: 6px;
+}
+.tourney-seats {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 96px;
+}
+.tourney-seats li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.tourney-seats li.first {
+  color: var(--accent);
+}
+.tourney-place {
+  font-family: var(--font-display);
+  font-size: 13px;
+  color: var(--text-mute);
+  width: 22px;
+  flex: none;
+}
+.tourney-seats li.first .tourney-place {
+  color: var(--accent);
+}
+.tourney-name {
+  flex: 1;
+}
+.tourney-points {
+  font-family: var(--font-display);
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.tourney-table-foot {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 4px;
+}
+
+/* Participantes do torneio: a única parte editável da tela. */
+.tourney-roster {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  margin: 12px 0;
+}
+.tourney-roster-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.tourney-roster-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel);
+  font-size: 13px;
 }

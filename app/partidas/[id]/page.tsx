@@ -6,7 +6,7 @@ import DeleteGameButton from "@/components/DeleteGameButton";
 import StatIcon from "@/components/StatIcon";
 import { getGame } from "@/lib/games";
 import { assetUrl } from "@/lib/asset-url";
-import type { Edition, GameFormat } from "@/lib/types";
+import { GAME_STATUS_LABELS, type Edition, type GameFormat } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,6 +22,12 @@ export default async function PartidaDetailPage({
   const game = await getGame(Number((await params).id));
   if (!game) notFound();
 
+  // O detalhe é a visão de REGISTRO da partida (vale pra finalizada e pra
+  // abandonada também). Enquanto ela está rolando, quem manda é a Run — aqui
+  // fica só o atalho pra ela, pra não existirem dois lugares controlando a
+  // mesma coisa.
+  const isLive = game.status !== "finalizada" && game.status !== "abortada";
+
   return (
     <Frame
       variant="frame-library"
@@ -35,15 +41,31 @@ export default async function PartidaDetailPage({
     >
       <div className="stack">
         <div className="meta-chips">
+          <span className={`badge status-${game.status}`}>
+            {GAME_STATUS_LABELS[game.status]}
+          </span>
           <span className="badge">{EDITION_LABEL[game.edition]}</span>
           <span className="badge">{FORMAT_LABEL[game.format]}</span>
           <span className="badge"><StatIcon name="souls" size={14} /> {game.souls_to_win} almas p/ vencer</span>
           <span className="badge">🎭 {game.character_selection === "random" ? "Aleatória" : "Livre"}</span>
+          {game.bonus_souls === 1 && <span className="badge">✨ Almas bônus</span>}
           {game.duration_min != null && <span className="badge">⏱ {game.duration_min} min</span>}
           {game.rounds != null && <span className="badge">🔁 {game.rounds} rodadas</span>}
           <span className="badge">🏳️ Global Board</span>
         </div>
         {game.notes && <div className="muted">“{game.notes}”</div>}
+
+        {isLive && (
+          <div className="panel form-panel run-cta">
+            <span>
+              Esta partida ainda está rolando.{" "}
+              <span className="muted">Abra a Run pra registrar o que acontecer na mesa.</span>
+            </span>
+            <Link href={`/partidas/${game.id}/run`} className="btn btn-accent">
+              ▶ Abrir a Run
+            </Link>
+          </div>
+        )}
 
         <div className="panel" style={{ padding: 0 }}>
           <table className="data-table">

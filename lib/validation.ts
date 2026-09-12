@@ -6,10 +6,14 @@
  */
 import {
   BASE_FACES,
+  CHARACTER_SELECTIONS,
+  EDITIONS,
   FEEDBACK_AREAS,
   FEEDBACK_KINDS,
   FEEDBACK_PRIORITIES,
   FEEDBACK_STATUSES,
+  GAME_EVENT_TYPES,
+  GAME_FORMATS,
   UNLOCK_MODES,
   type BaseFace,
   type CharacterSelection,
@@ -22,14 +26,22 @@ import {
   type FeedbackPatch,
   type FeedbackPriority,
   type FeedbackStatus,
+  type GameFinishPayload,
+  type GameFinishPlayerInput,
+  type GameEventInput,
+  type GameEventType,
   type GameFormat,
+  type GameModeInput,
   type GamePayload,
   type GamePlayerInput,
+  type GameSetupPayload,
   type MonsterInput,
   type PlayerInput,
   type TreasureInput,
   type UnlockMode,
 } from "./types";
+import { EVENT_TYPE_DEFS } from "./game-events";
+import { normalizeParams } from "./game-modes";
 import { HAIR_COLORS, DEFAULT_HAIR_COLOR } from "./hair-colors";
 
 export function parsePlayerInput(
@@ -171,10 +183,6 @@ export function parseFeedbackPatch(
   return { value: patch };
 }
 
-const EDITIONS: Edition[] = ["base", "requiem"];
-const SELECTIONS: CharacterSelection[] = ["free", "random"];
-const FORMATS: GameFormat[] = ["solo", "duo", "trio"];
-
 function toInt(v: unknown, fallback = 0): number {
   const n = Math.trunc(Number(v));
   return Number.isFinite(n) ? n : fallback;
@@ -209,12 +217,12 @@ export function parseGamePayload(
   const edition = EDITIONS.includes(b.edition as Edition)
     ? (b.edition as Edition)
     : "base";
-  const character_selection = SELECTIONS.includes(
+  const character_selection = CHARACTER_SELECTIONS.includes(
     b.character_selection as CharacterSelection
   )
     ? (b.character_selection as CharacterSelection)
     : "free";
-  const format = FORMATS.includes(b.format as GameFormat)
+  const format = GAME_FORMATS.includes(b.format as GameFormat)
     ? (b.format as GameFormat)
     : "solo";
 
@@ -279,6 +287,153 @@ export function parseGamePayload(
       notes:
         typeof b.notes === "string" && b.notes.trim() ? b.notes.trim() : null,
       players,
+    },
+  };
+}
+
+/**
+ * Payload do **Setup** — a partida é criada antes de jogar, então aqui não
+ * existe nenhum campo de estado final (duração, rodadas, vencedor, moedas…).
+ * Era exatamente essa mistura que fazia "Duração da partida" aparecer numa
+ * etapa anterior ao jogo. Ver docs/PLANO-PARTIDAS.md §7.1.
+ */
+export function parseGameSetupPayload(
+  body: unknown
+): { value: GameSetupPayload } | { error: string } {
+  if (!body || typeof body !== "object") return { error: "corpo inválido" };
+  const b = body as Record<string, unknown>;
+
+  const played_at =
+    typeof b.played_at === "string" && /^\d{4}-\d{2}-\d{2}$/.test(b.played_at)
+      ? b.played_at
+      : "";
+  if (!played_at) return { error: "data (played_at) inválida" };
+
+  if (!Array.isArray(b.players) || b.players.length < 2) {
+    return { error: "a partida precisa de ao menos 2 jogadores" };
+  }
+
+  const params = normalizeParams(b.params);
+
+  const seen = new Set<number>();
+  const players: GameSetupPayload["players"] = [];
+  for (const raw of b.players as unknown[]) {
+    if (!raw || typeof raw !== "object") return { error: "jogador inválido" };
+    const p = raw as Record<string, unknown>;
+    const player_id = toInt(p.player_id, 0);
+    if (!player_id) return { error: "player_id ausente" };
+    if (seen.has(player_id)) return { error: "jogador repetido na partida" };
+    seen.add(player_id);
+    players.push({
+      player_id,
+      character_id: toIntOrNull(p.character_id),
+      team: toIntOrNull(p.team),
+    });
+  }
+
+  if (params.format !== "solo" && players.some((p) => p.team == null)) {
+    return { error: "defina o time de cada jogador" };
+  }
+
+  return {
+    value: {
+      played_at,
+      mode_id: toIntOrNull(b.mode_id),
+      params,
+      tournament_id: toIntOrNull(b.tournament_id),
+      tournament_slot:
+        typeof b.tournament_slot === "string" && b.tournament_slot.trim()
+          ? b.tournament_slot.trim().slice(0, 16)
+          : null,
+      notes: typeof b.notes === "string" && b.notes.trim() ? b.notes.trim() : null,
+      players,
+      retro: Boolean(b.retro),
+    },
+  };
+}
+
+/** Payload da **finalização** — só o estado final. Os números chegam
+ * pré-preenchidos dos eventos, mas o que o usuário confirmar é o que vale
+ * (§7.3): divergência é avisada na tela, não rejeitada aqui. */
+export function parseGameFinishPayload(
+  body: unknown
+): { value: GameFinishPayload } | { error: string } {
+  if (!body || typeof body !== "object") return { error: "corpo inválido" };
+  const b = body as Record<string, unknown>;
+
+  if (!Array.isArray(b.players) || b.players.length === 0) {
+    return { error: "nenhum jogador informado" };
+  }
+
+  const seen = new Set<number>();
+  const players: GameFinishPlayerInput[] = [];
+  for (const raw of b.players as unknown[]) {
+    if (!raw || typeof raw !== "object") return { error: "jogador inválido" };
+    const p = raw as Record<string, unknown>;
+    const player_id = toInt(p.player_id, 0);
+    if (!player_id) return { error: "player_id ausente" };
+    if (seen.has(player_id)) return { error: "jogador repetido na partida" };
+    seen.add(player_id);
+    players.push({
+      player_id,
+      loot_in_hand: Math.max(0, toInt(p.loot_in_hand)),
+      coins: Math.max(0, toInt(p.coins)),
+      deaths: Math.max(0, toInt(p.deaths)),
+      pvp_kills: Math.max(0, toInt(p.pvp_kills)),
+      treasures: Math.max(0, toInt(p.treasures)),
+      // Almas podem ser roubadas/destruídas (§2.2), mas o total com que se
+      // TERMINA nunca é negativo.
+      souls: Math.max(0, toInt(p.souls)),
+      is_winner: Boolean(p.is_winner),
+      treasure_ids: Array.isArray(p.treasure_ids)
+        ? Array.from(
+            new Set(
+              (p.treasure_ids as unknown[])
+                .map((x) => Math.trunc(Number(x)))
+                .filter((x) => Number.isFinite(x) && x > 0)
+            )
+          )
+        : [],
+      treasure_names: dedupeCaseInsensitive(
+        Array.isArray(p.treasure_names)
+          ? (p.treasure_names as unknown[]).map((x) => String(x).trim()).filter((x) => x.length > 0)
+          : []
+      ),
+    });
+  }
+
+  if (!players.some((p) => p.is_winner)) {
+    return { error: "marque ao menos um vencedor" };
+  }
+
+  return {
+    value: {
+      duration_min: toIntOrNull(b.duration_min),
+      rounds: toIntOrNull(b.rounds),
+      notes: typeof b.notes === "string" && b.notes.trim() ? b.notes.trim() : null,
+      players,
+    },
+  };
+}
+
+export function parseGameModeInput(
+  body: unknown
+): { value: GameModeInput } | { error: string } {
+  if (!body || typeof body !== "object") return { error: "corpo inválido" };
+  const b = body as Record<string, unknown>;
+
+  const name = typeof b.name === "string" ? b.name.trim() : "";
+  if (!name) return { error: "nome é obrigatório" };
+  if (name.length > 60) return { error: "nome deve ter no máximo 60 caracteres" };
+
+  return {
+    value: {
+      name,
+      description:
+        typeof b.description === "string" && b.description.trim()
+          ? b.description.trim().slice(0, 300)
+          : null,
+      params: normalizeParams(b.params),
     },
   };
 }
@@ -379,6 +534,76 @@ export function parseMonsterInput(
     value: {
       name,
       card_sprite_id: toIntOrNull(b.card_sprite_id),
+    },
+  };
+}
+
+/**
+ * Evento vindo da paleta da Run. Duas travas importantes:
+ *
+ * 1. **Só tipo `manual` entra por aqui.** `pause`/`resume`/`personagem_sorteado`
+ *    são gerados pelo sistema (ciclo de vida e sorteio no servidor) — aceitar
+ *    esses pela API deixaria a duração e a auditoria de re-roll forjáveis.
+ * 2. **Contraparte obrigatória é conferida pelo `EVENT_TYPE_DEFS`**, que é a
+ *    mesma fonte que desenha a UI: "roubou alma" sem a vítima viraria um +1
+ *    sem o −1 correspondente.
+ */
+export function parseGameEventInput(
+  body: unknown
+): { value: GameEventInput } | { error: string } {
+  if (!body || typeof body !== "object") return { error: "corpo inválido" };
+  const b = body as Record<string, unknown>;
+
+  if (!GAME_EVENT_TYPES.includes(b.type as GameEventType)) {
+    return { error: "tipo de evento inválido" };
+  }
+  const type = b.type as GameEventType;
+  const def = EVENT_TYPE_DEFS[type];
+  if (!def.manual) {
+    return { error: `"${def.label}" é registrado pelo próprio app, não pela mesa` };
+  }
+
+  const player_id = toIntOrNull(b.player_id);
+  if (!player_id) return { error: `informe: ${def.subjectLabel.toLowerCase()}` };
+
+  const other_player_id = toIntOrNull(b.other_player_id);
+  if (def.counterpartRequired && !other_player_id) {
+    return { error: `informe: ${(def.counterpartLabel ?? "a contraparte").toLowerCase()}` };
+  }
+  if (other_player_id && !def.counterpartLabel) {
+    return { error: "este evento não tem contraparte" };
+  }
+  if (other_player_id && other_player_id === player_id) {
+    return { error: "o jogador não pode ser a própria contraparte" };
+  }
+
+  // O ref é sempre OPCIONAL: dá pra anotar "derrotou um monstro" sem parar o
+  // jogo pra achar a carta na lista, e "ganhou alma bônus" antes de existir
+  // catálogo de Almas Bônus (§2.1 do plano).
+  const ref_id = def.refType ? toIntOrNull(b.ref_id) : null;
+  const acceptsText = def.refType !== null || def.freeText === true;
+  const ref_name =
+    acceptsText && typeof b.ref_name === "string" && b.ref_name.trim()
+      ? b.ref_name.trim().slice(0, 120)
+      : null;
+  if (def.freeText && !ref_name) return { error: "escreva a nota" };
+
+  const client_event_id =
+    typeof b.client_event_id === "string" && b.client_event_id.trim()
+      ? b.client_event_id.trim().slice(0, 64)
+      : null;
+
+  return {
+    value: {
+      type,
+      player_id,
+      other_player_id,
+      ref_type: def.refType,
+      ref_id,
+      ref_name,
+      amount: clamp(b.amount, 1, 99, 1),
+      round: toIntOrNull(b.round),
+      client_event_id,
     },
   };
 }

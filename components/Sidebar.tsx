@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import PlayerAvatar from "./PlayerAvatar";
+import type { Player } from "@/lib/types";
 
 type NavEntry = { href: string; label: string; icon: ReactNode; exact?: boolean };
 
@@ -10,6 +12,7 @@ const NAV: NavEntry[] = [
   { href: "/", label: "Ranking", exact: true, icon: <img src="/design-system/img/icon-nav-ranking.png" alt="" /> },
   { href: "/partidas", label: "Partidas", icon: <img src="/design-system/img/icon-report.png" alt="" /> },
   { href: "/jogadores", label: "Jogadores", icon: <img src="/design-system/img/icon-isaac-avatar.png" alt="" /> },
+  { href: "/torneios", label: "Torneios", icon: <IconTrophy /> },
 ];
 
 const ARTIFACTS_NAV: NavEntry[] = [
@@ -24,7 +27,7 @@ const ADMIN_NAV: NavEntry[] = [
   { href: "/backlog", label: "Backlog", icon: <IconBug /> },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ currentPlayer }: { currentPlayer: Player | null }) {
   const pathname = usePathname();
   const isActive = (e: NavEntry) =>
     e.exact ? pathname === e.href : pathname.startsWith(e.href);
@@ -82,6 +85,26 @@ export default function Sidebar() {
           </span>
           <span className="nav-label">Configurações</span>
         </Link>
+        <div className="nav-divider" />
+        {/* Perfil do aparelho — é daqui que sai a autoria dos registros. */}
+        <Link
+          href={`/quem-e-voce?next=${encodeURIComponent(pathname)}`}
+          className={`nav-item${pathname.startsWith("/quem-e-voce") ? " active" : ""}`}
+          title={currentPlayer ? `Você é ${currentPlayer.name} — trocar` : "Quem é você?"}
+        >
+          <span className="nav-icon">
+            {currentPlayer ? (
+              <PlayerAvatar
+                face={currentPlayer.base_face}
+                size={22}
+                avatarCache={currentPlayer.avatar_cache}
+              />
+            ) : (
+              <IconUser />
+            )}
+          </span>
+          <span className="nav-label">{currentPlayer?.name ?? "Quem é você?"}</span>
+        </Link>
       </div>
     </nav>
   );
@@ -119,6 +142,23 @@ function IconGear() {
     <>
       <circle cx="12" cy="12" r="3" />
       <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1" />
+    </>
+  );
+}
+function IconUser() {
+  return svg(
+    <>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4.5 20c0-3.6 3.4-6 7.5-6s7.5 2.4 7.5 6" />
+    </>
+  );
+}
+function IconTrophy() {
+  return svg(
+    <>
+      <path d="M7 4h10v5a5 5 0 0 1-10 0V4Z" />
+      <path d="M7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3" />
+      <path d="M12 14v4M9 21h6M10 18h4" />
     </>
   );
 }

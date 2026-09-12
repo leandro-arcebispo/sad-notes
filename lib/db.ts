@@ -1,5 +1,6 @@
 import { createClient, type Client, type InArgs, type Row } from "@libsql/client";
 import { SEED_CHARACTERS } from "./seed-characters";
+import { SEED_GAME_MODES } from "./seed-game-modes";
 
 /**
  * Conexão libSQL (Turso em produção; arquivo local em dev). Substituiu o
@@ -28,7 +29,16 @@ function rawClient(): Client {
 /** Cliente pronto (schema garantido). Use os helpers `all/get/run` no lugar. */
 export async function getClient(): Promise<Client> {
   const c = rawClient();
-  if (!_ready) _ready = initSchema(c);
+  if (!_ready) {
+    _ready = initSchema(c).catch((e) => {
+      // Sem isto a promise REJEITADA fica em cache e toda requisição
+      // seguinte desta instância falha igual, até o lambda ser reciclado —
+      // uma falha transitória (rede, concorrência no deploy) viraria queda
+      // permanente. Limpar o cache deixa a próxima requisição tentar de novo.
+      _ready = null;
+      throw e;
+    });
+  }
   await _ready;
   return c;
 }
@@ -214,6 +224,36 @@ async function initSchema(db: Client): Promise<void> {
       created_at     TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS game_modes (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      name        TEXT NOT NULL COLLATE NOCASE UNIQUE,
+      description TEXT,
+      is_preset   INTEGER NOT NULL DEFAULT 0,
+      params_json TEXT NOT NULL,
+      active      INTEGER NOT NULL DEFAULT 1,
+      created_at  TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS game_events (
+      id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+      game_id              INTEGER NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+      seq                  INTEGER NOT NULL,
+      round                INTEGER,
+      type                 TEXT NOT NULL,
+      player_id            INTEGER REFERENCES players(id),
+      other_player_id      INTEGER REFERENCES players(id),
+      ref_type             TEXT,
+      ref_id               INTEGER,
+      ref_name             TEXT,
+      amount               INTEGER NOT NULL DEFAULT 1,
+      meta_json            TEXT,
+      created_by_player_id INTEGER REFERENCES players(id),
+      client_event_id      TEXT,
+      created_at           TEXT NOT NULL,
+      deleted_at           TEXT,
+      deleted_by_player_id INTEGER REFERENCES players(id)
+    );
+
     CREATE TABLE IF NOT EXISTS feedback (
       id                 INTEGER PRIMARY KEY AUTOINCREMENT,
       kind               TEXT NOT NULL DEFAULT 'bug',
@@ -240,6 +280,11 @@ async function initSchema(db: Client): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_feedback_created ON feedback(created_at);
     CREATE INDEX IF NOT EXISTS idx_sheets_created ON sheets(created_at);
     CREATE INDEX IF NOT EXISTS idx_gpt_treasure ON game_player_treasures(treasure_id);
+    CREATE INDEX IF NOT EXISTS idx_ge_game ON game_events(game_id, seq);
+    CREATE INDEX IF NOT EXISTS idx_ge_player ON game_events(player_id);
+    CREATE INDEX IF NOT EXISTS idx_ge_ref ON game_events(ref_type, ref_id);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_ge_seq ON game_events(game_id, seq);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_ge_client ON game_events(game_id, client_event_id);
   `);
   await ensureColumn(db, "curses", "locked", "INTEGER NOT NULL DEFAULT 0");
   await ensureColumn(db, "feedback", "title", "TEXT NOT NULL DEFAULT ''");
@@ -249,8 +294,30 @@ async function initSchema(db: Client): Promise<void> {
   await ensureColumn(db, "characters", "starter_item_name", "TEXT");
   await ensureColumn(db, "characters", "card_back_sprite_id", "INTEGER REFERENCES sprites(id)");
   await ensureColumn(db, "characters", "starter_item_back_sprite_id", "INTEGER REFERENCES sprites(id)");
+
+  // Ciclo de vida da partida (ver docs/PLANO-PARTIDAS.md §3.1). O default
+  // 'finalizada' faz o backfill correto das partidas legadas: tudo que já está
+  // no banco foi registrado depois de acabar, então já nasce finalizado.
+  await ensureColumn(db, "games", "status", "TEXT NOT NULL DEFAULT 'finalizada'");
+  await ensureColumn(db, "games", "mode_id", "INTEGER REFERENCES game_modes(id)");
+  await ensureColumn(db, "games", "params_json", "TEXT");
+  await ensureColumn(db, "games", "bonus_souls", "INTEGER NOT NULL DEFAULT 0");
+  await ensureColumn(db, "games", "rerolls_allowed", "INTEGER NOT NULL DEFAULT 1");
+  await ensureColumn(db, "games", "started_at", "TEXT");
+  await ensureColumn(db, "games", "ended_at", "TEXT");
+  await ensureColumn(db, "game_players", "pvp_kills", "INTEGER NOT NULL DEFAULT 0");
+  await ensureColumn(db, "game_players", "reroll_count", "INTEGER NOT NULL DEFAULT 0");
+  await ensureColumn(db, "game_players", "ready", "INTEGER NOT NULL DEFAULT 1");
+  await ensureColumn(db, "game_players", "joined_at", "TEXT");
+
+  // Mesa do torneio a que a partida pertence ("A".."F", "FINAL"). A definição
+  // do torneio é estática (lib/tournament-defs.ts); isto é o único vínculo que
+  // precisa ficar no banco, junto do tournament_id que já existia.
+  await ensureColumn(db, "games", "tournament_slot", "TEXT");
+
   await seedDefaultSettings(db);
   await seedCharactersIfEmpty(db);
+  await seedGameModesIfEmpty(db);
 }
 
 /** Adiciona uma coluna a uma tabela já existente, se ela ainda não existir —
@@ -263,9 +330,17 @@ async function ensureColumn(
   ddl: string
 ): Promise<void> {
   const info = await db.execute(`PRAGMA table_info(${table})`);
-  const exists = info.rows.some((r) => String(r[1]) === column);
-  if (!exists) {
+  if (info.rows.some((r) => String(r[1]) === column)) return;
+
+  try {
     await db.execute(`ALTER TABLE ${table} ADD COLUMN ${column} ${ddl}`);
+  } catch (e) {
+    // Checar-e-alterar NÃO é atômico. Em serverless várias instâncias sobem
+    // juntas no primeiro tráfego pós-deploy, todas rodam o initSchema e podem
+    // disputar o mesmo ALTER: quem perde recebe "duplicate column name".
+    // Isso é sucesso, não erro — a coluna existe, que é o que se queria.
+    const msg = e instanceof Error ? e.message.toLowerCase() : "";
+    if (!msg.includes("duplicate column")) throw e;
   }
 }
 
@@ -277,6 +352,22 @@ async function seedCharactersIfEmpty(db: Client): Promise<void> {
     SEED_CHARACTERS.map((c) => ({
       sql: "INSERT INTO characters (name, expansion, tainted) VALUES (?, ?, ?)",
       args: [c.name, c.expansion, c.tainted ? 1 : 0],
+    })),
+    "write"
+  );
+}
+
+/** Semeia os presets de modo de jogo. Usa `INSERT OR IGNORE` por nome (e não
+ * "só se a tabela estiver vazia") pra que um preset novo adicionado numa versão
+ * futura apareça sem apagar os modos que o usuário já criou. */
+async function seedGameModesIfEmpty(db: Client): Promise<void> {
+  const now = nowIso();
+  await db.batch(
+    SEED_GAME_MODES.map((m) => ({
+      sql: `INSERT OR IGNORE INTO game_modes
+              (name, description, is_preset, params_json, active, created_at)
+            VALUES (?, ?, 1, ?, 1, ?)`,
+      args: [m.name, m.description, JSON.stringify(m.params), now],
     })),
     "write"
   );

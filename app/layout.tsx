@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Sidebar from "@/components/Sidebar";
+import { getCurrentPlayer } from "@/lib/identity";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -8,11 +9,12 @@ export const metadata: Metadata = {
     "Isaaquinho's Friends Sad Notes — registro de partidas, ranking e torneios de Four Souls + Requiem.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const currentPlayer = await getCurrentPlayer();
   return (
     <html lang="pt-BR">
       <head>
@@ -21,7 +23,7 @@ export default function RootLayout({
         <link rel="stylesheet" href="/design-system/frames.css" />
       </head>
       <body>
-        <Sidebar />
+        <Sidebar currentPlayer={currentPlayer} />
         <main className="main">{children}</main>
       </body>
     </html>
