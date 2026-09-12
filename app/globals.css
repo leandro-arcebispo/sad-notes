@@ -1702,3 +1702,96 @@ img.card-art {
     justify-content: flex-start;
   }
 }
+
+/* --------------- seletor de Tesouros da finalização ----------------------
+   Só o escolhido fica na tela; o catálogo (154 itens) entra por busca. Antes
+   isso despejava ~150 ícones POR JOGADOR e a página passava de 6000px.
+   ------------------------------------------------------------------------ */
+.treasure-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.treasure-chosen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  min-height: 28px;
+}
+.treasure-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 6px;
+  border: 1px solid var(--accent-dim);
+  background: var(--panel);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 12px;
+  cursor: pointer;
+}
+.treasure-chip:hover {
+  border-color: var(--blood);
+}
+.treasure-chip.novo {
+  border-style: dashed;
+}
+.treasure-chip img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+.treasure-chip-x {
+  color: var(--text-mute);
+  font-size: 14px;
+  line-height: 1;
+}
+.treasure-search {
+  position: relative;
+}
+.treasure-results {
+  display: flex;
+  flex-direction: column;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 2px solid var(--panel-border);
+  background: var(--panel-2);
+  box-shadow: var(--shadow-hard);
+}
+.treasure-result {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--panel-border);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.treasure-result:hover {
+  background: var(--panel);
+  color: var(--accent);
+}
+.treasure-result img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  flex: none;
+}
+.treasure-result-noicon {
+  width: 24px;
+  text-align: center;
+  color: var(--text-mute);
+  flex: none;
+}
+.treasure-result.novo {
+  color: var(--accent);
+  font-style: italic;
+}

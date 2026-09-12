@@ -2175,9 +2175,38 @@ passava nos testes nos dois casos. Vale insistir em verificar pela UI:
 - Run de partida finalizada redireciona pro detalhe; evento em partida
   encerrada dá 409.
 
+#### Ajustes na tela de Finalizar (mesma sessão, a pedido do usuário)
+
+- **Rodadas já vinham da Run** (`games.rounds`, gravado pelo contador livre) —
+  conferido: mostrou 5 depois de 5 incrementos. O que mudou é que **rodada 0
+  agora abre o campo vazio**: nenhuma partida tem zero rodadas, então 0
+  significa “ninguém usou o contador”, e mostrar o zero fazia parecer dado
+  preenchido.
+- **Vencedor sugerido:** quem chegou em `souls_to_win` já vem marcado (com a
+  coroa na linha e um aviso “Sugerido: chegou a N almas — troque se não for o
+  caso”). Em duplas/trios a soma é **por time** (§2.4). **Empate no topo não
+  sugere nada** de propósito: dois lados no mesmo número é justamente o caso em
+  que só quem estava na mesa sabe, e chutar seria pior que deixar em branco.
+  As opções do select passaram a mostrar as almas de cada um.
+- **`TreasurePicker` reescrito — era o problema real.** Ele despejava o
+  catálogo inteiro na tela, **por jogador**: medido numa partida de 2, eram
+  **292 ícones + 16 chips** e uma página de **6410px** (e 146 PNGs baixados
+  antes de qualquer escolha). Agora mostra **só o escolhido** e o resto entra
+  por busca, no mesmo padrão da busca de monstro da Run: página caiu pra
+  **1104px** e só as imagens dos resultados são baixadas. O campo livre
+  continua (item sem cadastro vira Tesouro pendente no servidor) e virou a
+  opção “+ cadastrar «x»” quando a busca não acha nada; Enter pega o primeiro
+  resultado. Clicar num chip remove.
+
+Verificado ponta a ponta, inclusive na **partida 19 do próprio usuário** (só
+leitura, não foi finalizada): rodadas 1 vindas da Run, Robertinho sugerido com
+4/4 almas, zero parede de ícone.
 ⚠️ **Dado real do usuário encontrado nesta sessão:** partidas **16**
-(2026-08-06) e **17** (2026-09-12), as duas em `andamento`, criadas pelo
-próprio usuário entre as sessões. Não foram tocadas. Na 16 os dois jogadores
+(2026-08-06), **17** e **19** (2026-09-12), as três em `andamento`, criadas
+pelo próprio usuário — a **19** ele criou no meio desta sessão, testando a Run
+recém-entregue (9 eventos reais: morte, Big Spider, Curse Of Tiny Hands, alma
+perdida, alma roubada). Nenhuma foi tocada; a 19 serviu de verificação só de
+leitura da tela de Finalizar. Na 16 os dois jogadores
 estão com **Magdalene** — seleção livre não impede personagem repetido (o
 sorteio server-side impede; a escolha manual não). Se incomodar, é decisão de
 produto, não bug.

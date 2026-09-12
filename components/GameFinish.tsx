@@ -48,8 +48,47 @@ export default function GameFinish({
   const [duration, setDuration] = useState(
     activeMinutes === null ? "" : String(activeMinutes)
   );
-  const [rounds, setRounds] = useState(game.rounds === null ? "" : String(game.rounds));
+  // A rodada vem do contador da Run. Zero significa que ninguém usou o
+  // contador (partida nenhuma tem zero rodadas), então o campo abre vazio em
+  // vez de mostrar um número que parece dado.
+  const [rounds, setRounds] = useState(
+    game.rounds ? String(game.rounds) : ""
+  );
   const [notes, setNotes] = useState(game.notes ?? "");
+
+  /**
+   * Quem chegou nas almas necessárias já vem marcado como vencedor — é o
+   * critério de vitória do jogo, então digitar de novo o que o Diário já
+   * sabe é trabalho à toa. Em duplas/trios quem corre atrás do objetivo é o
+   * TIME (§2.4 do plano), então a soma é por time.
+   *
+   * **Empate no topo não sugere nada**: dois lados no mesmo número é
+   * justamente o caso em que só quem estava na mesa sabe quem ganhou —
+   * chutar aqui seria pior que deixar em branco.
+   */
+  function suggestedWinners(): Set<number> {
+    const soulsOf = (p: GameFull["players"][number]) =>
+      derived[p.player_id] ? Math.max(0, derived[p.player_id].souls) : p.souls;
+
+    const groups = new Map<number | string, { total: number; ids: number[] }>();
+    for (const p of game.players) {
+      const key = game.format === "solo" ? p.player_id : (p.team ?? `sem-time-${p.player_id}`);
+      const g = groups.get(key) ?? { total: 0, ids: [] };
+      g.total += soulsOf(p);
+      g.ids.push(p.player_id);
+      groups.set(key, g);
+    }
+
+    const reached = [...groups.values()].filter((g) => g.total >= game.souls_to_win);
+    if (reached.length === 0) return new Set();
+
+    const best = Math.max(...reached.map((g) => g.total));
+    const top = reached.filter((g) => g.total === best);
+    if (top.length !== 1) return new Set();
+    return new Set(top[0].ids);
+  }
+
+  const suggested = useMemo(suggestedWinners, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [rows, setRows] = useState<Row[]>(() =>
     game.players.map((p) => {
@@ -65,7 +104,7 @@ export default function GameFinish({
         pvp_kills: d ? d.pvp_kills : p.pvp_kills,
         treasure_ids: p.owned_treasures.map((t) => t.id),
         treasure_names: [],
-        is_winner: p.is_winner === 1,
+        is_winner: p.is_winner === 1 || suggested.has(p.player_id),
       };
     })
   );
@@ -202,10 +241,15 @@ export default function GameFinish({
                 <option value="">— quem venceu —</option>
                 {rows.map((r) => (
                   <option key={r.player_id} value={r.player_id}>
-                    {playerById.get(r.player_id)?.player_name}
+                    {playerById.get(r.player_id)?.player_name} · {r.souls} almas
                   </option>
                 ))}
               </select>
+            )}
+            {suggested.size > 0 && (
+              <span className="muted" style={{ fontSize: 12 }}>
+                Sugerido: chegou a {game.souls_to_win} almas — troque se não for o caso.
+              </span>
             )}
           </div>
           <div className="field" style={{ gridColumn: "1 / -1" }}>
