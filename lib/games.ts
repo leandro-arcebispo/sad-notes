@@ -539,6 +539,46 @@ export async function getRunState(id: number): Promise<RunState | undefined> {
   };
 }
 
+/** Delta pro polling da Run: só os eventos novos desde `since`, mais o estado
+ * derivado fresco. Uma ida só ao servidor por tick — e o derivado continua
+ * sendo calculado no servidor (§6.4), pra que dois aparelhos nunca mostrem
+ * números diferentes. Ver docs/PLANO-PARTIDAS.md §6.7. */
+export interface RunDelta {
+  status: GameStatus;
+  rounds: number | null;
+  active_minutes: number | null;
+  last_seq: number;
+  events: GameEventFull[];
+  derived: Record<number, DerivedPlayerStats>;
+}
+
+export async function getRunDelta(
+  id: number,
+  since: number
+): Promise<RunDelta | undefined> {
+  const game = await get<Game>("SELECT * FROM games WHERE id = ?", [id]);
+  if (!game) return undefined;
+
+  const [events, derivedMap, active, maxRow] = await Promise.all([
+    listEvents(id, since),
+    deriveStats(id),
+    deriveActiveMinutes(game),
+    get<{ m: number }>(
+      "SELECT COALESCE(MAX(seq), 0) AS m FROM game_events WHERE game_id = ?",
+      [id]
+    ),
+  ]);
+
+  return {
+    status: game.status,
+    rounds: game.rounds,
+    active_minutes: active,
+    last_seq: maxRow?.m ?? 0,
+    events,
+    derived: Object.fromEntries(derivedMap),
+  };
+}
+
 export async function deleteGame(id: number): Promise<boolean> {
   // Cascata manual (FKs não forçadas via HTTP libSQL em produção/Turso — o
   // ON DELETE CASCADE do schema só é aplicado de fato em dev local):

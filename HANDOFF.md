@@ -2092,6 +2092,100 @@ partidas reais e os 2 jogadores do usuário ficaram intactos):
 `/partidas/[id]/run`), com a paleta de botões de evento, o Diário e o polling;
 depois estatísticas/badges; depois a sessão multi-celular.
 
+### Reformulação do Registro de Partidas — Fase 2: a Run (2026-09-12)
+
+Fase 2 de 4 do `docs/PLANO-PARTIDAS.md`. Entrega a **tela ao vivo** —
+`/partidas/[id]/run`, `components/RunClient.tsx`.
+
+**Vocabulário (fixado na Fase 1, vale pra tudo):** *partida* é o registro (a
+linha em `games`, o que aparece na listagem e no ranking); ***Run*** é a
+partida enquanto está acontecendo. O log de eventos é o **Diário da Run**.
+
+**API de eventos nova:**
+- `POST /api/games/[id]/events` — idempotente por `client_event_id`; recusa
+  partida encerrada (409).
+- `GET  /api/games/[id]/events?since=N` — delta do polling: eventos novos +
+  derivado fresco + status/rodadas/duração, numa ida só ao servidor.
+- `DELETE /api/games/[id]/events/[eventId]` — soft-delete com autoria.
+
+**Travas do `parseGameEventInput` (todas verificadas):** só tipo `manual` entra
+pela API — `pause`/`resume`/`personagem_sorteado` são gerados pelo sistema, e
+aceitá-los pela mesa deixaria a **duração** e a **auditoria de re-roll**
+forjáveis. Também barra: contraparte obrigatória ausente (roubo de alma sem a
+vítima viraria +1 sem o −1 correspondente), contraparte em evento que não tem,
+jogador como própria contraparte, nota sem texto, sujeito ausente, tipo
+inexistente.
+
+**Fluxo de registro = 2 a 3 toques**, derivado do próprio `EVENT_TYPE_DEFS`
+(mesma fonte que valida no servidor). O passo de referência **só aparece quando
+existe catálogo**: “ganhou alma” não para o jogo pra perguntar qual alma bônus
+foi (o Artefato Almas Bônus ainda não existe, §2.1), então sai em 2 toques;
+monstro e maldição abrem busca sobre os catálogos (124 e 19 registros) com
+opção de “pular”. Morte tem “sem culpado” pra morte por monstro/carta (§2.3).
+
+⚠️ **O polling recarrega tudo (`since=0`), e é de propósito.** O parâmetro
+`since` existe na API (a Fase 4 vai usar), mas o cliente pede a lista inteira:
+**evento apagado em outro aparelho não aparece num delta** (o soft-delete some
+da listagem) e a tela ficaria com um registro fantasma. O custo real do poll é
+a query no servidor, idêntica nos dois casos — o derivado varre todos os
+eventos de qualquer jeito. Paga-se bytes, ganha-se convergência. Intervalo 4s,
+e só com a aba visível.
+
+**`nota`:** o texto mora em `ref_name` (o slot de texto curto que o evento já
+tem), com `freeText: true` no def liberando isso sem `ref_type`. `meta_json`
+segue reservado pra cauda longa estruturada de tipos futuros.
+
+**`components/GameLiveControls.tsx` foi DELETADO.** Pausar/retomar/rodada/
+sortear/finalizar viveram nele por uma fase; agora moram na Run, e o detalhe da
+partida virou só a visão de registro com um atalho “▶ Abrir a Run” — não podem
+existir dois lugares controlando a mesma coisa.
+
+**DOIS BUGS REAIS de React, os dois só apareceram dirigindo a tela** — a API
+passava nos testes nos dois casos. Vale insistir em verificar pela UI:
+
+1. **Rascunho completo não era enviado.** Ao quebrar o sub-componente da folha
+   em JSX inline, o auto-submit de `step === "done"` se perdeu: a folha só
+   sumia e nada era registrado. Só o fluxo de monstro funcionava, porque
+   chamava `submitDraft` direto no clique. Corrigido com um `useEffect` que
+   envia quando o rascunho fica completo — o ÚLTIMO toque do fluxo já é o
+   registro, sem um botão “confirmar” que ninguém apertaria com o jogo rolando.
+2. **A folha da `nota` desmontava na primeira letra.** `currentStep` tratava o
+   passo de texto como satisfeito assim que houvesse conteúdo, então o rascunho
+   virava `"done"` e a condição de render escondia o formulário — levando junto
+   o que estava sendo digitado, e deixando um rascunho invisível que fazia o
+   clique seguinte no botão Nota *fechar* em vez de abrir. Corrigido na causa:
+   **passo de digitação nunca se conclui sozinho**, quem encerra é o submit do
+   form. Isso tornou redundante a guarda por `freeText` no efeito, que foi
+   removida — uma regra só, num lugar só.
+
+**Verificação ponta a ponta** (dados de teste criados e removidos):
+- API: 5 eventos de tipos diferentes, 8 travas de validação, idempotência
+  (reenvio do mesmo `client_event_id` devolveu o MESMO evento — id e seq
+  iguais, total continuou 5), delta `since=3` trouxe só seq 4 e 5, nomes
+  resolvidos no Diário.
+- Soft-delete: a linha permanece no banco com `deleted_by_player_id`, some da
+  listagem, o derivado reflete a remoção, e o **`seq` não é reciclado** (o
+  evento seguinte foi pro 6, não ocupou o 4 vago).
+- UI: fluxo de 3 toques (morte com culpado → PvP na contraparte), de 2 toques
+  (alma), busca de monstro (124 → 6 digitando “mom”), “sem culpado”, nota,
+  apagar pelo Diário, contador de rodada, pausar/retomar.
+- Finalização pré-preenchida bateu com o Diário: almas 2/1, mortes 2/2, PvP
+  1/1, rodadas 2, duração 6 min (sem contar a pausa). O aviso de divergência
+  aparece ao editar um número e **não bloqueia** o salvar (§7.3).
+- Run de partida finalizada redireciona pro detalhe; evento em partida
+  encerrada dá 409.
+
+⚠️ **Dado real do usuário encontrado nesta sessão:** partidas **16**
+(2026-08-06) e **17** (2026-09-12), as duas em `andamento`, criadas pelo
+próprio usuário entre as sessões. Não foram tocadas. Na 16 os dois jogadores
+estão com **Magdalene** — seleção livre não impede personagem repetido (o
+sorteio server-side impede; a escolha manual não). Se incomodar, é decisão de
+produto, não bug.
+
+**Falta (Fases 3 e 4):** estatísticas/badges em cima dos eventos (novos
+`unlock_mode`: `monster_kill`, `stat_threshold`) e a sessão multi-celular
+(lobby, ready, cada um registrando no próprio aparelho).
+
 ## Onde as coisas estão (mapa rápido)
 
 ```
@@ -2103,10 +2197,12 @@ app/
   partidas/page.tsx               Lista de partidas (+ coluna "Situação"/status)
   partidas/nova/page.tsx          SETUP (GameSetup) — só o que é decidido antes
                                     de jogar; grava a partida em 'andamento'
-  partidas/[id]/page.tsx          Detalhe (+ GameLiveControls quando a partida
-                                    ainda está rolando)
+  partidas/[id]/page.tsx          Detalhe = visão de REGISTRO (+ atalho
+                                    "Abrir a Run" enquanto está rolando)
   partidas/[id]/finalizar/page.tsx  FINALIZAÇÃO (GameFinish) — pré-preenchida
                                     pelos eventos; redireciona se já finalizada
+  partidas/[id]/run/page.tsx        A RUN (RunClient) — tela ao vivo: placar,
+                                    paleta de eventos, Diário, pause, rodada
   quem-e-voce/page.tsx            Seletor de perfil (IdentityPicker)
   sprites/page.tsx                 Oficina (Admin): abas Spritesheets/Sprites — SÓ corta sprites
   artefatos/personagens/page.tsx   CRUD de Personagens + flip carta/item (CharactersClient)
@@ -2134,9 +2230,12 @@ lib/
                         de carta+item). games.ts agora tem o CICLO DE VIDA:
                         createGameSetup / finishGame / setGameStatus /
                         rollCharacter (sorteio no SERVIDOR) / getRunState
-  game-events.ts      EVENT_TYPE_DEFS (registro plugável de tipos de evento)
+  game-events.ts      EVENT_TYPE_DEFS (registro plugável de tipos de evento;
+                        `manual` separa o que a mesa registra do que o sistema
+                        gera, `freeText` libera texto sem Artefato)
                         + appendEvent (idempotente por client_event_id) +
-                        deriveStats + deriveActiveMinutes
+                        listEvents + deleteEvent (soft) + deriveStats +
+                        deriveActiveMinutes
   game-modes.ts       presets/sandbox + normalizeParams (ponto único pra
                         adicionar parâmetro novo) + parseParams
   seed-game-modes.ts  4 presets semeados (dado puro, evita ciclo de import)
@@ -2169,8 +2268,10 @@ components/
   JogadoresClient, DeleteGameButton
   GameSetup                            etapa de Setup (grava a partida)
   GameFinish                           etapa de finalização (pré-preenchida)
-  GameLiveControls                     pausar/retomar/abandonar/finalizar +
-                                        sorteio de personagem por participante
+  RunClient                            A RUN: placar derivado, paleta de
+                                        eventos (2–3 toques), Diário com apagar,
+                                        polling 4s, fila local de reenvio
+  GameLiveControls                     DELETADO na Fase 2 (absorvido pela Run)
   IdentityPicker                       seletor de perfil estilo Netflix
   GameWizard                           DELETADO (substituído pelos 3 acima)
   TreasurePicker                       seletor híbrido no wizard: ícones já

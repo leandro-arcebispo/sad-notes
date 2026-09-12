@@ -33,6 +33,11 @@ interface EventTypeDef {
   counterpartRequired: boolean;
   /** Artefato ao qual o evento aponta, se houver. */
   refType: GameEventRefType | null;
+  /** Aceita um texto curto livre mesmo sem apontar pra Artefato nenhum.
+   * Hoje só a `nota`: o texto dela mora em `ref_name` (o slot de texto curto
+   * que o evento já tem), deixando `meta_json` reservado pra cauda longa
+   * estruturada de tipos futuros. */
+  freeText?: boolean;
   /** `true` = o evento é registrado pela mesa; `false` = gerado pelo sistema
    * (pause/resume/sorteio) e não aparece na paleta de botões. */
   manual: boolean;
@@ -140,6 +145,7 @@ export const EVENT_TYPE_DEFS: Record<GameEventType, EventTypeDef> = {
     counterpartLabel: null,
     counterpartRequired: false,
     refType: null,
+    freeText: true,
     manual: true,
     tier: 2,
     icon: "📝",

@@ -12,6 +12,7 @@ import {
   FEEDBACK_KINDS,
   FEEDBACK_PRIORITIES,
   FEEDBACK_STATUSES,
+  GAME_EVENT_TYPES,
   GAME_FORMATS,
   UNLOCK_MODES,
   type BaseFace,
@@ -27,6 +28,8 @@ import {
   type FeedbackStatus,
   type GameFinishPayload,
   type GameFinishPlayerInput,
+  type GameEventInput,
+  type GameEventType,
   type GameFormat,
   type GameModeInput,
   type GamePayload,
@@ -37,6 +40,7 @@ import {
   type TreasureInput,
   type UnlockMode,
 } from "./types";
+import { EVENT_TYPE_DEFS } from "./game-events";
 import { normalizeParams } from "./game-modes";
 import { HAIR_COLORS, DEFAULT_HAIR_COLOR } from "./hair-colors";
 
@@ -526,6 +530,76 @@ export function parseMonsterInput(
     value: {
       name,
       card_sprite_id: toIntOrNull(b.card_sprite_id),
+    },
+  };
+}
+
+/**
+ * Evento vindo da paleta da Run. Duas travas importantes:
+ *
+ * 1. **Só tipo `manual` entra por aqui.** `pause`/`resume`/`personagem_sorteado`
+ *    são gerados pelo sistema (ciclo de vida e sorteio no servidor) — aceitar
+ *    esses pela API deixaria a duração e a auditoria de re-roll forjáveis.
+ * 2. **Contraparte obrigatória é conferida pelo `EVENT_TYPE_DEFS`**, que é a
+ *    mesma fonte que desenha a UI: "roubou alma" sem a vítima viraria um +1
+ *    sem o −1 correspondente.
+ */
+export function parseGameEventInput(
+  body: unknown
+): { value: GameEventInput } | { error: string } {
+  if (!body || typeof body !== "object") return { error: "corpo inválido" };
+  const b = body as Record<string, unknown>;
+
+  if (!GAME_EVENT_TYPES.includes(b.type as GameEventType)) {
+    return { error: "tipo de evento inválido" };
+  }
+  const type = b.type as GameEventType;
+  const def = EVENT_TYPE_DEFS[type];
+  if (!def.manual) {
+    return { error: `"${def.label}" é registrado pelo próprio app, não pela mesa` };
+  }
+
+  const player_id = toIntOrNull(b.player_id);
+  if (!player_id) return { error: `informe: ${def.subjectLabel.toLowerCase()}` };
+
+  const other_player_id = toIntOrNull(b.other_player_id);
+  if (def.counterpartRequired && !other_player_id) {
+    return { error: `informe: ${(def.counterpartLabel ?? "a contraparte").toLowerCase()}` };
+  }
+  if (other_player_id && !def.counterpartLabel) {
+    return { error: "este evento não tem contraparte" };
+  }
+  if (other_player_id && other_player_id === player_id) {
+    return { error: "o jogador não pode ser a própria contraparte" };
+  }
+
+  // O ref é sempre OPCIONAL: dá pra anotar "derrotou um monstro" sem parar o
+  // jogo pra achar a carta na lista, e "ganhou alma bônus" antes de existir
+  // catálogo de Almas Bônus (§2.1 do plano).
+  const ref_id = def.refType ? toIntOrNull(b.ref_id) : null;
+  const acceptsText = def.refType !== null || def.freeText === true;
+  const ref_name =
+    acceptsText && typeof b.ref_name === "string" && b.ref_name.trim()
+      ? b.ref_name.trim().slice(0, 120)
+      : null;
+  if (def.freeText && !ref_name) return { error: "escreva a nota" };
+
+  const client_event_id =
+    typeof b.client_event_id === "string" && b.client_event_id.trim()
+      ? b.client_event_id.trim().slice(0, 64)
+      : null;
+
+  return {
+    value: {
+      type,
+      player_id,
+      other_player_id,
+      ref_type: def.refType,
+      ref_id,
+      ref_name,
+      amount: clamp(b.amount, 1, 99, 1),
+      round: toIntOrNull(b.round),
+      client_event_id,
     },
   };
 }

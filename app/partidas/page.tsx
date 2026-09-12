@@ -74,8 +74,8 @@ export default async function PartidasPage() {
                     <td style={{ textAlign: "center" }}>{g.souls_to_win}</td>
                     <td className="winners-cell">
                       {live ? (
-                        <Link href={`/partidas/${g.id}`} className="row-link">
-                          continuar →
+                        <Link href={`/partidas/${g.id}/run`} className="row-link">
+                          continuar na Run →
                         </Link>
                       ) : (
                         `👑 ${g.winners.join(" • ") || "—"}`

@@ -454,7 +454,7 @@ preservado como atalho — não como o padrão.
 | `lib/games.ts` | ✅ **Feito.** `deleteGame` inclui `game_events` na cascata manual (FK não é garantida em Turso; armadilha #7). Verificado: 12 eventos + 2 participantes + 1 tesouro removidos junto. | 🔴 obrigatório |
 | `components/GameWizard.tsx` | ✅ **Deletado.** Virou `GameSetup` + `GameFinish` + `GameLiveControls`; sorteio foi pro servidor e virou por-participante. | 🟡 |
 | `app/partidas/page.tsx` | ✅ **Feito.** Coluna "Situação" + linha destacada e "continuar →" pra partida em andamento. | 🟡 |
-| `app/partidas/[id]/page.tsx` | ✅ Controles de ciclo de vida quando a partida está rolando. O **Diário** de eventos vem na Fase 2. | 🟡 |
+| `app/partidas/[id]/page.tsx` | ✅ Virou só a visão de REGISTRO: com a Run pronta, os controles ao vivo saíram daqui (`GameLiveControls` deletado) e sobrou o atalho “▶ Abrir a Run”, pra não existirem dois lugares controlando a mesma coisa. | 🟡 |
 | `game_player_treasures` / `TreasurePicker` | **Nada muda.** | ✅ |
 
 **Ganho colateral no `unlocks.ts`:** com eventos + agregados, modos novos
@@ -470,7 +470,7 @@ entradas no registro que já existe.
 | Fase | Entrega | Vale sozinha? |
 |---|---|---|
 | **1 — Modelo & ciclo de vida** ✅ **(2026-08-06)** | schema (§3) · `game_modes` + presets semeados · API de ciclo de vida · Setup grava a partida · Finalização vira etapa · sorteio no servidor · filtros de status no ranking/unlocks · registro retroativo preservado · **"Quem é você?"** (§6) | Corrige o absurdo da duração e destrava tudo |
-| **2 — A Run** | tela ao vivo · paleta de eventos tier 1+2 · Diário da Run *(pause/retomar, contador de rodada e finalização pré-preenchida já saíram na Fase 1)* | **É o registro que o usuário quer, hoje** |
+| **2 — A Run** ✅ **(2026-09-12)** | tela ao vivo em `/partidas/[id]/run` · paleta de eventos filtrada pelo modo · Diário com apagar · API de eventos idempotente · polling a cada 4s | **É o registro que o usuário quer, hoje** |
 | **3 — Estatísticas & badges** | telas de estatística por evento · novos `unlock_mode`s (`monster_kill`, `stat_threshold`) · primeiros badges | Colhe o que 1–2 plantaram |
 | **4 — Sessão multi-celular** | lobby · convite · ready · cada um sorteia o seu · polling incremental · cada um registra o seu | A feature grande |
 

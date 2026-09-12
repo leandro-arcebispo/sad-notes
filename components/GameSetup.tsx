@@ -138,7 +138,7 @@ export default function GameSetup({
       return;
     }
     const game = await res.json();
-    router.push(retro ? `/partidas/${game.id}/finalizar` : `/partidas/${game.id}`);
+    router.push(retro ? `/partidas/${game.id}/finalizar` : `/partidas/${game.id}/run`);
   }
 
   async function saveAsMode() {

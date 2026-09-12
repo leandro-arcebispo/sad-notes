@@ -3,9 +3,7 @@ import { notFound } from "next/navigation";
 import Frame from "@/components/Frame";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import DeleteGameButton from "@/components/DeleteGameButton";
-import GameLiveControls from "@/components/GameLiveControls";
 import StatIcon from "@/components/StatIcon";
-import { listCharacters } from "@/lib/characters";
 import { getGame } from "@/lib/games";
 import { assetUrl } from "@/lib/asset-url";
 import { GAME_STATUS_LABELS, type Edition, type GameFormat } from "@/lib/types";
@@ -24,15 +22,11 @@ export default async function PartidaDetailPage({
   const game = await getGame(Number((await params).id));
   if (!game) notFound();
 
-  // Partida ainda rolando ganha os controles de ciclo de vida; finalizada e
-  // abandonada são só leitura.
+  // O detalhe é a visão de REGISTRO da partida (vale pra finalizada e pra
+  // abandonada também). Enquanto ela está rolando, quem manda é a Run — aqui
+  // fica só o atalho pra ela, pra não existirem dois lugares controlando a
+  // mesma coisa.
   const isLive = game.status !== "finalizada" && game.status !== "abortada";
-  const characters = isLive
-    ? (await listCharacters()).filter(
-        (c) =>
-          (game.edition === "requiem" || c.expansion === "base") && c.active === 1
-      )
-    : [];
 
   return (
     <Frame
@@ -61,7 +55,17 @@ export default async function PartidaDetailPage({
         </div>
         {game.notes && <div className="muted">“{game.notes}”</div>}
 
-        {isLive && <GameLiveControls game={game} characters={characters} />}
+        {isLive && (
+          <div className="panel form-panel run-cta">
+            <span>
+              Esta partida ainda está rolando.{" "}
+              <span className="muted">Abra a Run pra registrar o que acontecer na mesa.</span>
+            </span>
+            <Link href={`/partidas/${game.id}/run`} className="btn btn-accent">
+              ▶ Abrir a Run
+            </Link>
+          </div>
+        )}
 
         <div className="panel" style={{ padding: 0 }}>
           <table className="data-table">

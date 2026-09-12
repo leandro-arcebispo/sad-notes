@@ -1515,3 +1515,190 @@ img.card-art {
 .data-table tr.live-row td {
   background: rgba(232, 185, 120, 0.06);
 }
+
+/* ============================ A Run (partida ao vivo) =======================
+   Tela pensada pra celular sobre a mesa: alvos de toque grandes, placar
+   legível de longe e o Diário sempre visível. Ver docs/PLANO-PARTIDAS.md §7.2.
+   ========================================================================== */
+.run-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+}
+.run-rounds {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.run-cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* -------------------------------- placar --------------------------------- */
+.run-board {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+}
+.run-player {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+}
+.run-player-id {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.run-player-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.run-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel);
+  font-family: var(--font-display);
+  font-size: 14px;
+  color: var(--text-dim);
+}
+.run-stat.big {
+  font-size: 20px;
+  padding: 4px 12px;
+  color: var(--soul);
+  border-color: var(--accent-dim);
+}
+.run-stat-icon {
+  font-size: 0.9em;
+}
+.run-stat-value {
+  color: var(--text);
+}
+.run-stat.big .run-stat-value {
+  color: var(--soul);
+}
+
+/* ------------------------------ paleta/sheet ------------------------------ */
+.run-palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.run-evt {
+  font-size: 15px;
+  padding: 12px 16px;
+}
+.run-evt-icon {
+  font-size: 18px;
+}
+.run-evt.active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.run-sheet {
+  margin-top: 12px;
+  padding: 12px;
+  border: 2px dashed var(--accent-dim);
+  background: var(--panel);
+}
+.run-sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.run-pick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.run-pick-player {
+  gap: 8px;
+  padding: 8px 14px;
+}
+
+/* -------------------------------- diário ---------------------------------- */
+.run-log {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 420px;
+  overflow-y: auto;
+}
+.run-log-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--panel-border);
+}
+.run-log-item.sending {
+  opacity: 0.6;
+}
+.run-log-seq {
+  font-family: var(--font-display);
+  font-size: 12px;
+  color: var(--text-mute);
+  min-width: 34px;
+}
+.run-log-text {
+  flex: 1;
+}
+.run-log-meta {
+  font-size: 11px;
+  white-space: nowrap;
+}
+.run-log-del {
+  background: none;
+  border: none;
+  color: var(--text-mute);
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  padding: 0 4px;
+}
+.run-log-del:hover {
+  color: var(--blood);
+}
+
+.run-collapse {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+}
+
+/* Celular sobre a mesa: uma coluna e botões maiores. */
+@media (max-width: 640px) {
+  .run-board {
+    grid-template-columns: 1fr;
+  }
+  .run-evt {
+    flex: 1 1 45%;
+    justify-content: flex-start;
+  }
+}
