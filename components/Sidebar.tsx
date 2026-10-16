@@ -43,6 +43,7 @@ export default function Sidebar({ currentPlayer }: { currentPlayer: Player | nul
           key={e.href}
           href={e.href}
           className={`nav-item${isActive(e) ? " active" : ""}`}
+          title={e.label}
         >
           <span className="nav-icon">{e.icon}</span>
           <span className="nav-label">{e.label}</span>
@@ -55,6 +56,7 @@ export default function Sidebar({ currentPlayer }: { currentPlayer: Player | nul
           key={e.href}
           href={e.href}
           className={`nav-item${isActive(e) ? " active" : ""}`}
+          title={e.label}
         >
           <span className="nav-icon">{e.icon}</span>
           <span className="nav-label">{e.label}</span>
@@ -68,6 +70,7 @@ export default function Sidebar({ currentPlayer }: { currentPlayer: Player | nul
             key={e.href}
             href={e.href}
             className={`nav-item${isActive(e) ? " active" : ""}`}
+          title={e.label}
           >
             <span className="nav-icon">{e.icon}</span>
             <span className="nav-label">{e.label}</span>

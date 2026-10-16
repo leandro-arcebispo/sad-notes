@@ -2005,3 +2005,95 @@ img.card-art {
   gap: 12px;
   border-color: var(--accent-dim);
 }
+
+/* ========================= Celular =========================================
+   O app nasceu desktop-only: até aqui existia UMA media query em todo o
+   arquivo, e ela não tocava `.main` nem `.sidebar`. Numa tela de 375px a
+   moldura somava 512px (sidebar 216 + padding do main 80 + borda do frame 128
+   + padding do frame 88) e o conteúdo era espremido no que sobrava — logo na
+   Run, que foi escrita pra um celular em cima da mesa.
+   ========================================================================== */
+@media (max-width: 860px) {
+  /* A sidebar vira trilho de ícones. Os ícones já moram numa coluna de 56px
+     (`.nav-icon`), então basta estreitar e esconder os rótulos. */
+  .sidebar {
+    width: var(--sidebar-w);
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  .sidebar-brand {
+    height: 56px;
+    padding-left: 0;
+    justify-content: center;
+  }
+  .sidebar-brand img {
+    height: 34px;
+    /* O logo e largo: sem isto ele vaza do trilho de 56px. */
+    max-width: 100%;
+    object-fit: contain;
+  }
+  .nav-label,
+  .nav-group-label {
+    display: none;
+  }
+  .nav-divider {
+    margin: 6px 8px;
+  }
+
+  .main {
+    margin-left: var(--sidebar-w);
+    padding: 16px 12px;
+  }
+  /* Duas classes pra vencer o border-width que cada variante define em
+     frames.css (link estatico, entra depois no cascade). */
+  .frame.page-frame {
+    border-width: 28px;
+    padding: 18px 14px;
+    min-height: 0;
+  }
+  .page-head {
+    margin-bottom: 16px;
+  }
+  /* 34px quebrava o titulo no meio de uma palavra na largura do celular. */
+  .page-head .title {
+    font-size: 22px;
+  }
+
+  /* Tabela de 7 colunas não cabe: rolar na horizontal é melhor que espremer
+     cada coluna até ninguém conseguir ler. */
+  .panel:has(> .data-table) {
+    overflow-x: auto;
+  }
+  .data-table {
+    min-width: 560px;
+  }
+}
+
+@media (max-width: 560px) {
+  .main {
+    padding: 10px 6px;
+  }
+  /* Duas classes pra vencer o border-width que cada variante define em
+     frames.css (link estatico, entra depois no cascade). */
+  .frame.page-frame {
+    border-width: 16px;
+    padding: 12px 10px;
+  }
+
+  /* Alvos de toque: o × que apaga evento do Diário tinha 18x19px — pequeno
+     demais pro dedo, e é ação destrutiva. */
+  .run-log-del {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .run-evt {
+    min-height: 48px;
+  }
+  .run-collapse {
+    min-height: 44px;
+  }
+  .run-bar .btn,
+  .wizard-nav .btn {
+    min-height: 44px;
+  }
+}
