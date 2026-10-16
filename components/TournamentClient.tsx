@@ -104,7 +104,8 @@ export default function TournamentClient({
       return;
     }
     const game = await res.json();
-    router.push(`/partidas/${game.id}/run`);
+    // idem GameSetup: a mesa já existe, voltar aqui não pode recriá-la.
+    router.replace(`/partidas/${game.id}/run`);
   }
 
   return (

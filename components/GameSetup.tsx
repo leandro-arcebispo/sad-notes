@@ -155,7 +155,10 @@ export default function GameSetup({
     }
     const game = await res.json();
     draft.clear(); // a partida existe: o rascunho cumpriu o papel
-    router.push(retro ? `/partidas/${game.id}/finalizar` : `/partidas/${game.id}/run`);
+    // `replace` e não `push`: a partida já foi criada, então o formulário
+    // não pode continuar no histórico — voltar nele oferecia criar OUTRA
+    // partida pra mesma mesa.
+    router.replace(retro ? `/partidas/${game.id}/finalizar` : `/partidas/${game.id}/run`);
   }
 
   async function saveAsMode() {

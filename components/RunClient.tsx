@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import PlayerAvatar from "./PlayerAvatar";
 import { EVENT_TYPE_DEFS } from "@/lib/game-events";
@@ -386,9 +387,11 @@ export default function RunClient({
             <button className="btn" onClick={() => changeStatus("abortada")} disabled={busy}>
               Abandonar
             </button>
-            <a className="btn btn-accent" href={`/partidas/${game.id}/finalizar`}>
+            {/* <Link> e não <a>: um `href` cru recarregava a página inteira e
+                levava junto a fila local de eventos ainda não enviados. */}
+            <Link className="btn btn-accent" href={`/partidas/${game.id}/finalizar`}>
               Finalizar →
-            </a>
+            </Link>
           </>
         )}
       </div>

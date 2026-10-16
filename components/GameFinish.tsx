@@ -358,9 +358,16 @@ export default function GameFinish({
       {error && <div style={{ color: "var(--blood)" }}>{error}</div>}
 
       <div className="row wizard-nav">
+        {/* Volta pra onde a pessoa veio. Quem abre a finalizacao vem da Run —
+            menos no registro retroativo, que pula a Run e por isso nasce sem
+            `started_at`. */}
         <button
           className="btn"
-          onClick={() => router.push(`/partidas/${game.id}`)}
+          onClick={() =>
+            router.push(
+              game.started_at ? `/partidas/${game.id}/run` : `/partidas/${game.id}`
+            )
+          }
           disabled={submitting}
         >
           ← Voltar
