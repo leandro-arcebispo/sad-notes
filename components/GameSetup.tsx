@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import PlayerAvatar from "./PlayerAvatar";
+import { useFormDraft } from "@/lib/use-form-draft";
 import {
   TEAM_SIZE,
   type Character,
@@ -64,6 +65,20 @@ export default function GameSetup({
   const [parts, setParts] = useState<Part[]>([]);
   const [newModeName, setNewModeName] = useState("");
   const [savingMode, setSavingMode] = useState(false);
+
+  /** Rascunho no navegador: montar a mesa é trabalhoso (modo, regras da
+   * casa, quem joga, times) e sair da tela zerava tudo. */
+  const draftSnapshot = useMemo(
+    () => ({ modeId, params, playedAt, notes, parts }),
+    [modeId, params, playedAt, notes, parts]
+  );
+  const draft = useFormDraft("setup", draftSnapshot, (saved) => {
+    setModeId(saved.modeId);
+    setParams(saved.params);
+    setPlayedAt(saved.playedAt);
+    setNotes(saved.notes);
+    setParts(saved.parts);
+  });
 
   const availableChars = useMemo(
     () =>
@@ -139,6 +154,7 @@ export default function GameSetup({
       return;
     }
     const game = await res.json();
+    draft.clear(); // a partida existe: o rascunho cumpriu o papel
     router.push(retro ? `/partidas/${game.id}/finalizar` : `/partidas/${game.id}/run`);
   }
 
@@ -163,6 +179,24 @@ export default function GameSetup({
 
   return (
     <div className="stack wizard">
+      {draft.restored && (
+        <div className="panel form-panel draft-notice">
+          <span>
+            ↩ <strong>Rascunho restaurado.</strong>{" "}
+            <span className="muted">A mesa que você estava montando voltou.</span>
+          </span>
+          <button
+            className="btn"
+            onClick={() => {
+              // Apaga ANTES de recarregar, senão o rascunho é restaurado de novo.
+              draft.discard();
+              window.location.reload();
+            }}
+          >
+            Descartar e recomeçar
+          </button>
+        </div>
+      )}
       <div className="panel form-panel">
         <div className="setup-grid">
           <div className="field">

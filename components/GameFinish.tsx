@@ -7,6 +7,7 @@ import TreasurePicker, {
   type TreasurePickerOption,
   type TreasureSelection,
 } from "./TreasurePicker";
+import { useFormDraft } from "@/lib/use-form-draft";
 import type { DerivedPlayerStats, GameFull } from "@/lib/types";
 
 /**
@@ -90,8 +91,8 @@ export default function GameFinish({
 
   const suggested = useMemo(suggestedWinners, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const [rows, setRows] = useState<Row[]>(() =>
-    game.players.map((p) => {
+  function initialRows(): Row[] {
+    return game.players.map((p) => {
       const d = derived[p.player_id];
       return {
         player_id: p.player_id,
@@ -106,8 +107,35 @@ export default function GameFinish({
         treasure_names: [],
         is_winner: p.is_winner === 1 || suggested.has(p.player_id),
       };
-    })
+    });
+  }
+
+  const [rows, setRows] = useState<Row[]>(initialRows);
+
+  /**
+   * Rascunho no navegador. A finalização é o formulário mais caro de
+   * perder: 6 campos por jogador + Tesouros, preenchidos no fim de uma
+   * partida longa. Antes disso, sair da tela zerava tudo.
+   */
+  const draftSnapshot = useMemo(
+    () => ({ duration, rounds, notes, rows }),
+    [duration, rounds, notes, rows]
   );
+  const draft = useFormDraft(`finish:${game.id}`, draftSnapshot, (saved) => {
+    setDuration(saved.duration);
+    setRounds(saved.rounds);
+    setNotes(saved.notes);
+    setRows(saved.rows);
+  });
+
+  /** Volta tudo ao que o servidor sugere (Diário + snapshot da partida). */
+  function resetToServer() {
+    setDuration(activeMinutes === null ? "" : String(activeMinutes));
+    setRounds(game.rounds ? String(game.rounds) : "");
+    setNotes(game.notes ?? "");
+    setRows(initialRows());
+    draft.discard();
+  }
 
   const playerById = useMemo(
     () => new Map(game.players.map((p) => [p.player_id, p])),
@@ -182,12 +210,26 @@ export default function GameFinish({
       setSubmitting(false);
       return;
     }
+    draft.clear(); // finalizou: o rascunho perdeu a razão de existir
     router.push(`/partidas/${game.id}`);
     router.refresh();
   }
 
   return (
     <div className="stack wizard">
+      {draft.restored && (
+        <div className="panel form-panel draft-notice">
+          <span>
+            ↩ <strong>Rascunho restaurado.</strong>{" "}
+            <span className="muted">
+              O que você tinha preenchido nesta tela voltou.
+            </span>
+          </span>
+          <button className="btn" onClick={resetToServer}>
+            Descartar e recomeçar
+          </button>
+        </div>
+      )}
       <div className="panel form-panel">
         <div className="setup-grid">
           <div className="field">

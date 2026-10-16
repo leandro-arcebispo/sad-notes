@@ -1995,3 +1995,13 @@ img.card-art {
   background: var(--panel);
   font-size: 13px;
 }
+
+/* Aviso de rascunho restaurado (lib/use-form-draft.ts). */
+.draft-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-color: var(--accent-dim);
+}
