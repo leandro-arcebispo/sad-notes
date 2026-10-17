@@ -70,6 +70,38 @@ export interface StandingRow {
   rank: number;
   /** Está entre os que passam pra final? */
   qualified: boolean;
+  /** Critério que pôs esta linha à frente da de baixo — null na última linha
+   * ou quando empatam em tudo. A tela destaca a coluna que desempatou. */
+  decided_by: StandingCriterion | null;
+  /** Empatou em TODOS os critérios com um vizinho — a ordem entre eles é
+   * alfabética, e a tela avisa em vez de fingir que decidiu. */
+  tied: boolean;
+}
+
+/** Colunas que ordenam a classificação geral, da que pesa mais pra menos. */
+export type StandingCriterion =
+  | "points"
+  | "firsts"
+  | "souls"
+  | "treasures"
+  | "loot_in_hand"
+  | "coins";
+
+/**
+ * Pontos, e depois o mesmo critério da mesa aplicado aos totais do torneio.
+ * Lista única pra ordenar E pra dizer qual critério decidiu cada posição.
+ */
+const STANDING_CRITERIA: StandingCriterion[] = [
+  "points",
+  "firsts",
+  "souls",
+  "treasures",
+  "loot_in_hand",
+  "coins",
+];
+
+function standingDecider(a: StandingRow, b: StandingRow): StandingCriterion | null {
+  return STANDING_CRITERIA.find((k) => a[k] !== b[k]) ?? null;
 }
 
 export interface TournamentState {
@@ -310,6 +342,8 @@ function buildStandings(def: TournamentDef, tables: TournamentTableState[]): Sta
         coins: 0,
         rank: 0,
         qualified: false,
+        decided_by: null,
+        tied: false,
       });
     }
     return acc.get(id)!;
@@ -339,20 +373,24 @@ function buildStandings(def: TournamentDef, tables: TournamentTableState[]): Sta
     }
   }
 
-  // Mesmo critério de desempate da mesa, aplicado aos totais do torneio.
-  const rows = [...acc.values()].sort(
-    (a, b) =>
-      b.points - a.points ||
-      b.firsts - a.firsts ||
-      b.souls - a.souls ||
-      b.treasures - a.treasures ||
-      b.loot_in_hand - a.loot_in_hand ||
-      b.coins - a.coins ||
-      a.name.localeCompare(b.name)
-  );
+  const rows = [...acc.values()].sort((a, b) => {
+    for (const k of STANDING_CRITERIA) {
+      const d = b[k] - a[k];
+      if (d) return d;
+    }
+    return a.name.localeCompare(b.name);
+  });
   rows.forEach((r, i) => {
     r.rank = i + 1;
     r.qualified = i < def.finalists;
+    const next = rows[i + 1];
+    r.decided_by = next ? standingDecider(r, next) : null;
+    // Quem ainda não jogou empata em zero com todo mundo: isso é tabela
+    // vazia, não empate de verdade.
+    r.tied =
+      r.played > 0 &&
+      ((next != null && r.decided_by === null) ||
+        (i > 0 && standingDecider(rows[i - 1], r) === null));
   });
   return rows;
 }

@@ -1995,3 +1995,139 @@ img.card-art {
   background: var(--panel);
   font-size: 13px;
 }
+
+/* Classificação geral: colunas na ordem do desempate. Os stats ficam
+   apagados e só acendem (`.tourney-dec`) onde decidiram uma posição — os
+   pontos continuam sendo o protagonista da linha. */
+.tourney-standings-panel {
+  /* A largura que importa é a do painel, não a da janela: com a sidebar
+     aberta o painel fica estreito bem antes de qualquer breakpoint. */
+  container-type: inline-size;
+}
+.data-table.tourney-standings {
+  table-layout: auto;
+}
+.tourney-standings th,
+.tourney-standings td {
+  text-align: center;
+}
+.tourney-standings .col-player {
+  text-align: left;
+}
+.tourney-standings .col-rank {
+  width: 7%;
+}
+.tourney-standings .col-rank,
+.tourney-standings .col-places {
+  white-space: nowrap;
+}
+.tourney-standings .col-num {
+  width: 9%;
+}
+.tourney-standings .col-places {
+  width: 13%;
+}
+/* 9 colunas: o padding padrão da .data-table (14px) sozinho somava 250px. */
+.data-table.tourney-standings th,
+.data-table.tourney-standings td {
+  padding-left: 8px;
+  padding-right: 8px;
+}
+.data-table.tourney-standings .col-stat {
+  padding-left: 4px;
+  padding-right: 4px;
+}
+.th-icon-stack {
+  flex-direction: column;
+  gap: 3px;
+  line-height: 1;
+}
+.data-table .tourney-grp th {
+  padding: 4px 14px;
+  font-size: 11px;
+  color: var(--text-dim);
+  background: var(--panel-2);
+  box-shadow: none;
+  text-align: center;
+}
+.data-table .tourney-grp th:not(:first-child) {
+  border-bottom: 1px solid var(--accent-dim);
+}
+.tourney-dim {
+  color: var(--text-dim);
+}
+.tourney-pts {
+  color: var(--accent);
+  font-size: 18px;
+}
+.data-table tbody td.tourney-dec,
+.tourney-chip.tourney-dec {
+  color: var(--accent);
+  background: rgba(232, 185, 120, 0.14);
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+.data-table tbody .tourney-cut td {
+  padding: 2px 14px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  border-top: 1px dashed var(--blood);
+  border-bottom: none;
+}
+.data-table tbody tr.tourney-cut:hover td {
+  background: none;
+}
+.tourney-chips {
+  display: none;
+  flex-wrap: wrap;
+  gap: 4px;
+  /* alinha com o nome, depois do avatar de 36px + gap de 10px */
+  margin: 6px 0 0 46px;
+}
+.tourney-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 6px;
+  border: 1px solid var(--panel-border);
+  color: var(--text-dim);
+  font-size: 13px;
+}
+.tourney-chip.tourney-dec {
+  border-color: var(--accent);
+}
+.tourney-lbl-short {
+  display: none;
+}
+/* A tabela completa mede ~670px com nomes do tamanho de "Robertinho". */
+@container (max-width: 680px) {
+  /* Esta tabela se reorganiza em vez de rolar: anula qualquer min-width de
+     celular que a .data-table genérica ganhe. */
+  .data-table.tourney-standings {
+    min-width: 0;
+  }
+  /* Sobra # | Jogador | Pontos; o resto vira chip sob o nome, na mesma
+     ordem do desempate. No celular o painel tem ~255px. */
+  .tourney-standings .tourney-grp,
+  .tourney-standings .col-played,
+  .tourney-standings .col-places,
+  .tourney-standings .col-stat,
+  .tourney-lbl-long {
+    display: none;
+  }
+  .tourney-lbl-short {
+    display: inline;
+  }
+  .tourney-standings .col-rank {
+    white-space: normal;
+  }
+  .tourney-chips {
+    display: flex;
+  }
+}
+@container (max-width: 380px) {
+  .tourney-chips {
+    margin-left: 0;
+  }
+}
