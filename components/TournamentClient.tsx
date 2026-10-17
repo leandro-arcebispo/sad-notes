@@ -1,11 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import PlayerAvatar from "./PlayerAvatar";
-import type { TournamentState } from "@/lib/tournaments";
+import StatIcon, { type StatIconName } from "./StatIcon";
+import type { StandingCriterion, TournamentState } from "@/lib/tournaments";
 import { GAME_STATUS_LABELS, type Player } from "@/lib/types";
+
+/** Colunas de desempate da classificação, na ordem em que o critério as lê. */
+const TIEBREAK_STATS: {
+  key: Exclude<StandingCriterion, "points" | "firsts">;
+  icon: StatIconName;
+  label: string;
+}[] = [
+  { key: "souls", icon: "souls", label: "Almas" },
+  { key: "treasures", icon: "treasures", label: "Tesouros" },
+  { key: "loot_in_hand", icon: "loot", label: "Loot" },
+  { key: "coins", icon: "coins", label: "Moedas" },
+];
+
+const COLS = 5 + TIEBREAK_STATS.length;
 
 /**
  * Tela de torneio. O chaveamento é estático (`lib/tournament-defs.ts`) e a
@@ -207,22 +222,40 @@ export default function TournamentClient({
       </div>
 
       {/* ------------------------------ classificação ------------------------ */}
-      <div className="panel" style={{ padding: 0 }}>
-        <table className="data-table">
+      {/* Colunas na ordem do desempate: quem lê da esquerda pra direita refaz
+          a conta, e a célula `.tourney-dec` mostra onde ela parou. Em largura
+          estreita os stats saem das colunas e viram chips sob o nome. */}
+      <div className="panel tourney-standings-panel" style={{ padding: 0 }}>
+        <table className="data-table tourney-standings">
           <thead>
+            <tr className="tourney-grp">
+              <th colSpan={3} />
+              <th colSpan={2}>Classificação</th>
+              <th colSpan={TIEBREAK_STATS.length}>Desempate →</th>
+            </tr>
             <tr>
-              <th style={{ width: "8%" }}>#</th>
-              <th>Jogador</th>
-              <th style={{ textAlign: "center", width: "12%" }}>Pontos</th>
-              <th style={{ textAlign: "center", width: "12%" }}>Mesas</th>
-              <th style={{ textAlign: "center", width: "16%" }}>1º / 2º / 3º</th>
-              <th style={{ textAlign: "center", width: "12%" }}>Almas</th>
+              <th className="col-rank">#</th>
+              <th className="col-player">Jogador</th>
+              <th className="col-num col-played">Mesas</th>
+              <th className="col-num">
+                <span className="tourney-lbl-long">Pontos</span>
+                <span className="tourney-lbl-short">Pts</span>
+              </th>
+              <th className="col-places">1º/2º/3º</th>
+              {TIEBREAK_STATS.map((s) => (
+                <th key={s.key} className="col-num col-stat">
+                  <span className="th-icon th-icon-stack">
+                    <StatIcon name={s.icon} size={20} />
+                    {s.label}
+                  </span>
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
             {standings.length === 0 ? (
               <tr>
-                <td colSpan={6}>
+                <td colSpan={COLS}>
                   <div className="center-empty">
                     {missingSeats === def.rosterSize
                       ? "Escolha os participantes para montar as mesas."
@@ -232,31 +265,74 @@ export default function TournamentClient({
               </tr>
             ) : (
               standings.map((r) => (
-                <tr key={r.player_id} className={r.qualified ? "winner-row" : ""}>
-                  <td>{r.qualified ? `★ ${r.rank}` : r.rank}</td>
-                  <td>
-                    <div className="row" style={{ gap: 10 }}>
-                      <PlayerAvatar face={r.base_face} size={36} avatarCache={r.avatar_cache} />
-                      <span>{r.name}</span>
-                    </div>
-                  </td>
-                  <td style={{ textAlign: "center" }}>
-                    <strong>{r.points}</strong>
-                  </td>
-                  <td style={{ textAlign: "center" }}>{r.played}</td>
-                  <td style={{ textAlign: "center" }}>
-                    {r.firsts} / {r.seconds} / {r.thirds}
-                  </td>
-                  <td style={{ textAlign: "center" }}>{r.souls}</td>
-                </tr>
+                <Fragment key={r.player_id}>
+                  <tr className={r.qualified ? "winner-row" : ""}>
+                    <td className="col-rank">{r.qualified ? `★ ${r.rank}` : r.rank}</td>
+                    <td className="col-player">
+                      <div className="row" style={{ gap: 10 }}>
+                        <PlayerAvatar face={r.base_face} size={36} avatarCache={r.avatar_cache} />
+                        <span>
+                          {r.name}
+                          {r.tied && (
+                            <span
+                              className="muted"
+                              title="empate em todos os critérios — ficou em ordem alfabética"
+                            >
+                              {" "}
+                              ⚠
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                      <div className="tourney-chips">
+                        <span
+                          className={`tourney-chip${r.decided_by === "firsts" ? " tourney-dec" : ""}`}
+                          title="1º / 2º / 3º lugares"
+                        >
+                          <StatIcon name="wins" size={14} />
+                          {r.firsts}/{r.seconds}/{r.thirds}
+                        </span>
+                        {TIEBREAK_STATS.map((s) => (
+                          <span
+                            key={s.key}
+                            className={`tourney-chip${r.decided_by === s.key ? " tourney-dec" : ""}`}
+                            title={s.label}
+                          >
+                            <StatIcon name={s.icon} size={14} />
+                            {r[s.key]}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="col-played tourney-dim">{r.played}</td>
+                    <td className="tourney-pts">{r.points}</td>
+                    <td className={`col-places${r.decided_by === "firsts" ? " tourney-dec" : ""}`}>
+                      {r.firsts} / {r.seconds} / {r.thirds}
+                    </td>
+                    {TIEBREAK_STATS.map((s) => (
+                      <td
+                        key={s.key}
+                        className={`col-stat ${r.decided_by === s.key ? "tourney-dec" : "tourney-dim"}`}
+                      >
+                        {r[s.key]}
+                      </td>
+                    ))}
+                  </tr>
+                  {r.rank === def.finalists && standings.length > def.finalists && (
+                    <tr className="tourney-cut">
+                      <td colSpan={COLS}>linha da Grande Final</td>
+                    </tr>
+                  )}
+                </Fragment>
               ))
             )}
           </tbody>
         </table>
       </div>
       <div className="muted" style={{ fontSize: 12 }}>
-        ★ = entre os {def.finalists} que vão para a Grande Final. Desempate: pontos →
-        1ºs lugares → almas → tesouros → loots → moedas.
+        ★ = entre os {def.finalists} que vão para a Grande Final. Empate em pontos se
+        resolve na ordem das colunas: 1ºs lugares → almas → tesouros → loots → moedas. Em
+        dourado, o critério que separou o jogador do de baixo.
       </div>
 
       {/* --------------------------------- mesas ----------------------------- */}
