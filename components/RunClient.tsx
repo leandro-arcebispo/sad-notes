@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import GameIcon from "./GameIcon";
 import PlayerAvatar from "./PlayerAvatar";
 import { EVENT_TYPE_DEFS } from "@/lib/game-events";
 import {
@@ -474,9 +475,12 @@ export default function RunClient({
                 <button
                   key={t}
                   className={`btn run-evt${draft?.type === t ? " active" : ""}`}
+                  data-evt={t}
                   onClick={() => (draft?.type === t ? setDraft(null) : startDraft(t))}
                 >
-                  <span className="run-evt-icon">{d.icon}</span>
+                  <span className="run-evt-icon">
+                    {d.iconName ? <GameIcon name={d.iconName} size={20} /> : d.icon}
+                  </span>
                   {d.label}
                 </button>
               );
@@ -612,6 +616,13 @@ export default function RunClient({
             {[...events].reverse().map((e) => (
               <li key={e.id} className="run-log-item">
                 <span className="run-log-seq">#{e.seq}</span>
+                <span className="run-log-icon" data-evt={e.type}>
+                  {EVENT_TYPE_DEFS[e.type]?.iconName ? (
+                    <GameIcon name={EVENT_TYPE_DEFS[e.type].iconName!} size={18} />
+                  ) : (
+                    EVENT_TYPE_DEFS[e.type]?.icon
+                  )}
+                </span>
                 <span className="run-log-text">{describe(e)}</span>
                 <span className="muted run-log-meta">
                   {e.round != null ? `R${e.round}` : ""}
@@ -720,26 +731,26 @@ function describe(e: GameEventFull): string {
 
   switch (e.type) {
     case "morte":
-      return other ? `${def.icon} ${who} morreu — ${other} matou` : `${def.icon} ${who} morreu`;
+      return other ? `${who} morreu — ${other} matou` : `${who} morreu`;
     case "alma_ganha":
-      return `${def.icon} ${who} ganhou uma alma${ref ? ` (${ref})` : ""}`;
+      return `${who} ganhou uma alma${ref ? ` (${ref})` : ""}`;
     case "alma_perdida":
-      return `${def.icon} ${who} perdeu uma alma`;
+      return `${who} perdeu uma alma`;
     case "alma_roubada":
-      return `${def.icon} ${who} roubou uma alma de ${other ?? "alguém"}`;
+      return `${who} roubou uma alma de ${other ?? "alguém"}`;
     case "monstro_derrotado":
-      return `${def.icon} ${who} derrotou ${ref ?? "um monstro"}`;
+      return `${who} derrotou ${ref ?? "um monstro"}`;
     case "maldicao_recebida":
-      return `${def.icon} ${who} pegou ${ref ?? "uma maldição"}`;
+      return `${who} pegou ${ref ?? "uma maldição"}`;
     case "personagem_sorteado":
-      return `${def.icon} ${who} tirou ${ref ?? "um personagem"}`;
+      return `${who} tirou ${ref ?? "um personagem"}`;
     case "pause":
-      return `${def.icon} partida pausada`;
+      return `partida pausada`;
     case "resume":
-      return `${def.icon} partida retomada`;
+      return `partida retomada`;
     case "nota":
-      return `${def.icon} ${who}: ${ref ?? ""}`;
+      return `${who}: ${ref ?? ""}`;
     default:
-      return `${def.icon} ${def.label}`;
+      return `${def.label}`;
   }
 }

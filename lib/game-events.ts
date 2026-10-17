@@ -1,4 +1,5 @@
 import { all, get, getClient, nowIso, run } from "./db";
+import type { GameIconName } from "./game-icons";
 import type {
   DerivedPlayerStats,
   Game,
@@ -43,7 +44,12 @@ interface EventTypeDef {
   manual: boolean;
   /** Tier 1 = sempre ligado, 2 = opcional por modo (§4 do plano). */
   tier: 1 | 2 | null;
+  /** Emoji — ainda usado onde a frase é montada como string pura. */
   icon: string;
+  /** Arte do jogo, usada onde dá pra renderizar JSX. Emoji desenha com a
+   * fonte do sistema e muda entre Android, iPhone e Windows — é o que mais
+   * destoava do pixel art. */
+  iconName?: GameIconName;
 }
 
 export const EVENT_TYPE_DEFS: Record<GameEventType, EventTypeDef> = {
@@ -56,6 +62,7 @@ export const EVENT_TYPE_DEFS: Record<GameEventType, EventTypeDef> = {
     manual: true,
     tier: 1,
     icon: "💀",
+    iconName: "morte",
   },
   alma_ganha: {
     label: "Ganhou alma",
@@ -68,6 +75,7 @@ export const EVENT_TYPE_DEFS: Record<GameEventType, EventTypeDef> = {
     manual: true,
     tier: 1,
     icon: "👻",
+    iconName: "alma",
   },
   monstro_derrotado: {
     label: "Derrotou monstro",
@@ -78,6 +86,7 @@ export const EVENT_TYPE_DEFS: Record<GameEventType, EventTypeDef> = {
     manual: true,
     tier: 1,
     icon: "👹",
+    iconName: "monstro",
   },
   alma_perdida: {
     label: "Perdeu alma",
@@ -88,6 +97,7 @@ export const EVENT_TYPE_DEFS: Record<GameEventType, EventTypeDef> = {
     manual: true,
     tier: 2,
     icon: "🕳️",
+    iconName: "alma",
   },
   alma_roubada: {
     label: "Roubou alma",
@@ -98,6 +108,7 @@ export const EVENT_TYPE_DEFS: Record<GameEventType, EventTypeDef> = {
     manual: true,
     tier: 2,
     icon: "🫱",
+    iconName: "alma_roubada",
   },
   maldicao_recebida: {
     label: "Recebeu maldição",
@@ -108,6 +119,7 @@ export const EVENT_TYPE_DEFS: Record<GameEventType, EventTypeDef> = {
     manual: true,
     tier: 2,
     icon: "🩸",
+    iconName: "maldicao",
   },
   personagem_sorteado: {
     label: "Personagem sorteado",
@@ -118,6 +130,7 @@ export const EVENT_TYPE_DEFS: Record<GameEventType, EventTypeDef> = {
     manual: false,
     tier: null,
     icon: "🎲",
+    iconName: "dice",
   },
   pause: {
     label: "Partida pausada",
@@ -149,6 +162,7 @@ export const EVENT_TYPE_DEFS: Record<GameEventType, EventTypeDef> = {
     manual: true,
     tier: 2,
     icon: "📝",
+    iconName: "nota",
   },
 };
 

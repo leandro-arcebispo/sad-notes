@@ -1685,7 +1685,7 @@ img.card-art {
   border-color: var(--accent-dim);
 }
 .run-stat-icon {
-  font-size: 0.9em;
+  font-size: inherit;
 }
 .run-stat-value {
   color: var(--text);
@@ -1998,6 +1998,8 @@ img.card-art {
 
 /* Aviso de rascunho restaurado (lib/use-form-draft.ts). */
 .draft-notice {
+  /* O <span> solto dentro do aviso herdava a fonte de corpo. */
+  font-family: var(--font-display);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -2096,4 +2098,82 @@ img.card-art {
   .wizard-nav .btn {
     min-height: 44px;
   }
+}
+
+/* ======================= Tipografia: padronização ==========================
+   A revisão mediu 12 combinações fonte+tamanho convivendo só na Run, 7 na
+   Finalizar e 6 no Setup. A inconsistência real não eram os tamanhos (já
+   giravam em torno de 10/11/12) — era a FAMÍLIA vazando.
+   ========================================================================== */
+
+/* Escala. Tamanho novo sai daqui, não de um número solto no componente. */
+:root {
+  --fs-2xs: 10px;
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-md: 13px;
+  --fs-base: 14px;
+  --fs-lg: 15px;
+  --fs-xl: 18px;
+  --fs-2xl: 20px;
+}
+
+/* A regra: cromo de interface usa a fonte de display; texto corrido (textarea,
+   descrição de backlog) continua na de corpo, porque pixel font em frase longa
+   cansa de ler. */
+.muted,
+.run-log-text,
+.item-tag,
+.row-link,
+.winners-cell,
+.items-cell,
+.treasure-chip,
+.treasure-result,
+.tourney-name,
+.tourney-roster-chip {
+  font-family: var(--font-display);
+  letter-spacing: 0.02em;
+}
+
+/* O × que apaga evento do Diário saía em ARIAL — fonte que não existe no
+   design system. `<button>` não herda a fonte da página sozinho, e a regra
+   zerava `background`/`border` mas nunca declarou `font`. */
+.run-log-del {
+  font-family: var(--font-display);
+}
+
+/* 0.9em dentro de um pai de 14px dava 12.6px: pixel font em tamanho
+   fracionário renderiza borrada, justo o oposto do `image-rendering:
+   pixelated` que o resto do app persegue. */
+.run-stat-icon {
+  font-size: var(--fs-base);
+}
+.run-stat.big .run-stat-icon {
+  font-size: var(--fs-xl);
+}
+
+/* Ícone do evento no Diário da Run. */
+.run-log-icon {
+  width: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.game-icon {
+  object-fit: contain;
+  image-rendering: pixelated;
+  flex: none;
+}
+.run-evt-icon {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* "Ganhou" e "perdeu alma" compartilham o sprite do fantasma: sem distinguir,
+   os dois botões ficavam idênticos na paleta. A alma perdida aparece
+   esmaecida — some a cor, fica o contorno. */
+[data-evt="alma_perdida"] .game-icon {
+  filter: grayscale(1) brightness(1.5);
+  opacity: 0.5;
 }
