@@ -111,6 +111,11 @@ Uma alma conquistada **pode ser perdida** por vários eventos. Pode ser
   registro.
 
 → Um evento só (`morte`), com a contraparte (o matador) **opcional**.
+
+> **Termo na interface: PK** (*player kill*), trocado em 2026-10-17 a pedido do
+> usuário — era "PvP". O campo no banco segue `game_players.pvp_kills`:
+> renomear coluna exigiria migração num banco que já está em produção, e o
+> pedido era sobre o termo exibido.
 Morte é dado neutro, não penalidade — decisão de 2026-07-13 que tirou "Mortes"
 do ranking; continua valendo.
 

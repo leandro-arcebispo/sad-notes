@@ -330,9 +330,24 @@ export async function deriveStats(
 }
 
 /**
+ * Quanto tempo a mesa pode ficar SEM registrar nada e ainda assim contar como
+ * jogo em andamento.
+ *
+ * O pause existe pra interrupção combinada, mas ninguém pausa ao largar a
+ * mesa: a pessoa simplesmente vai embora. Sem este teto a partida continuava
+ * somando tempo de relógio pra sempre — uma partida real aqui chegou a exibir
+ * **49448 min (34 dias)**, e esse número ia pré-preenchido na finalização.
+ */
+const IDLE_CAP_MS = 60 * 60 * 1000;
+
+/**
  * Duração ativa em minutos: tempo entre o início e o fim MENOS os intervalos
  * pausados. É o que permite partida em dois dias sem inflar a duração — pause
  * é só mais um evento, não uma tabela à parte (§7.2).
+ *
+ * Numa partida ainda aberta o fim é "agora", mas limitado a `IDLE_CAP_MS`
+ * depois do último sinal de vida (último evento, ou o início se não houve
+ * nenhum): se ninguém registra nada há horas, ninguém está jogando.
  */
 export async function deriveActiveMinutes(game: Game): Promise<number | null> {
   if (!game.started_at) return null;
@@ -343,7 +358,9 @@ export async function deriveActiveMinutes(game: Game): Promise<number | null> {
     [game.id]
   );
 
-  const end = game.ended_at ? Date.parse(game.ended_at) : Date.now();
+  const end = game.ended_at
+    ? Date.parse(game.ended_at)
+    : Math.min(Date.now(), (await lastActivityAt(game)) + IDLE_CAP_MS);
   let active = 0;
   let segmentStart = Date.parse(game.started_at);
   let paused = false;
@@ -361,4 +378,24 @@ export async function deriveActiveMinutes(game: Game): Promise<number | null> {
   if (!paused) active += end - segmentStart;
 
   return Math.max(0, Math.round(active / 60000));
+}
+
+/** Último sinal de vida da partida: o evento mais recente, ou o início. */
+async function lastActivityAt(game: Game): Promise<number> {
+  const row = await get<{ last: string | null }>(
+    `SELECT MAX(created_at) AS last FROM game_events
+      WHERE game_id = ? AND deleted_at IS NULL`,
+    [game.id]
+  );
+  const last = row?.last ? Date.parse(row.last) : NaN;
+  return Number.isFinite(last) ? last : Date.parse(game.started_at!);
+}
+
+/** Há quantos dias a partida está aberta sem ninguém registrar nada. Null
+ * quando está encerrada ou quando houve atividade recente — a tela só avisa
+ * quando há motivo. */
+export async function deriveIdleDays(game: Game): Promise<number | null> {
+  if (!game.started_at || game.ended_at) return null;
+  const days = (Date.now() - (await lastActivityAt(game))) / 86400000;
+  return days >= 1 ? Math.floor(days) : null;
 }

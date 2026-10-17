@@ -1,5 +1,11 @@
 import { all, get, getClient, nowIso, run } from "./db";
-import { appendEvent, deriveActiveMinutes, deriveStats, listEvents } from "./game-events";
+import {
+  appendEvent,
+  deriveActiveMinutes,
+  deriveIdleDays,
+  deriveStats,
+  listEvents,
+} from "./game-events";
 import { normalizeParams, parseParams } from "./game-modes";
 import { resolveTreasureId } from "./treasures";
 import type {
@@ -522,21 +528,26 @@ export interface RunState {
   events: GameEventFull[];
   derived: Record<number, DerivedPlayerStats>;
   active_minutes: number | null;
+  /** Dias sem ninguém registrar nada. Null = encerrada ou com atividade
+   * recente — a tela só avisa quando há motivo. */
+  idle_days: number | null;
 }
 
 export async function getRunState(id: number): Promise<RunState | undefined> {
   const game = await getGame(id);
   if (!game) return undefined;
-  const [events, derivedMap, active] = await Promise.all([
+  const [events, derivedMap, active, idle] = await Promise.all([
     listEvents(id),
     deriveStats(id),
     deriveActiveMinutes(game),
+    deriveIdleDays(game),
   ]);
   return {
     game,
     events,
     derived: Object.fromEntries(derivedMap),
     active_minutes: active,
+    idle_days: idle,
   };
 }
 

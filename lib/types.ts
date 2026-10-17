@@ -426,6 +426,9 @@ export interface GamePlayerRow {
   is_winner: number;
   team: number | null;
   seat_order: number;
+  /** Mortes causadas a outro jogador. Na interface o termo é **PK**; o
+   * campo mantém o nome antigo porque renomear coluna exigiria migração num
+   * banco que já está em produção. */
   pvp_kills: number;
   reroll_count: number;
   /** Lobby (Fase 4). No fluxo de uma pessoa só, já nasce 1. */

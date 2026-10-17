@@ -38,6 +38,7 @@ export default async function RunPage({ params }: { params: Promise<{ id: string
         initialEvents={state.events}
         initialDerived={state.derived}
         initialActiveMinutes={state.active_minutes}
+        idleDays={state.idle_days}
         params={modeParams}
         monsters={monsters.map((m) => ({ id: m.id, name: m.name }))}
         curses={curses.map((c) => ({ id: c.id, name: c.name }))}

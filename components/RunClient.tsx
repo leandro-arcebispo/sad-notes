@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import PlayerAvatar from "./PlayerAvatar";
 import { EVENT_TYPE_DEFS } from "@/lib/game-events";
@@ -58,6 +59,7 @@ export default function RunClient({
   initialEvents,
   initialDerived,
   initialActiveMinutes,
+  idleDays,
   params,
   monsters,
   curses,
@@ -67,6 +69,7 @@ export default function RunClient({
   initialEvents: GameEventFull[];
   initialDerived: Record<number, DerivedPlayerStats>;
   initialActiveMinutes: number | null;
+  idleDays: number | null;
   params: GameModeParams;
   monsters: RefOption[];
   curses: RefOption[];
@@ -345,7 +348,7 @@ export default function RunClient({
   function teamSouls(team: number): number {
     return game.players
       .filter((p) => p.team === team)
-      .reduce((acc, p) => acc + (derived[p.player_id]?.souls ?? 0), 0);
+      .reduce((acc, p) => acc + Math.max(0, derived[p.player_id]?.souls ?? 0), 0);
   }
 
   const paletteTypes = useMemo(
@@ -386,9 +389,11 @@ export default function RunClient({
             <button className="btn" onClick={() => changeStatus("abortada")} disabled={busy}>
               Abandonar
             </button>
-            <a className="btn btn-accent" href={`/partidas/${game.id}/finalizar`}>
+            {/* <Link> e não <a>: um `href` cru recarregava a página inteira e
+                levava junto a fila local de eventos ainda não enviados. */}
+            <Link className="btn btn-accent" href={`/partidas/${game.id}/finalizar`}>
               Finalizar →
-            </a>
+            </Link>
           </>
         )}
       </div>
@@ -396,6 +401,19 @@ export default function RunClient({
       {isPaused && (
         <div className="muted">
           Partida pausada — o tempo parado não entra na duração. Dá pra voltar amanhã.
+        </div>
+      )}
+
+      {/* Partida esquecida em aberto: o tempo para de contar sozinho depois de
+          uma hora sem registro, mas vale dizer que ela está parada. */}
+      {idleDays !== null && isLive && (
+        <div className="panel form-panel draft-notice">
+          <span>
+            ⚠ <strong>Esta partida está parada há {idleDays} dia{idleDays > 1 ? "s" : ""}.</strong>{" "}
+            <span className="muted">
+              A duração parou de contar. Finalize ou abandone pra sair da lista.
+            </span>
+          </span>
         </div>
       )}
 
@@ -419,9 +437,12 @@ export default function RunClient({
                 </div>
               </div>
               <div className="run-player-stats">
-                <Stat icon="👻" label="almas" value={d?.souls ?? 0} big />
+                {/* Clampado como na finalização: alma roubada/perdida pode
+                    levar a conta abaixo de zero, mas "-1 alma" não significa
+                    nada pra quem olha o placar. O evento segue gravado. */}
+                <Stat icon="👻" label="almas" value={Math.max(0, d?.souls ?? 0)} big />
                 <Stat icon="💀" label="mortes" value={d?.deaths ?? 0} />
-                <Stat icon="🗡️" label="PvP" value={d?.pvp_kills ?? 0} />
+                <Stat icon="🗡️" label="PK (matou jogador)" value={d?.pvp_kills ?? 0} />
                 <Stat icon="👹" label="monstros" value={d?.monsters ?? 0} />
                 <Stat icon="🩸" label="maldições" value={d?.curses ?? 0} />
               </div>

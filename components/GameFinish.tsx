@@ -7,11 +7,12 @@ import TreasurePicker, {
   type TreasurePickerOption,
   type TreasureSelection,
 } from "./TreasurePicker";
+import { useFormDraft } from "@/lib/use-form-draft";
 import type { DerivedPlayerStats, GameFull } from "@/lib/types";
 
 /**
  * **Etapa de finalização** — só estado final, e boa parte dele já vem
- * **derivada dos eventos** da Run (almas, mortes, PvP kills, duração). O
+ * **derivada dos eventos** da Run (almas, mortes, PK, duração). O
  * usuário confirma ou corrige: divergência entre o que ele digita e o que os
  * eventos dizem é **avisada, nunca bloqueada** — alma pode ter sido roubada ou
  * destruída, e quem estava na mesa manda. Ver docs/PLANO-PARTIDAS.md §7.3.
@@ -90,8 +91,8 @@ export default function GameFinish({
 
   const suggested = useMemo(suggestedWinners, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const [rows, setRows] = useState<Row[]>(() =>
-    game.players.map((p) => {
+  function initialRows(): Row[] {
+    return game.players.map((p) => {
       const d = derived[p.player_id];
       return {
         player_id: p.player_id,
@@ -106,8 +107,35 @@ export default function GameFinish({
         treasure_names: [],
         is_winner: p.is_winner === 1 || suggested.has(p.player_id),
       };
-    })
+    });
+  }
+
+  const [rows, setRows] = useState<Row[]>(initialRows);
+
+  /**
+   * Rascunho no navegador. A finalização é o formulário mais caro de
+   * perder: 6 campos por jogador + Tesouros, preenchidos no fim de uma
+   * partida longa. Antes disso, sair da tela zerava tudo.
+   */
+  const draftSnapshot = useMemo(
+    () => ({ duration, rounds, notes, rows }),
+    [duration, rounds, notes, rows]
   );
+  const draft = useFormDraft(`finish:${game.id}`, draftSnapshot, (saved) => {
+    setDuration(saved.duration);
+    setRounds(saved.rounds);
+    setNotes(saved.notes);
+    setRows(saved.rows);
+  });
+
+  /** Volta tudo ao que o servidor sugere (Diário + snapshot da partida). */
+  function resetToServer() {
+    setDuration(activeMinutes === null ? "" : String(activeMinutes));
+    setRounds(game.rounds ? String(game.rounds) : "");
+    setNotes(game.notes ?? "");
+    setRows(initialRows());
+    draft.discard();
+  }
 
   const playerById = useMemo(
     () => new Map(game.players.map((p) => [p.player_id, p])),
@@ -155,7 +183,7 @@ export default function GameFinish({
     const diffs: string[] = [];
     if (Math.max(0, d.souls) !== r.souls) diffs.push(`almas ${Math.max(0, d.souls)}`);
     if (d.deaths !== r.deaths) diffs.push(`mortes ${d.deaths}`);
-    if (d.pvp_kills !== r.pvp_kills) diffs.push(`PvP ${d.pvp_kills}`);
+    if (d.pvp_kills !== r.pvp_kills) diffs.push(`PK ${d.pvp_kills}`);
     return diffs.length ? `diário registrou ${diffs.join(" · ")}` : null;
   }
 
@@ -182,12 +210,26 @@ export default function GameFinish({
       setSubmitting(false);
       return;
     }
+    draft.clear(); // finalizou: o rascunho perdeu a razão de existir
     router.push(`/partidas/${game.id}`);
     router.refresh();
   }
 
   return (
     <div className="stack wizard">
+      {draft.restored && (
+        <div className="panel form-panel draft-notice">
+          <span>
+            ↩ <strong>Rascunho restaurado.</strong>{" "}
+            <span className="muted">
+              O que você tinha preenchido nesta tela voltou.
+            </span>
+          </span>
+          <button className="btn" onClick={resetToServer}>
+            Descartar e recomeçar
+          </button>
+        </div>
+      )}
       <div className="panel form-panel">
         <div className="setup-grid">
           <div className="field">
@@ -296,7 +338,7 @@ export default function GameFinish({
                 <NumBox label="Loot" value={r.loot_in_hand} onChange={(v) => patch(r.player_id, { loot_in_hand: v })} />
                 <NumBox label="Tesouros" value={r.treasures} onChange={(v) => patch(r.player_id, { treasures: v })} />
                 <NumBox label="Mortes" value={r.deaths} onChange={(v) => patch(r.player_id, { deaths: v })} />
-                <NumBox label="PvP" value={r.pvp_kills} onChange={(v) => patch(r.player_id, { pvp_kills: v })} />
+                <NumBox label="PK" value={r.pvp_kills} onChange={(v) => patch(r.player_id, { pvp_kills: v })} />
               </div>
               <div className="final-items">
                 <label className="mini-label">Tesouros</label>
@@ -316,9 +358,16 @@ export default function GameFinish({
       {error && <div style={{ color: "var(--blood)" }}>{error}</div>}
 
       <div className="row wizard-nav">
+        {/* Volta pra onde a pessoa veio. Quem abre a finalizacao vem da Run —
+            menos no registro retroativo, que pula a Run e por isso nasce sem
+            `started_at`. */}
         <button
           className="btn"
-          onClick={() => router.push(`/partidas/${game.id}`)}
+          onClick={() =>
+            router.push(
+              game.started_at ? `/partidas/${game.id}/run` : `/partidas/${game.id}`
+            )
+          }
           disabled={submitting}
         >
           ← Voltar
@@ -344,12 +393,38 @@ function NumBox({
   return (
     <label className="numbox">
       <span className="mini-label">{label}</span>
+      {/*
+        `type="text"` e não `number`, de propósito. Com `type="number"` o React
+        compara o valor NUMERICAMENTE e pula a escrita no DOM quando são
+        equivalentes — é proposital, pra não atrapalhar quem digita "1." ou
+        "0,5". O efeito colateral aqui era que digitar 7 sobre o 0 inicial
+        deixava "07" na tela (o estado ia certo, 7, mas a tela mentia), e
+        digitar antes do zero virava "40" — esse salvava o número errado.
+        Nenhuma normalização no onChange resolveria: ela era ignorada na
+        hora de pintar.
+
+        `inputMode="numeric"` mantém o teclado numérico no celular.
+      */}
       <input
         className="input"
-        type="number"
-        min={0}
-        value={value}
-        onChange={(e) => onChange(Math.max(0, Math.trunc(Number(e.target.value)) || 0))}
+        type="text"
+        inputMode="numeric"
+        value={String(value)}
+        // Seleciona ao focar: o primeiro dígito substitui o que estava lá,
+        // então não importa onde o cursor caiu.
+        onFocus={(e) => e.currentTarget.select()}
+        // Num clique de mouse o navegador posiciona o cursor no mouseup,
+        // DEPOIS do focus — o que desfaria a seleção. Reseleciona no click,
+        // mas só se não houver trecho escolhido, pra não atrapalhar quem
+        // arrastou pra selecionar de propósito.
+        onClick={(e) => {
+          const el = e.currentTarget;
+          if (el.selectionStart === el.selectionEnd) el.select();
+        }}
+        onChange={(e) => {
+          const digitos = e.target.value.replace(/\D/g, "");
+          onChange(digitos === "" ? 0 : Math.min(9999, Number(digitos)));
+        }}
       />
     </label>
   );

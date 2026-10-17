@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import PlayerAvatar from "./PlayerAvatar";
+import { useFormDraft } from "@/lib/use-form-draft";
 import {
   TEAM_SIZE,
   type Character,
@@ -64,6 +65,20 @@ export default function GameSetup({
   const [parts, setParts] = useState<Part[]>([]);
   const [newModeName, setNewModeName] = useState("");
   const [savingMode, setSavingMode] = useState(false);
+
+  /** Rascunho no navegador: montar a mesa é trabalhoso (modo, regras da
+   * casa, quem joga, times) e sair da tela zerava tudo. */
+  const draftSnapshot = useMemo(
+    () => ({ modeId, params, playedAt, notes, parts }),
+    [modeId, params, playedAt, notes, parts]
+  );
+  const draft = useFormDraft("setup", draftSnapshot, (saved) => {
+    setModeId(saved.modeId);
+    setParams(saved.params);
+    setPlayedAt(saved.playedAt);
+    setNotes(saved.notes);
+    setParts(saved.parts);
+  });
 
   const availableChars = useMemo(
     () =>
@@ -139,7 +154,11 @@ export default function GameSetup({
       return;
     }
     const game = await res.json();
-    router.push(retro ? `/partidas/${game.id}/finalizar` : `/partidas/${game.id}/run`);
+    draft.clear(); // a partida existe: o rascunho cumpriu o papel
+    // `replace` e não `push`: a partida já foi criada, então o formulário
+    // não pode continuar no histórico — voltar nele oferecia criar OUTRA
+    // partida pra mesma mesa.
+    router.replace(retro ? `/partidas/${game.id}/finalizar` : `/partidas/${game.id}/run`);
   }
 
   async function saveAsMode() {
@@ -163,6 +182,24 @@ export default function GameSetup({
 
   return (
     <div className="stack wizard">
+      {draft.restored && (
+        <div className="panel form-panel draft-notice">
+          <span>
+            ↩ <strong>Rascunho restaurado.</strong>{" "}
+            <span className="muted">A mesa que você estava montando voltou.</span>
+          </span>
+          <button
+            className="btn"
+            onClick={() => {
+              // Apaga ANTES de recarregar, senão o rascunho é restaurado de novo.
+              draft.discard();
+              window.location.reload();
+            }}
+          >
+            Descartar e recomeçar
+          </button>
+        </div>
+      )}
       <div className="panel form-panel">
         <div className="setup-grid">
           <div className="field">
@@ -204,13 +241,20 @@ export default function GameSetup({
             <label>Almas para vencer</label>
             <input
               className="input"
-              type="number"
-              min={1}
-              max={20}
-              value={params.souls_to_win}
-              onChange={(e) =>
-                patchParams({ souls_to_win: Math.max(1, Number(e.target.value) || 1) })
-              }
+              type="text"
+              inputMode="numeric"
+              value={String(params.souls_to_win)}
+              onFocus={(e) => e.currentTarget.select()}
+              onClick={(e) => {
+                const el = e.currentTarget;
+                if (el.selectionStart === el.selectionEnd) el.select();
+              }}
+              onChange={(e) => {
+                const digitos = e.target.value.replace(/\D/g, "");
+                patchParams({
+                  souls_to_win: digitos === "" ? 1 : Math.min(20, Math.max(1, Number(digitos))),
+                });
+              }}
             />
             {params.format !== "solo" && (
               <span className="muted" style={{ fontSize: 12 }}>
@@ -243,13 +287,18 @@ export default function GameSetup({
             <label>Re-rolls permitidos</label>
             <input
               className="input"
-              type="number"
-              min={0}
-              max={10}
-              value={params.rerolls_allowed}
-              onChange={(e) =>
-                patchParams({ rerolls_allowed: Math.max(0, Number(e.target.value) || 0) })
-              }
+              type="text"
+              inputMode="numeric"
+              value={String(params.rerolls_allowed)}
+              onFocus={(e) => e.currentTarget.select()}
+              onClick={(e) => {
+                const el = e.currentTarget;
+                if (el.selectionStart === el.selectionEnd) el.select();
+              }}
+              onChange={(e) => {
+                const digitos = e.target.value.replace(/\D/g, "");
+                patchParams({ rerolls_allowed: digitos === "" ? 0 : Math.min(10, Number(digitos)) });
+              }}
             />
           </div>
           <div className="field">

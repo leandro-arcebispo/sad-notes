@@ -627,10 +627,28 @@ input[type="checkbox"]:disabled {
   color: #1a1208;
   border-color: var(--accent);
 }
+/* Duas colunas, como sempre foi — o que muda e o `minmax(0, ...)`: `1fr`
+   sozinho e `minmax(auto, 1fr)`, e esse `auto` impedia a coluna de encolher
+   abaixo do min-content, empurrando Rodadas e Notas pra fora do painel. */
 .setup-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px 22px;
+}
+/* Apertou demais pra duas colunas: empilha. */
+@media (max-width: 760px) {
+  .setup-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.setup-grid > .field {
+  min-width: 0;
+}
+.field > .input,
+.field > .select,
+.field > .textarea {
+  min-width: 0;
+  max-width: 100%;
 }
 .seg {
   display: flex;
@@ -708,14 +726,24 @@ input[type="checkbox"]:disabled {
 }
 
 /* passo 3: resultado */
+/* `minmax(0, ...)` em toda trilha: o padrao de uma trilha de grid é
+   `minmax(auto, ...)`, e esse `auto` impede encolher abaixo do min-content
+   do conteudo. Era o que fazia a linha transbordar ao dar zoom — o conteudo
+   media 877px numa caixa de 549px. */
 .final-row {
   display: grid;
-  grid-template-columns: 200px auto 1fr;
+  grid-template-columns: minmax(0, 200px) minmax(0, auto) minmax(0, 1fr);
   gap: 16px;
   align-items: center;
   padding: 12px;
   border: 2px solid var(--panel-border);
   background: rgba(0, 0, 0, 0.2);
+}
+/* Abaixo disto a linha de 3 colunas nao cabe mais: empilha. */
+@media (max-width: 1100px) {
+  .final-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 .final-row.winner {
   border-color: var(--accent);
@@ -725,9 +753,12 @@ input[type="checkbox"]:disabled {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
 }
+/* Sem `wrap` as 6 caixinhas somavam 424px fixos e vazavam da coluna. */
 .final-stats {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 .numbox {
@@ -735,6 +766,13 @@ input[type="checkbox"]:disabled {
   flex-direction: column;
   gap: 3px;
   width: 64px;
+  /* `<input>` carrega uma largura minima propria do navegador (~20
+     caracteres). Sem zerar, o flex item se recusa a encolher. */
+  min-width: 0;
+}
+.numbox .input {
+  min-width: 0;
+  width: 100%;
 }
 .numbox .input {
   padding: 6px 8px;
@@ -1685,7 +1723,7 @@ img.card-art {
   border-color: var(--accent-dim);
 }
 .run-stat-icon {
-  font-size: 0.9em;
+  font-size: inherit;
 }
 .run-stat-value {
   color: var(--text);
@@ -1995,3 +2033,160 @@ img.card-art {
   background: var(--panel);
   font-size: 13px;
 }
+
+/* Aviso de rascunho restaurado (lib/use-form-draft.ts). */
+.draft-notice {
+  /* O <span> solto dentro do aviso herdava a fonte de corpo. */
+  font-family: var(--font-display);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-color: var(--accent-dim);
+}
+
+/* ========================= Celular =========================================
+   O app nasceu desktop-only: até aqui existia UMA media query em todo o
+   arquivo, e ela não tocava `.main` nem `.sidebar`. Numa tela de 375px a
+   moldura somava 512px (sidebar 216 + padding do main 80 + borda do frame 128
+   + padding do frame 88) e o conteúdo era espremido no que sobrava — logo na
+   Run, que foi escrita pra um celular em cima da mesa.
+   ========================================================================== */
+@media (max-width: 860px) {
+  /* A sidebar vira trilho de ícones. Os ícones já moram numa coluna de 56px
+     (`.nav-icon`), então basta estreitar e esconder os rótulos. */
+  .sidebar {
+    width: var(--sidebar-w);
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  .sidebar-brand {
+    height: 56px;
+    padding-left: 0;
+    justify-content: center;
+  }
+  .sidebar-brand img {
+    height: 34px;
+    /* O logo e largo: sem isto ele vaza do trilho de 56px. */
+    max-width: 100%;
+    object-fit: contain;
+  }
+  .nav-label,
+  .nav-group-label {
+    display: none;
+  }
+  .nav-divider {
+    margin: 6px 8px;
+  }
+
+  .main {
+    margin-left: var(--sidebar-w);
+    padding: 16px 12px;
+  }
+  /* Duas classes pra vencer o border-width que cada variante define em
+     frames.css (link estatico, entra depois no cascade). */
+  .frame.page-frame {
+    border-width: 28px;
+    padding: 18px 14px;
+    min-height: 0;
+  }
+  .page-head {
+    margin-bottom: 16px;
+  }
+  /* 34px quebrava o titulo no meio de uma palavra na largura do celular. */
+  .page-head .title {
+    font-size: 22px;
+  }
+
+  /* Tabela de 7 colunas não cabe: rolar na horizontal é melhor que espremer
+     cada coluna até ninguém conseguir ler. */
+  .panel:has(> .data-table) {
+    overflow-x: auto;
+  }
+  .data-table {
+    min-width: 560px;
+  }
+}
+
+@media (max-width: 560px) {
+  .main {
+    padding: 10px 6px;
+  }
+  /* Duas classes pra vencer o border-width que cada variante define em
+     frames.css (link estatico, entra depois no cascade). */
+  .frame.page-frame {
+    border-width: 16px;
+    padding: 12px 10px;
+  }
+
+  /* Alvos de toque: o × que apaga evento do Diário tinha 18x19px — pequeno
+     demais pro dedo, e é ação destrutiva. */
+  .run-log-del {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .run-evt {
+    min-height: 48px;
+  }
+  .run-collapse {
+    min-height: 44px;
+  }
+  .run-bar .btn,
+  .wizard-nav .btn {
+    min-height: 44px;
+  }
+}
+
+/* ======================= Tipografia: padronização ==========================
+   A revisão mediu 12 combinações fonte+tamanho convivendo só na Run, 7 na
+   Finalizar e 6 no Setup. A inconsistência real não eram os tamanhos (já
+   giravam em torno de 10/11/12) — era a FAMÍLIA vazando.
+   ========================================================================== */
+
+/* Escala. Tamanho novo sai daqui, não de um número solto no componente. */
+:root {
+  --fs-2xs: 10px;
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-md: 13px;
+  --fs-base: 14px;
+  --fs-lg: 15px;
+  --fs-xl: 18px;
+  --fs-2xl: 20px;
+}
+
+/* A regra: cromo de interface usa a fonte de display; texto corrido (textarea,
+   descrição de backlog) continua na de corpo, porque pixel font em frase longa
+   cansa de ler. */
+.muted,
+.run-log-text,
+.item-tag,
+.row-link,
+.winners-cell,
+.items-cell,
+.treasure-chip,
+.treasure-result,
+.tourney-name,
+.tourney-roster-chip {
+  font-family: var(--font-display);
+  letter-spacing: 0.02em;
+}
+
+/* O × que apaga evento do Diário saía em ARIAL — fonte que não existe no
+   design system. `<button>` não herda a fonte da página sozinho, e a regra
+   zerava `background`/`border` mas nunca declarou `font`. */
+.run-log-del {
+  font-family: var(--font-display);
+}
+
+/* 0.9em dentro de um pai de 14px dava 12.6px: pixel font em tamanho
+   fracionário renderiza borrada, justo o oposto do `image-rendering:
+   pixelated` que o resto do app persegue. */
+.run-stat-icon {
+  font-size: var(--fs-base);
+}
+.run-stat.big .run-stat-icon {
+  font-size: var(--fs-xl);
+}
+
