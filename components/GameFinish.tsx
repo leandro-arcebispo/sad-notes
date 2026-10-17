@@ -393,12 +393,38 @@ function NumBox({
   return (
     <label className="numbox">
       <span className="mini-label">{label}</span>
+      {/*
+        `type="text"` e não `number`, de propósito. Com `type="number"` o React
+        compara o valor NUMERICAMENTE e pula a escrita no DOM quando são
+        equivalentes — é proposital, pra não atrapalhar quem digita "1." ou
+        "0,5". O efeito colateral aqui era que digitar 7 sobre o 0 inicial
+        deixava "07" na tela (o estado ia certo, 7, mas a tela mentia), e
+        digitar antes do zero virava "40" — esse salvava o número errado.
+        Nenhuma normalização no onChange resolveria: ela era ignorada na
+        hora de pintar.
+
+        `inputMode="numeric"` mantém o teclado numérico no celular.
+      */}
       <input
         className="input"
-        type="number"
-        min={0}
-        value={value}
-        onChange={(e) => onChange(Math.max(0, Math.trunc(Number(e.target.value)) || 0))}
+        type="text"
+        inputMode="numeric"
+        value={String(value)}
+        // Seleciona ao focar: o primeiro dígito substitui o que estava lá,
+        // então não importa onde o cursor caiu.
+        onFocus={(e) => e.currentTarget.select()}
+        // Num clique de mouse o navegador posiciona o cursor no mouseup,
+        // DEPOIS do focus — o que desfaria a seleção. Reseleciona no click,
+        // mas só se não houver trecho escolhido, pra não atrapalhar quem
+        // arrastou pra selecionar de propósito.
+        onClick={(e) => {
+          const el = e.currentTarget;
+          if (el.selectionStart === el.selectionEnd) el.select();
+        }}
+        onChange={(e) => {
+          const digitos = e.target.value.replace(/\D/g, "");
+          onChange(digitos === "" ? 0 : Math.min(9999, Number(digitos)));
+        }}
       />
     </label>
   );

@@ -627,10 +627,28 @@ input[type="checkbox"]:disabled {
   color: #1a1208;
   border-color: var(--accent);
 }
+/* Duas colunas, como sempre foi — o que muda e o `minmax(0, ...)`: `1fr`
+   sozinho e `minmax(auto, 1fr)`, e esse `auto` impedia a coluna de encolher
+   abaixo do min-content, empurrando Rodadas e Notas pra fora do painel. */
 .setup-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px 22px;
+}
+/* Apertou demais pra duas colunas: empilha. */
+@media (max-width: 760px) {
+  .setup-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.setup-grid > .field {
+  min-width: 0;
+}
+.field > .input,
+.field > .select,
+.field > .textarea {
+  min-width: 0;
+  max-width: 100%;
 }
 .seg {
   display: flex;
@@ -708,14 +726,24 @@ input[type="checkbox"]:disabled {
 }
 
 /* passo 3: resultado */
+/* `minmax(0, ...)` em toda trilha: o padrao de uma trilha de grid é
+   `minmax(auto, ...)`, e esse `auto` impede encolher abaixo do min-content
+   do conteudo. Era o que fazia a linha transbordar ao dar zoom — o conteudo
+   media 877px numa caixa de 549px. */
 .final-row {
   display: grid;
-  grid-template-columns: 200px auto 1fr;
+  grid-template-columns: minmax(0, 200px) minmax(0, auto) minmax(0, 1fr);
   gap: 16px;
   align-items: center;
   padding: 12px;
   border: 2px solid var(--panel-border);
   background: rgba(0, 0, 0, 0.2);
+}
+/* Abaixo disto a linha de 3 colunas nao cabe mais: empilha. */
+@media (max-width: 1100px) {
+  .final-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 .final-row.winner {
   border-color: var(--accent);
@@ -725,9 +753,12 @@ input[type="checkbox"]:disabled {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
 }
+/* Sem `wrap` as 6 caixinhas somavam 424px fixos e vazavam da coluna. */
 .final-stats {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 .numbox {
@@ -735,6 +766,13 @@ input[type="checkbox"]:disabled {
   flex-direction: column;
   gap: 3px;
   width: 64px;
+  /* `<input>` carrega uma largura minima propria do navegador (~20
+     caracteres). Sem zerar, o flex item se recusa a encolher. */
+  min-width: 0;
+}
+.numbox .input {
+  min-width: 0;
+  width: 100%;
 }
 .numbox .input {
   padding: 6px 8px;

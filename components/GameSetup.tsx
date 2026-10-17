@@ -241,13 +241,20 @@ export default function GameSetup({
             <label>Almas para vencer</label>
             <input
               className="input"
-              type="number"
-              min={1}
-              max={20}
-              value={params.souls_to_win}
-              onChange={(e) =>
-                patchParams({ souls_to_win: Math.max(1, Number(e.target.value) || 1) })
-              }
+              type="text"
+              inputMode="numeric"
+              value={String(params.souls_to_win)}
+              onFocus={(e) => e.currentTarget.select()}
+              onClick={(e) => {
+                const el = e.currentTarget;
+                if (el.selectionStart === el.selectionEnd) el.select();
+              }}
+              onChange={(e) => {
+                const digitos = e.target.value.replace(/\D/g, "");
+                patchParams({
+                  souls_to_win: digitos === "" ? 1 : Math.min(20, Math.max(1, Number(digitos))),
+                });
+              }}
             />
             {params.format !== "solo" && (
               <span className="muted" style={{ fontSize: 12 }}>
@@ -280,13 +287,18 @@ export default function GameSetup({
             <label>Re-rolls permitidos</label>
             <input
               className="input"
-              type="number"
-              min={0}
-              max={10}
-              value={params.rerolls_allowed}
-              onChange={(e) =>
-                patchParams({ rerolls_allowed: Math.max(0, Number(e.target.value) || 0) })
-              }
+              type="text"
+              inputMode="numeric"
+              value={String(params.rerolls_allowed)}
+              onFocus={(e) => e.currentTarget.select()}
+              onClick={(e) => {
+                const el = e.currentTarget;
+                if (el.selectionStart === el.selectionEnd) el.select();
+              }}
+              onChange={(e) => {
+                const digitos = e.target.value.replace(/\D/g, "");
+                patchParams({ rerolls_allowed: digitos === "" ? 0 : Math.min(10, Number(digitos)) });
+              }}
             />
           </div>
           <div className="field">
