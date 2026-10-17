@@ -2190,28 +2190,3 @@ img.card-art {
   font-size: var(--fs-xl);
 }
 
-/* Ícone do evento no Diário da Run. */
-.run-log-icon {
-  width: 20px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: none;
-}
-.game-icon {
-  object-fit: contain;
-  image-rendering: pixelated;
-  flex: none;
-}
-.run-evt-icon {
-  display: inline-flex;
-  align-items: center;
-}
-
-/* "Ganhou" e "perdeu alma" compartilham o sprite do fantasma: sem distinguir,
-   os dois botões ficavam idênticos na paleta. A alma perdida aparece
-   esmaecida — some a cor, fica o contorno. */
-[data-evt="alma_perdida"] .game-icon {
-  filter: grayscale(1) brightness(1.5);
-  opacity: 0.5;
-}

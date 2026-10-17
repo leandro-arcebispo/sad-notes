@@ -1,5 +1,15 @@
 # PROPOSTA — Ícones temáticos (2026-10-16)
 
+> ⚠️ **TENTADO E REVERTIDO em 2026-10-17.** Foi implementado (commit 695a2ac)
+> e o usuário pediu rollback: *"não ficou bom"*. O que ficou de pé foi só a
+> **padronização de tipografia**, que vinha no mesmo commit. Os PNGs copiados
+> pra `design-system/img/game/` foram removidos junto.
+>
+> Antes de tentar de novo, perguntar **o que** não funcionou: a arte em si, o
+> filtro `grayscale` da sidebar que apaga os ícones fora do item ativo, o
+> tamanho, ou a ideia toda. A proposta abaixo continua válida como
+> levantamento do que existe no catálogo.
+
 > Substituir os ícones genéricos (SVG de traço e emoji) por arte do próprio
 > jogo. **Nada implementado ainda** — é proposta pra aprovar.
 >
