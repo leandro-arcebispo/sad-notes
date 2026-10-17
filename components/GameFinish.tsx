@@ -12,7 +12,7 @@ import type { DerivedPlayerStats, GameFull } from "@/lib/types";
 
 /**
  * **Etapa de finalização** — só estado final, e boa parte dele já vem
- * **derivada dos eventos** da Run (almas, mortes, PvP kills, duração). O
+ * **derivada dos eventos** da Run (almas, mortes, PK, duração). O
  * usuário confirma ou corrige: divergência entre o que ele digita e o que os
  * eventos dizem é **avisada, nunca bloqueada** — alma pode ter sido roubada ou
  * destruída, e quem estava na mesa manda. Ver docs/PLANO-PARTIDAS.md §7.3.
@@ -183,7 +183,7 @@ export default function GameFinish({
     const diffs: string[] = [];
     if (Math.max(0, d.souls) !== r.souls) diffs.push(`almas ${Math.max(0, d.souls)}`);
     if (d.deaths !== r.deaths) diffs.push(`mortes ${d.deaths}`);
-    if (d.pvp_kills !== r.pvp_kills) diffs.push(`PvP ${d.pvp_kills}`);
+    if (d.pvp_kills !== r.pvp_kills) diffs.push(`PK ${d.pvp_kills}`);
     return diffs.length ? `diário registrou ${diffs.join(" · ")}` : null;
   }
 
@@ -338,7 +338,7 @@ export default function GameFinish({
                 <NumBox label="Loot" value={r.loot_in_hand} onChange={(v) => patch(r.player_id, { loot_in_hand: v })} />
                 <NumBox label="Tesouros" value={r.treasures} onChange={(v) => patch(r.player_id, { treasures: v })} />
                 <NumBox label="Mortes" value={r.deaths} onChange={(v) => patch(r.player_id, { deaths: v })} />
-                <NumBox label="PvP" value={r.pvp_kills} onChange={(v) => patch(r.player_id, { pvp_kills: v })} />
+                <NumBox label="PK" value={r.pvp_kills} onChange={(v) => patch(r.player_id, { pvp_kills: v })} />
               </div>
               <div className="final-items">
                 <label className="mini-label">Tesouros</label>

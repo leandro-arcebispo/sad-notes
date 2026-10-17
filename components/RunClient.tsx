@@ -443,7 +443,7 @@ export default function RunClient({
                     nada pra quem olha o placar. O evento segue gravado. */}
                 <Stat icon="👻" label="almas" value={Math.max(0, d?.souls ?? 0)} big />
                 <Stat icon="💀" label="mortes" value={d?.deaths ?? 0} />
-                <Stat icon="🗡️" label="PvP" value={d?.pvp_kills ?? 0} />
+                <Stat icon="🗡️" label="PK (matou jogador)" value={d?.pvp_kills ?? 0} />
                 <Stat icon="👹" label="monstros" value={d?.monsters ?? 0} />
                 <Stat icon="🩸" label="maldições" value={d?.curses ?? 0} />
               </div>
