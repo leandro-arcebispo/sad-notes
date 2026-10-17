@@ -2284,6 +2284,44 @@ não a entidade genérica. Construir o caso real primeiro é o que vai mostrar o
 que a entidade genérica precisa ter. O usuário disse explicitamente: "depois
 faremos genérico".
 
+### Correções da revisão — 5 itens atacados (2026-10-16)
+
+Branch `fix/revisao-partidas`, 5 commits, **nada tocou o banco** (pedido do
+usuário). Ordem seguida: perda de dados → celular → navegação → duração →
+tipografia/ícones. Cada item foi medido antes e depois no app rodando.
+
+1. **Rascunho de formulário** (`lib/use-form-draft.ts`, localStorage). Três
+   detalhes que só o teste pegou: restaurar roda em efeito e não no
+   initializer do `useState` (localStorage não existe no servidor e ler lá
+   quebra a hidratação); trava de gravação até a restauração acontecer,
+   senão o efeito de salvar grava o formulário vazio por cima do rascunho
+   recém-lido; e **formulário igual ao estado inicial não tem rascunho**, sem
+   o que "Descartar" regravava o que acabou de ser descartado.
+2. **Celular.** Largura útil na Run **159px → 255px**. A regra do frame
+   precisou de DUAS classes (`.frame.page-frame`): cada variante define o
+   próprio `border-width` em `frames.css`, que é `<link>` estático e por isso
+   ganhava de `.page-frame` no desempate por ordem.
+3. **Navegação.** `router.replace` depois de criar; `<a href>` da Run virou
+   `<Link>` (o href cru recarregava a página e levava junto a fila local de
+   eventos não enviados).
+4. **Duração.** Teto de 1h depois do último sinal de vida: **49448 min → 61
+   min** nas 4 partidas abertas. `deriveIdleDays` alimenta o aviso de
+   "parada há N dias" na Run.
+5. **Tipografia + ícones.** Run com uma família só. Os PNGs dos ícones são
+   **cópias com nome fixo** em `design-system/img/game/` — os sprites
+   recortados têm hash no nome e em produção os hashes são outros, então
+   nenhum ícone depende do banco pra ser desenhado.
+
+⚠️ **Armadilha nova: não rode `npm run build` com o preview `next dev`
+ligado.** O build sobrescreve `.next` e o dev passa a servir 500 com
+`Cannot find module './5611.js'` vindo do `webpack-runtime.js` — parece
+regressão de código e não é. Conserto: parar o preview, `rm -rf .next`,
+subir de novo.
+
+Pendências que ficaram de fora: partidas em andamento indistinguíveis na
+lista (item 6 da revisão) e os ~54 `fontSize` inline, que continuam números
+soltos apesar dos tokens novos.
+
 ## Onde as coisas estão (mapa rápido)
 
 ```
