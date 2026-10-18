@@ -21,11 +21,13 @@ const TIEBREAK_STATS: {
   { key: "coins", icon: "coins", label: "Moedas" },
 ];
 
-/** Monstros derrotados: coluna informativa depois do desempate — vem do
- * Diário da Run e não decide posição nenhuma. */
+/** Monstros derrotados e mortes sofridas: colunas informativas depois do
+ * desempate — não decidem posição nenhuma. Monstros vêm do Diário da Run;
+ * mortes, do placar da finalização. */
 const MONSTER_ICON = EVENT_TYPE_DEFS.monstro_derrotado.icon;
+const EXTRA_COLS = 2;
 
-const COLS = 5 + TIEBREAK_STATS.length + 1;
+const COLS = 5 + TIEBREAK_STATS.length + EXTRA_COLS;
 
 /**
  * Tela de torneio. O chaveamento é estático (`lib/tournament-defs.ts`) e a
@@ -237,7 +239,7 @@ export default function TournamentClient({
               <th colSpan={3} />
               <th colSpan={2}>Classificação</th>
               <th colSpan={TIEBREAK_STATS.length}>Desempate →</th>
-              <th>Diário</th>
+              <th colSpan={EXTRA_COLS}>Fora do desempate</th>
             </tr>
             <tr>
               <th className="col-rank">#</th>
@@ -263,6 +265,15 @@ export default function TournamentClient({
                 <span className="th-icon th-icon-stack">
                   <span className="th-emoji">{MONSTER_ICON}</span>
                   Monstros
+                </span>
+              </th>
+              <th
+                className="col-num col-stat"
+                title="Mortes sofridas, do placar da finalização — não entra no desempate"
+              >
+                <span className="th-icon th-icon-stack">
+                  <StatIcon name="deaths" size={20} />
+                  Mortes
                 </span>
               </th>
             </tr>
@@ -320,6 +331,10 @@ export default function TournamentClient({
                         <span className="tourney-chip" title="Monstros derrotados (Diário da Run)">
                           {MONSTER_ICON} {r.monsters ?? "—"}
                         </span>
+                        <span className="tourney-chip" title="Mortes sofridas">
+                          <StatIcon name="deaths" size={14} />
+                          {r.deaths}
+                        </span>
                       </div>
                     </td>
                     <td className="col-played tourney-dim">{r.played}</td>
@@ -341,6 +356,7 @@ export default function TournamentClient({
                     >
                       {r.monsters ?? "—"}
                     </td>
+                    <td className="col-stat tourney-dim">{r.deaths}</td>
                   </tr>
                   {r.rank === def.finalists && standings.length > def.finalists && (
                     <tr className="tourney-cut">
@@ -356,8 +372,8 @@ export default function TournamentClient({
       <div className="muted" style={{ fontSize: 12 }}>
         ★ = entre os {def.finalists} que vão para a Grande Final. Empate em pontos se
         resolve na ordem das colunas: 1ºs lugares → almas → tesouros → loots → moedas. Em
-        dourado, o critério que separou o jogador do de baixo. {MONSTER_ICON} Monstros vêm
-        do Diário da Run e não desempatam (— = mesa registrada sem Run).
+        dourado, o critério que separou o jogador do de baixo. Monstros e mortes não
+        desempatam; os monstros vêm do Diário da Run (— = mesa registrada sem Run).
       </div>
 
       {/* --------------------------------- mesas ----------------------------- */}
