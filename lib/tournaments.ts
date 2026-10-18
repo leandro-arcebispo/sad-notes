@@ -37,6 +37,9 @@ export interface TableResult {
   loot_in_hand: number;
   coins: number;
   is_winner: boolean;
+  /** Monstros derrotados, contados no Diário da Run. `null` = a mesa não tem
+   * Diário (registrada sem Run), então o número é desconhecido — não zero. */
+  monsters: number | null;
   /** Empatou em TODOS os critérios com o vizinho — a ordem entre eles é
    * arbitrária e a tela avisa, em vez de fingir que decidiu. */
   tied: boolean;
@@ -67,6 +70,9 @@ export interface StandingRow {
   treasures: number;
   loot_in_hand: number;
   coins: number;
+  /** Soma dos monstros das mesas que têm Diário; `null` se nenhuma tem.
+   * Só informativo: NÃO entra no desempate (não está em STANDING_CRITERIA). */
+  monsters: number | null;
   rank: number;
   /** Está entre os que passam pra final? */
   qualified: boolean;
@@ -253,6 +259,24 @@ export async function getTournamentState(def: TournamentDef): Promise<Tournament
     [def.id]
   );
 
+  // Monstros saem do Diário (eventos), não do snapshot da finalização. Mesa
+  // sem evento nenhum foi registrada sem Run: ali o número é desconhecido.
+  const monsterRows = await all<{ game_id: number; player_id: number | null; monsters: number }>(
+    `SELECT e.game_id, e.player_id,
+            SUM(CASE WHEN e.type = 'monstro_derrotado' THEN e.amount ELSE 0 END) AS monsters
+       FROM game_events e
+       JOIN games g ON g.id = e.game_id
+      WHERE g.tournament_id = ? AND e.deleted_at IS NULL
+      GROUP BY e.game_id, e.player_id`,
+    [def.id]
+  );
+  const gamesWithLog = new Set(monsterRows.map((m) => m.game_id));
+  const monstersOf = new Map(
+    monsterRows.map((m) => [`${m.game_id}:${m.player_id}`, Number(m.monsters)])
+  );
+  const monstersFor = (gameId: number, playerId: number): number | null =>
+    gamesWithLog.has(gameId) ? monstersOf.get(`${gameId}:${playerId}`) ?? 0 : null;
+
   const bySlot = new Map<string, GamePlayerRowLite[]>();
   for (const r of rows) {
     const key = r.tournament_slot ?? "";
@@ -286,6 +310,7 @@ export async function getTournamentState(def: TournamentDef): Promise<Tournament
         loot_in_hand: r.loot_in_hand,
         coins: r.coins,
         is_winner: r.is_winner === 1,
+        monsters: monstersFor(r.game_id, r.player_id),
         tied:
           (i > 0 && fullyTied(r, sorted[i - 1])) ||
           (i < sorted.length - 1 && fullyTied(r, sorted[i + 1])),
@@ -340,6 +365,7 @@ function buildStandings(def: TournamentDef, tables: TournamentTableState[]): Sta
         treasures: 0,
         loot_in_hand: 0,
         coins: 0,
+        monsters: null,
         rank: 0,
         qualified: false,
         decided_by: null,
@@ -370,6 +396,7 @@ function buildStandings(def: TournamentDef, tables: TournamentTableState[]): Sta
       row.treasures += r.treasures;
       row.loot_in_hand += r.loot_in_hand;
       row.coins += r.coins;
+      if (r.monsters != null) row.monsters = (row.monsters ?? 0) + r.monsters;
     }
   }
 
