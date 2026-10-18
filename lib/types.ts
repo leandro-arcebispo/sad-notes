@@ -473,6 +473,16 @@ export interface GamePayload {
 export interface GameListItem extends Game {
   num_players: number;
   winners: string[]; // nomes dos vencedores
+  /** Resumo do Diário pra lista de partidas. Os contadores vêm dos eventos
+   * vivos (zerados em partida registrada sem Run); `treasures` vem da
+   * finalização (`game_player_treasures`), que é onde tesouro mora. */
+  log: {
+    events: number;
+    monsters: number;
+    deaths: number;
+    curses: number;
+    treasures: number;
+  };
 }
 
 /** Um Tesouro possuído numa partida, já resolvido pra exibição (ícone). */

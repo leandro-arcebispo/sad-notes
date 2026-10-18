@@ -4,6 +4,9 @@ import Frame from "@/components/Frame";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import DeleteGameButton from "@/components/DeleteGameButton";
 import StatIcon from "@/components/StatIcon";
+import GameLog from "@/components/GameLog";
+import GameRunSummary from "@/components/GameRunSummary";
+import { listEvents } from "@/lib/game-events";
 import { getGame } from "@/lib/games";
 import { assetUrl } from "@/lib/asset-url";
 import { GAME_STATUS_LABELS, type Edition, type GameFormat } from "@/lib/types";
@@ -19,8 +22,13 @@ export default async function PartidaDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const game = await getGame(Number((await params).id));
+  const id = Number((await params).id);
+  const [game, events] = await Promise.all([getGame(id), listEvents(id)]);
   if (!game) notFound();
+  const winners = game.players.filter((p) => p.is_winner).map((p) => p.player_name);
+  const hasTreasures = game.players.some(
+    (p) => p.owned_treasures.length > 0 || p.items.length > 0
+  );
 
   // O detalhe é a visão de REGISTRO da partida (vale pra finalizada e pra
   // abandonada também). Enquanto ela está rolando, quem manda é a Run — aqui
@@ -147,6 +155,21 @@ export default async function PartidaDetailPage({
             </tbody>
           </table>
         </div>
+
+        {(events.length > 0 || hasTreasures) && (
+          <GameRunSummary
+            players={game.players}
+            events={events}
+            isTeamGame={game.format !== "solo"}
+          />
+        )}
+
+        <GameLog
+          events={events}
+          status={game.status}
+          endedAt={game.ended_at}
+          winners={winners}
+        />
       </div>
     </Frame>
   );
