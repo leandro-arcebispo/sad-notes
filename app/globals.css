@@ -2027,7 +2027,7 @@ img.card-art {
 .tourney-standings .col-places {
   width: 13%;
 }
-/* 10 colunas: o padding padrão da .data-table (14px) sozinho somava 280px. */
+/* 11 colunas: o padding padrão da .data-table (14px) sozinho somava 308px. */
 .data-table.tourney-standings th,
 .data-table.tourney-standings td {
   padding-left: 8px;
@@ -2105,9 +2105,9 @@ img.card-art {
 .tourney-lbl-short {
   display: none;
 }
-/* A tabela completa mede ~745px com nomes do tamanho de "Robertinho" (~670
-   antes da coluna de Monstros). */
-@container (max-width: 760px) {
+/* A tabela completa mede ~810px com nomes do tamanho de "Robertinho" (~670
+   antes das colunas de Monstros e Mortes). */
+@container (max-width: 820px) {
   /* Esta tabela se reorganiza em vez de rolar: anula qualquer min-width de
      celular que a .data-table genérica ganhe. */
   .data-table.tourney-standings {

@@ -40,6 +40,9 @@ export interface TableResult {
   /** Monstros derrotados, contados no Diário da Run. `null` = a mesa não tem
    * Diário (registrada sem Run), então o número é desconhecido — não zero. */
   monsters: number | null;
+  /** Mortes sofridas, do placar da finalização (`game_players.deaths`) —
+   * existe até em mesa registrada sem Run. */
+  deaths: number;
   /** Empatou em TODOS os critérios com o vizinho — a ordem entre eles é
    * arbitrária e a tela avisa, em vez de fingir que decidiu. */
   tied: boolean;
@@ -73,6 +76,9 @@ export interface StandingRow {
   /** Soma dos monstros das mesas que têm Diário; `null` se nenhuma tem.
    * Só informativo: NÃO entra no desempate (não está em STANDING_CRITERIA). */
   monsters: number | null;
+  /** Soma das mortes sofridas nas mesas. Também só informativo: NÃO entra
+   * no desempate. */
+  deaths: number;
   rank: number;
   /** Está entre os que passam pra final? */
   qualified: boolean;
@@ -132,6 +138,7 @@ interface GamePlayerRowLite {
   treasures: number;
   loot_in_hand: number;
   coins: number;
+  deaths: number;
   is_winner: number;
 }
 
@@ -250,7 +257,7 @@ export async function getTournamentState(def: TournamentDef): Promise<Tournament
   const rows = await all<GamePlayerRowLite>(
     `SELECT g.id AS game_id, g.tournament_slot, g.status,
             gp.player_id, p.name, p.base_face, p.avatar_cache,
-            gp.souls, gp.treasures, gp.loot_in_hand, gp.coins, gp.is_winner
+            gp.souls, gp.treasures, gp.loot_in_hand, gp.coins, gp.deaths, gp.is_winner
        FROM games g
        JOIN game_players gp ON gp.game_id = g.id
        JOIN players p ON p.id = gp.player_id
@@ -311,6 +318,7 @@ export async function getTournamentState(def: TournamentDef): Promise<Tournament
         coins: r.coins,
         is_winner: r.is_winner === 1,
         monsters: monstersFor(r.game_id, r.player_id),
+        deaths: r.deaths,
         tied:
           (i > 0 && fullyTied(r, sorted[i - 1])) ||
           (i < sorted.length - 1 && fullyTied(r, sorted[i + 1])),
@@ -366,6 +374,7 @@ function buildStandings(def: TournamentDef, tables: TournamentTableState[]): Sta
         loot_in_hand: 0,
         coins: 0,
         monsters: null,
+        deaths: 0,
         rank: 0,
         qualified: false,
         decided_by: null,
@@ -397,6 +406,7 @@ function buildStandings(def: TournamentDef, tables: TournamentTableState[]): Sta
       row.loot_in_hand += r.loot_in_hand;
       row.coins += r.coins;
       if (r.monsters != null) row.monsters = (row.monsters ?? 0) + r.monsters;
+      row.deaths += r.deaths;
     }
   }
 
