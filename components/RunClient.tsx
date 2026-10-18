@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import PlayerAvatar from "./PlayerAvatar";
-import { EVENT_TYPE_DEFS } from "@/lib/game-events";
+import { EVENT_TYPE_DEFS, describeEvent } from "@/lib/game-events";
 import {
   GAME_STATUS_LABELS,
   type Character,
@@ -591,7 +591,7 @@ export default function RunClient({
             {[...events].reverse().map((e) => (
               <li key={e.id} className="run-log-item">
                 <span className="run-log-seq">#{e.seq}</span>
-                <span className="run-log-text">{describe(e)}</span>
+                <span className="run-log-text">{describeEvent(e)}</span>
                 <span className="muted run-log-meta">
                   {e.round != null ? `R${e.round}` : ""}
                   {e.created_by_name ? ` · ${e.created_by_name}` : ""}
@@ -686,39 +686,4 @@ function Stat({
       <span className="run-stat-value">{value}</span>
     </span>
   );
-}
-
-/** Frase do Diário. O significado de cada operando vem do tipo do evento — é
- * por isso que as colunas são `player_id`/`other_player_id` e não
- * `actor`/`target`: em "morte" o sujeito é quem SOFREU a ação. */
-function describe(e: GameEventFull): string {
-  const def = EVENT_TYPE_DEFS[e.type];
-  const who = e.player_name ?? "alguém";
-  const other = e.other_player_name;
-  const ref = e.ref_name;
-
-  switch (e.type) {
-    case "morte":
-      return other ? `${def.icon} ${who} morreu — ${other} matou` : `${def.icon} ${who} morreu`;
-    case "alma_ganha":
-      return `${def.icon} ${who} ganhou uma alma${ref ? ` (${ref})` : ""}`;
-    case "alma_perdida":
-      return `${def.icon} ${who} perdeu uma alma`;
-    case "alma_roubada":
-      return `${def.icon} ${who} roubou uma alma de ${other ?? "alguém"}`;
-    case "monstro_derrotado":
-      return `${def.icon} ${who} derrotou ${ref ?? "um monstro"}`;
-    case "maldicao_recebida":
-      return `${def.icon} ${who} pegou ${ref ?? "uma maldição"}`;
-    case "personagem_sorteado":
-      return `${def.icon} ${who} tirou ${ref ?? "um personagem"}`;
-    case "pause":
-      return `${def.icon} partida pausada`;
-    case "resume":
-      return `${def.icon} partida retomada`;
-    case "nota":
-      return `${def.icon} ${who}: ${ref ?? ""}`;
-    default:
-      return `${def.icon} ${def.label}`;
-  }
 }

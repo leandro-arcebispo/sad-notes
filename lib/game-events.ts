@@ -159,6 +159,42 @@ export function manualEventTypes(): GameEventType[] {
   );
 }
 
+/** Frase do Diário. O significado de cada operando vem do tipo do evento — é
+ * por isso que as colunas são `player_id`/`other_player_id` e não
+ * `actor`/`target`: em "morte" o sujeito é quem SOFREU a ação. Usada pelo
+ * Diário da Run e pelo da tela de detalhe da partida. */
+export function describeEvent(e: GameEventFull): string {
+  const def = EVENT_TYPE_DEFS[e.type];
+  const who = e.player_name ?? "alguém";
+  const other = e.other_player_name;
+  const ref = e.ref_name;
+
+  switch (e.type) {
+    case "morte":
+      return other ? `${def.icon} ${who} morreu — ${other} matou` : `${def.icon} ${who} morreu`;
+    case "alma_ganha":
+      return `${def.icon} ${who} ganhou uma alma${ref ? ` (${ref})` : ""}`;
+    case "alma_perdida":
+      return `${def.icon} ${who} perdeu uma alma`;
+    case "alma_roubada":
+      return `${def.icon} ${who} roubou uma alma de ${other ?? "alguém"}`;
+    case "monstro_derrotado":
+      return `${def.icon} ${who} derrotou ${ref ?? "um monstro"}`;
+    case "maldicao_recebida":
+      return `${def.icon} ${who} pegou ${ref ?? "uma maldição"}`;
+    case "personagem_sorteado":
+      return `${def.icon} ${who} tirou ${ref ?? "um personagem"}`;
+    case "pause":
+      return `${def.icon} partida pausada`;
+    case "resume":
+      return `${def.icon} partida retomada`;
+    case "nota":
+      return `${def.icon} ${who}: ${ref ?? ""}`;
+    default:
+      return `${def.icon} ${def.label}`;
+  }
+}
+
 /**
  * Acrescenta um evento. **Idempotente por `client_event_id`** (§6.1 do plano):
  * celular com rede ruim reenvia, e sem isso nasceriam mortes fantasmas — o

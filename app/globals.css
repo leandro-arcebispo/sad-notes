@@ -1797,6 +1797,117 @@ img.card-art {
   font: inherit;
 }
 
+/* ===================== Diário na tela de detalhe/lista =====================
+   O registro da Run depois que ela acabou: reaproveita as peças do Diário
+   ao vivo (.run-log, .run-board, .run-stat) e só acrescenta o que é de
+   leitura — filtro por tipo, quebra por rodada, resumo por jogador.
+   ========================================================================== */
+.log-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  margin-top: 4px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.log-summary-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+
+.game-log-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+.game-log-filters {
+  flex-wrap: wrap;
+}
+.game-log-filters .seg-btn {
+  font-size: 12px;
+  padding: 5px 9px;
+}
+.game-log {
+  max-height: 640px;
+}
+.game-log-round {
+  font-family: var(--font-display);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  padding: 10px 8px 4px;
+  border-bottom: 1px dashed var(--accent-dim);
+}
+.game-log-pause,
+.game-log-resume,
+.game-log-personagem_sorteado {
+  color: var(--text-dim);
+}
+.game-log-end {
+  border-bottom: none;
+  border-top: 2px solid var(--accent-dim);
+  color: var(--accent);
+  font-family: var(--font-display);
+}
+
+.winner-card {
+  border-color: var(--accent-dim);
+}
+.player-log {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  font-size: 13px;
+}
+.player-log-line {
+  display: grid;
+  grid-template-columns: 104px 1fr;
+  gap: 8px;
+  align-items: baseline;
+}
+.player-log-line dt {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-display);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+}
+.player-log-line dd {
+  margin: 0;
+}
+.player-log-icon {
+  display: inline-flex;
+  width: 16px;
+  justify-content: center;
+}
+.player-log-treasures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.log-treasure {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text);
+}
+.log-treasure img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
 /* Celular sobre a mesa: uma coluna e botões maiores. */
 @media (max-width: 640px) {
   .run-board {
@@ -1805,6 +1916,13 @@ img.card-art {
   .run-evt {
     flex: 1 1 45%;
     justify-content: flex-start;
+  }
+  .player-log-line {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+  .game-log .run-log-item {
+    flex-wrap: wrap;
   }
 }
 

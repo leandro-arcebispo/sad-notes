@@ -456,20 +456,56 @@ export async function setCharacter(
 /* ================================ Leitura ================================= */
 
 export async function listGames(): Promise<GameListItem[]> {
-  const rows = await all<GameListItem & { winners_csv: string | null }>(
+  type Row = Omit<GameListItem, "winners" | "log"> & {
+    winners_csv: string | null;
+    log_events: number;
+    log_monsters: number;
+    log_deaths: number;
+    log_curses: number;
+    log_treasures: number;
+  };
+  // Contadores do Diário agregados numa passada só por tabela (LEFT JOIN em
+  // subconsulta agrupada) — nada de uma query por partida.
+  const rows = await all<Row>(
     `SELECT g.*,
        (SELECT COUNT(*) FROM game_players gp WHERE gp.game_id = g.id) AS num_players,
        (SELECT GROUP_CONCAT(p.name, ' • ')
           FROM game_players gp JOIN players p ON p.id = gp.player_id
-         WHERE gp.game_id = g.id AND gp.is_winner = 1) AS winners_csv
+         WHERE gp.game_id = g.id AND gp.is_winner = 1) AS winners_csv,
+       COALESCE(ev.total, 0)    AS log_events,
+       COALESCE(ev.monsters, 0) AS log_monsters,
+       COALESCE(ev.deaths, 0)   AS log_deaths,
+       COALESCE(ev.curses, 0)   AS log_curses,
+       COALESCE(tr.total, 0)    AS log_treasures
      FROM games g
+LEFT JOIN (SELECT game_id,
+                  COUNT(*) AS total,
+                  SUM(CASE WHEN type = 'monstro_derrotado' THEN amount ELSE 0 END) AS monsters,
+                  SUM(CASE WHEN type = 'morte' THEN amount ELSE 0 END) AS deaths,
+                  SUM(CASE WHEN type = 'maldicao_recebida' THEN amount ELSE 0 END) AS curses
+             FROM game_events
+            WHERE deleted_at IS NULL
+         GROUP BY game_id) ev ON ev.game_id = g.id
+LEFT JOIN (SELECT gp.game_id, COUNT(*) AS total
+             FROM game_player_treasures gpt
+             JOIN game_players gp ON gp.id = gpt.game_player_id
+         GROUP BY gp.game_id) tr ON tr.game_id = g.id
      ORDER BY g.played_at DESC, g.id DESC`
   );
 
-  return rows.map(({ winners_csv, ...g }) => ({
-    ...g,
-    winners: winners_csv ? winners_csv.split(" • ") : [],
-  }));
+  return rows.map(
+    ({ winners_csv, log_events, log_monsters, log_deaths, log_curses, log_treasures, ...g }) => ({
+      ...g,
+      winners: winners_csv ? winners_csv.split(" • ") : [],
+      log: {
+        events: Number(log_events),
+        monsters: Number(log_monsters),
+        deaths: Number(log_deaths),
+        curses: Number(log_curses),
+        treasures: Number(log_treasures),
+      },
+    })
+  );
 }
 
 export async function getGame(id: number): Promise<GameFull | undefined> {
