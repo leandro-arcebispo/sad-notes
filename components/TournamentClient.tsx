@@ -6,6 +6,7 @@ import Link from "next/link";
 import PlayerAvatar from "./PlayerAvatar";
 import StatIcon, { type StatIconName } from "./StatIcon";
 import type { StandingCriterion, TournamentState } from "@/lib/tournaments";
+import { EVENT_TYPE_DEFS } from "@/lib/game-events";
 import { GAME_STATUS_LABELS, type Player } from "@/lib/types";
 
 /** Colunas de desempate da classificação, na ordem em que o critério as lê. */
@@ -20,7 +21,11 @@ const TIEBREAK_STATS: {
   { key: "coins", icon: "coins", label: "Moedas" },
 ];
 
-const COLS = 5 + TIEBREAK_STATS.length;
+/** Monstros derrotados: coluna informativa depois do desempate — vem do
+ * Diário da Run e não decide posição nenhuma. */
+const MONSTER_ICON = EVENT_TYPE_DEFS.monstro_derrotado.icon;
+
+const COLS = 5 + TIEBREAK_STATS.length + 1;
 
 /**
  * Tela de torneio. O chaveamento é estático (`lib/tournament-defs.ts`) e a
@@ -232,6 +237,7 @@ export default function TournamentClient({
               <th colSpan={3} />
               <th colSpan={2}>Classificação</th>
               <th colSpan={TIEBREAK_STATS.length}>Desempate →</th>
+              <th>Diário</th>
             </tr>
             <tr>
               <th className="col-rank">#</th>
@@ -250,6 +256,15 @@ export default function TournamentClient({
                   </span>
                 </th>
               ))}
+              <th
+                className="col-num col-stat"
+                title="Monstros derrotados, contados no Diário da Run — não entra no desempate"
+              >
+                <span className="th-icon th-icon-stack">
+                  <span className="th-emoji">{MONSTER_ICON}</span>
+                  Monstros
+                </span>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -302,6 +317,9 @@ export default function TournamentClient({
                             {r[s.key]}
                           </span>
                         ))}
+                        <span className="tourney-chip" title="Monstros derrotados (Diário da Run)">
+                          {MONSTER_ICON} {r.monsters ?? "—"}
+                        </span>
                       </div>
                     </td>
                     <td className="col-played tourney-dim">{r.played}</td>
@@ -317,6 +335,12 @@ export default function TournamentClient({
                         {r[s.key]}
                       </td>
                     ))}
+                    <td
+                      className="col-stat tourney-dim"
+                      title={r.monsters == null ? "nenhuma mesa dele tem Diário da Run" : undefined}
+                    >
+                      {r.monsters ?? "—"}
+                    </td>
                   </tr>
                   {r.rank === def.finalists && standings.length > def.finalists && (
                     <tr className="tourney-cut">
@@ -332,7 +356,8 @@ export default function TournamentClient({
       <div className="muted" style={{ fontSize: 12 }}>
         ★ = entre os {def.finalists} que vão para a Grande Final. Empate em pontos se
         resolve na ordem das colunas: 1ºs lugares → almas → tesouros → loots → moedas. Em
-        dourado, o critério que separou o jogador do de baixo.
+        dourado, o critério que separou o jogador do de baixo. {MONSTER_ICON} Monstros vêm
+        do Diário da Run e não desempatam (— = mesa registrada sem Run).
       </div>
 
       {/* --------------------------------- mesas ----------------------------- */}
